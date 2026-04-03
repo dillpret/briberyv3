@@ -1,12 +1,16 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { SignalrService } from './core/signalr.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
-export class App {
-  protected readonly title = signal('bribery-game-client');
+export class App implements OnInit {
+  constructor(private signalr: SignalrService) {}
+
+  ngOnInit(): void {
+    this.signalr.start();
+  }
 }
