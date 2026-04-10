@@ -4,24 +4,39 @@ namespace BriberyGame.Api.Hubs;
 
 public class GameHub : Hub
 {
-    public override async Task OnConnectedAsync()
-    {
-        Console.WriteLine($"Connected: {Context.ConnectionId}");
+    private static readonly List<Player> Players = new();
 
-        var players = new[]
+    public async Task JoinLobby(string name)
+    {
+        var player = new Player
         {
-            new { id = "1", name = "Alice", connected = true },
-            new { id = "2", name = "Bob", connected = true }
+            Id = Context.ConnectionId,
+            Name = name,
+            Connected = true
         };
 
-        await Clients.Caller.SendAsync("PlayerListUpdated", players);
+        Players.Add(player);
 
-        await base.OnConnectedAsync();
+        await Clients.All.SendAsync("PlayerListUpdated", Players);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        Console.WriteLine($"Disconnected: {Context.ConnectionId}");
+        var player = Players.FirstOrDefault(p => p.Id == Context.ConnectionId);
+
+        if (player != null)
+        {
+            player.Connected = false;
+            await Clients.All.SendAsync("PlayerListUpdated", Players);
+        }
+
         await base.OnDisconnectedAsync(exception);
     }
+}
+
+public class Player
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public bool Connected { get; set; }
 }
