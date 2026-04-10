@@ -1,8 +1,10 @@
 using BriberyGame.Api.Hubs;
+using BriberyGame.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<GameService>();
 
 builder.Services.AddCors(options =>
 {

@@ -1,42 +1,39 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿namespace BriberyGame.Api.Hubs;
 
-namespace BriberyGame.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using BriberyGame.Api.Services;
 
 public class GameHub : Hub
 {
-    private static readonly List<Player> Players = new();
+    private readonly GameService _gameService;
+
+    public GameHub(GameService gameService)
+    {
+        _gameService = gameService;
+    }
 
     public async Task JoinLobby(string name)
     {
-        var player = new Player
-        {
-            Id = Context.ConnectionId,
-            Name = name,
-            Connected = true
-        };
+        var players = _gameService.Join(Context.ConnectionId, name);
 
-        Players.Add(player);
+        await Clients.All.SendAsync("PlayerListUpdated", players);
+    }
 
-        await Clients.All.SendAsync("PlayerListUpdated", Players);
+    public override async Task OnConnectedAsync()
+    {
+        var players = _gameService.GetGame().Players;
+
+        await Clients.Caller.SendAsync("PlayerListUpdated", players);
+
+        await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var player = Players.FirstOrDefault(p => p.Id == Context.ConnectionId);
+        var players = _gameService.Disconnect(Context.ConnectionId);
 
-        if (player != null)
-        {
-            player.Connected = false;
-            await Clients.All.SendAsync("PlayerListUpdated", Players);
-        }
+        await Clients.All.SendAsync("PlayerListUpdated", players);
 
         await base.OnDisconnectedAsync(exception);
     }
-}
-
-public class Player
-{
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public bool Connected { get; set; }
 }
