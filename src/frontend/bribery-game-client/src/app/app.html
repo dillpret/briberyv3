@@ -32,10 +32,16 @@
     <ul class="space-y-1">
       @for (player of players(); track player.id) {
         <li class="flex justify-between">
-          <span>{{ player.name }}</span>
+    <span>
+      {{ player.name }}
+      @if (player.id === hostPlayerId()) {
+        <strong>(Host)</strong>
+      }
+    </span>
+
           <span class="text-xs text-gray-500">
-            {{ player.connected ? 'online' : 'offline' }}
-          </span>
+      {{ player.connected ? 'online' : 'offline' }}
+    </span>
         </li>
       }
     </ul>

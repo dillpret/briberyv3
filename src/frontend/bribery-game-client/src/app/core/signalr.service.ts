@@ -16,8 +16,8 @@ export class SignalrService {
       .withAutomaticReconnect()
       .build();
 
-    this.connection.on('PlayerListUpdated', (players: Player[]) => {
-      this.gameState.setPlayers(players);
+    this.connection.on('LobbyUpdated', (state) => {
+      this.gameState.setLobbyState(state);
     });
 
     this.connection.on('JoinFailed', (message: string) => {

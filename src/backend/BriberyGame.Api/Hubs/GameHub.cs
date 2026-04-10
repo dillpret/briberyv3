@@ -14,17 +14,17 @@ public class GameHub : Hub
 
     public async Task JoinLobby(string gameId, string playerId, string name)
     {
-        var players = _gameService.Join(gameId, Context.ConnectionId, playerId, name);
+        var state = _gameService.Join(gameId, Context.ConnectionId, playerId, name);
 
-        if (players == null)
+        if (state == null)
         {
             await Clients.Caller.SendAsync("JoinFailed", "Game does not exist");
             return;
         }
-        
+
         await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
 
-        await Clients.Group(gameId).SendAsync("PlayerListUpdated", players);
+        await Clients.Group(gameId).SendAsync("LobbyUpdated", state);
     }
     
     public async Task<string> CreateGame()
@@ -43,11 +43,11 @@ public class GameHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var (gameId, players) = _gameService.Disconnect(Context.ConnectionId);
+        var (gameId, state) = _gameService.Disconnect(Context.ConnectionId);
 
-        if (gameId != null && players != null)
+        if (gameId != null && state != null)
         {
-            await Clients.Group(gameId).SendAsync("PlayerListUpdated", players);
+            await Clients.Group(gameId).SendAsync("LobbyUpdated", state);
         }
 
         await base.OnDisconnectedAsync(exception);

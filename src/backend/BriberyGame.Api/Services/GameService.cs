@@ -19,7 +19,7 @@ public class GameService
         return game;
     }
     
-    public List<Player>? Join(string gameId, string connectionId, string playerId, string name)
+    public LobbyStateDto Join(string gameId, string connectionId, string playerId, string name)
     {
         var game = GetGame(gameId);
 
@@ -27,7 +27,7 @@ public class GameService
             return null;
 
         if (game.Players.Any(p => p.ConnectionId == connectionId))
-            return game.Players;
+            return BuildState(game);
 
         var existing = game.Players.FirstOrDefault(p => p.Id == playerId);
 
@@ -35,7 +35,7 @@ public class GameService
         {
             existing.ConnectionId = connectionId;
             existing.Connected = true;
-            return game.Players;
+            return BuildState(game);
         }
 
         var player = new Player
@@ -47,11 +47,17 @@ public class GameService
         };
 
         game.Players.Add(player);
+        
+        // Assign host if none exists
+        if (game.HostPlayerId == null)
+        {
+            game.HostPlayerId = player.Id;
+        }
 
-        return game.Players;
+        return BuildState(game);
     }
 
-    public (string? gameId, List<Player>? players) Disconnect(string connectionId)
+    public (string? gameId, LobbyStateDto) Disconnect(string connectionId)
     {
         if (!_connectionToGame.TryGetValue(connectionId, out var gameId))
             return (null, null);
@@ -64,8 +70,15 @@ public class GameService
         {
             player.Connected = false;
         }
+        
+        if (player != null && player.Id == game.HostPlayerId)
+        {
+            var nextHost = game.Players.FirstOrDefault(p => p.Connected);
 
-        return (gameId, game.Players);
+            game.HostPlayerId = nextHost?.Id;
+        }
+
+        return (gameId, BuildState(game));
     }
     
     public string CreateGame()
@@ -92,5 +105,13 @@ public class GameService
             .Select(_ => _chars[_random.Next(_chars.Length)])
             .ToArray());
     }
- 
+    
+    private LobbyStateDto BuildState(GameState game)
+    {
+        return new LobbyStateDto
+        {
+            Players = game.Players,
+            HostPlayerId = game.HostPlayerId
+        };
+    }
 }

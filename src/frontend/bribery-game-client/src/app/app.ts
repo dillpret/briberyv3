@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class App implements OnInit {
   players;
+  hostPlayerId;
   name = localStorage.getItem('playerName') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
   isJoined = false;
@@ -23,6 +24,7 @@ export class App implements OnInit {
   ) {
     localStorage.setItem('playerId', this.playerId);
     this.players = this.gameState.players;
+    this.hostPlayerId = this.gameState.hostPlayerId;
   }
 
   async ngOnInit(): Promise<void> {

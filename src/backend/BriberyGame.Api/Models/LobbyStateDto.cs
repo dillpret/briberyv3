@@ -1,8 +1,7 @@
 ﻿namespace BriberyGame.Api.Models;
 
-public class GameState
+public class LobbyStateDto
 {
-    public string GameId { get; set; } = "";
     public List<Player> Players { get; set; } = new();
     public string? HostPlayerId { get; set; }
 }
