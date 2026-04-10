@@ -22,6 +22,7 @@ public class GameService
     public LobbyStateDto Join(string gameId, string connectionId, string playerId, string name)
     {
         var game = GetGame(gameId);
+        _connectionToGame[connectionId] = gameId;
 
         if (game == null)
             return null;
@@ -35,6 +36,7 @@ public class GameService
         {
             existing.ConnectionId = connectionId;
             existing.Connected = true;
+            existing.IsReady = false;
             return BuildState(game);
         }
 
@@ -43,7 +45,8 @@ public class GameService
             Id = playerId,
             Name = name,
             Connected = true,
-            ConnectionId = connectionId
+            ConnectionId = connectionId,
+            IsReady = false
         };
 
         game.Players.Add(player);
@@ -97,6 +100,66 @@ public class GameService
         };
 
         return gameId;
+    }
+    
+    public LobbyStateDto? ToggleReady(string connectionId)
+    {
+        if (!_connectionToGame.TryGetValue(connectionId, out var gameId))
+            return null;
+
+        var game = GetGame(gameId);
+        if (game == null) return null;
+
+        var player = game.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
+        if (player == null) return null;
+
+        player.IsReady = !player.IsReady;
+
+        return BuildState(game);
+    }
+    
+    public (string? gameId, LobbyStateDto? state) ToggleReadyWithGame(string connectionId)
+    {
+        if (!_connectionToGame.TryGetValue(connectionId, out var gameId))
+            return (null, null);
+
+        var game = GetGame(gameId);
+        if (game == null) return (null, null);
+
+        var player = game.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
+        if (player == null) return (null, null);
+
+        player.IsReady = !player.IsReady;
+
+        return (gameId, BuildState(game));
+    }
+    
+    public bool CanStartGame(GameState game)
+    {
+        return game.Players
+            .Where(p => p.Connected)
+            .All(p => p.IsReady);
+    }
+    
+    public (bool success, LobbyStateDto? state)? StartGame(string connectionId)
+    {
+        if (!_connectionToGame.TryGetValue(connectionId, out var gameId))
+            return null;
+
+        var game = GetGame(gameId);
+        if (game == null) return null;
+
+        var player = game.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
+        if (player == null) return null;
+
+        if (player.Id != game.HostPlayerId)
+            return (false, BuildState(game));
+
+        if (!CanStartGame(game))
+            return (false, BuildState(game));
+
+        // placeholder: game would transition state here
+        return (true, BuildState(game));
     }
 
     private string GenerateGameId()

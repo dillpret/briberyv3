@@ -33,6 +33,38 @@ public class GameHub : Hub
 
         return gameId;
     }
+    
+    public async Task ToggleReady()
+    {
+        var (gameId, state) = _gameService.ToggleReadyWithGame(Context.ConnectionId);
+
+        if (gameId == null || state == null) return;
+
+        await Clients.Group(gameId).SendAsync("LobbyUpdated", state);
+    }
+    
+    public async Task StartGame()
+    {
+        var result = _gameService.StartGame(Context.ConnectionId);
+
+        if (result == null) return;
+
+        var (success, state) = result.Value;
+
+        if (!success)
+        {
+            await Clients.Caller.SendAsync("StartFailed", "Not allowed to start");
+            return;
+        }
+
+        var (gameId, _) = _gameService.Disconnect("__dummy__"); // placeholder
+
+        // For now just broadcast updated state
+        if (state != null)
+        {
+            await Clients.All.SendAsync("LobbyUpdated", state);
+        }
+    }
 
     public override async Task OnConnectedAsync()
     {

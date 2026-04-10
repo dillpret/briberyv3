@@ -2,9 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './lobby.html',
 })
 export class Lobby implements OnInit {
@@ -44,5 +46,13 @@ export class Lobby implements OnInit {
     } catch (err) {
       console.error('Join failed', err);
     }
+  }
+
+  async toggleReady() {
+    await this.signalr.toggleReady();
+  }
+
+  async startGame() {
+    await this.signalr.startGame();
   }
 }

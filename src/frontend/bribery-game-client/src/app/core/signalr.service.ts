@@ -17,6 +17,7 @@ export class SignalrService {
       .build();
 
     this.connection.on('LobbyUpdated', (state) => {
+      console.log('LOBBY UPDATE RECEIVED', state);
       this.gameState.setLobbyState(state);
     });
 
@@ -42,6 +43,16 @@ export class SignalrService {
   async createGame(): Promise<string> {
     await this.ensureConnection();
     return await this.connection!.invoke<string>('CreateGame');
+  }
+
+  async toggleReady(): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('ToggleReady');
+  }
+
+  async startGame(): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('StartGame');
   }
 
   private async ensureConnection(): Promise<void> {
