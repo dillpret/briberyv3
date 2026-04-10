@@ -14,9 +14,15 @@ public class GameHub : Hub
 
     public async Task JoinLobby(string gameId, string playerId, string name)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
-
         var players = _gameService.Join(gameId, Context.ConnectionId, playerId, name);
+
+        if (players == null)
+        {
+            await Clients.Caller.SendAsync("JoinFailed", "Game does not exist");
+            return;
+        }
+        
+        await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
 
         await Clients.Group(gameId).SendAsync("PlayerListUpdated", players);
     }

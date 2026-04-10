@@ -13,24 +13,21 @@ public class GameService
 
     private readonly Random _random = new();
 
-    public GameState GetGame(string gameId)
+    public GameState? GetGame(string gameId)
     {
-        return _games.GetOrAdd(gameId, id => new GameState
-        {
-            GameId = id
-        });
+        _games.TryGetValue(gameId, out var game);
+        return game;
     }
-
-    public List<Player> Join(string gameId, string connectionId, string playerId, string name)
+    
+    public List<Player>? Join(string gameId, string connectionId, string playerId, string name)
     {
         var game = GetGame(gameId);
-        _connectionToGame[connectionId] = gameId;
-        
-        // If this connection already has a player, reject
+
+        if (game == null)
+            return null;
+
         if (game.Players.Any(p => p.ConnectionId == connectionId))
-        {
             return game.Players;
-        }
 
         var existing = game.Players.FirstOrDefault(p => p.Id == playerId);
 

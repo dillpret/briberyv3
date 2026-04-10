@@ -20,6 +20,11 @@ export class SignalrService {
       this.gameState.setPlayers(players);
     });
 
+    this.connection.on('JoinFailed', (message: string) => {
+      console.error('Join failed:', message);
+      alert(message); // TODO: Proper error handling
+    });
+
     try {
       await this.connection.start();
       console.log('SignalR connected');
