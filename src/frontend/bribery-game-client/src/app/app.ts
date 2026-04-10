@@ -12,8 +12,9 @@ import { FormsModule } from '@angular/forms';
 })
 export class App implements OnInit {
   players;
-  name = '';
+  name = localStorage.getItem('playerName') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
+  isJoined = false;
 
   constructor(
     private signalr: SignalrService,
@@ -23,12 +24,23 @@ export class App implements OnInit {
     this.players = this.gameState.players;
   }
 
-  ngOnInit(): void {
-    this.signalr.start();
+  async ngOnInit(): Promise<void> {
+    await this.signalr.start();
+    this.autoJoin();
   }
 
   join() {
     if (!this.name.trim()) return;
+
+    localStorage.setItem('playerName', this.name);
     this.signalr.joinLobby(this.playerId, this.name);
+    this.isJoined = true;
+  }
+
+  autoJoin() {
+    if (!this.name.trim()) return;
+
+    this.signalr.joinLobby(this.playerId, this.name);
+    this.isJoined = true;
   }
 }

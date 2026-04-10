@@ -10,21 +10,23 @@ export class SignalrService {
 
   constructor(private gameState: GameStateService) {}
 
-  start(): void {
+  async start(): Promise<void> {
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl('http://localhost:5066/hub/game')
       .withAutomaticReconnect()
       .build();
 
     this.connection.on('PlayerListUpdated', (players: Player[]) => {
-      console.log('PlayerListUpdated', players);
       this.gameState.setPlayers(players);
     });
 
-    this.connection
-      .start()
-      .then(() => console.log('SignalR connected'))
-      .catch((err) => console.error('SignalR error:', err));
+    try {
+      await this.connection.start();
+      console.log('SignalR connected');
+    } catch (err) {
+      console.error('SignalR error:', err);
+      throw err;
+    }
   }
 
   joinLobby(playerId: string, name: string): void {

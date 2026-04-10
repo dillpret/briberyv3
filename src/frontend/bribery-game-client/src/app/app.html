@@ -1,7 +1,7 @@
 <h1>Lobby (POC)</h1>
 
 <input [(ngModel)]="name" placeholder="Enter name" />
-<button (click)="join()">Join</button>
+<button (click)="join()" [disabled]="isJoined">Join</button>
 
 <ul>
   @for (player of players(); track player.id) {
