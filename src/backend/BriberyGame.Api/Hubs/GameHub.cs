@@ -12,27 +12,37 @@ public class GameHub : Hub
         _gameService = gameService;
     }
 
-    public async Task JoinLobby(string playerId, string name)
+    public async Task JoinLobby(string gameId, string playerId, string name)
     {
-        var players = _gameService.Join(Context.ConnectionId, playerId, name);
+        await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
 
-        await Clients.All.SendAsync("PlayerListUpdated", players);
+        var players = _gameService.Join(gameId, Context.ConnectionId, playerId, name);
+
+        await Clients.Group(gameId).SendAsync("PlayerListUpdated", players);
+    }
+    
+    public async Task<string> CreateGame()
+    {
+        var gameId = _gameService.CreateGame();
+
+        return gameId;
     }
 
     public override async Task OnConnectedAsync()
     {
-        var players = _gameService.GetGame().Players;
-
-        await Clients.Caller.SendAsync("PlayerListUpdated", players);
+        // Extra connected logic?
 
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var players = _gameService.Disconnect(Context.ConnectionId);
+        var (gameId, players) = _gameService.Disconnect(Context.ConnectionId);
 
-        await Clients.All.SendAsync("PlayerListUpdated", players);
+        if (gameId != null && players != null)
+        {
+            await Clients.Group(gameId).SendAsync("PlayerListUpdated", players);
+        }
 
         await base.OnDisconnectedAsync(exception);
     }

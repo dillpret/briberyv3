@@ -1,7 +1,21 @@
 <h1>Lobby (POC)</h1>
 
-<input [(ngModel)]="name" placeholder="Enter name" />
-<button (click)="join()" [disabled]="isJoined">Join</button>
+<div>
+  <input [(ngModel)]="name" placeholder="Your name" />
+</div>
+
+<div>
+  <button (click)="createGame()">Create Game</button>
+</div>
+
+<div>
+  <input [(ngModel)]="gameId" placeholder="Enter game code" />
+  <button (click)="join()">Join Game</button>
+</div>
+
+<hr />
+
+<p>Game ID: {{ gameId }}</p>
 
 <ul>
   @for (player of players(); track player.id) {

@@ -15,6 +15,7 @@ export class App implements OnInit {
   name = localStorage.getItem('playerName') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
   isJoined = false;
+  gameId = localStorage.getItem('gameId') ?? '';
 
   constructor(
     private signalr: SignalrService,
@@ -29,18 +30,29 @@ export class App implements OnInit {
     this.autoJoin();
   }
 
+  async createGame() {
+    const gameId = await this.signalr.createGame();
+
+    this.gameId = gameId;
+    localStorage.setItem('gameId', gameId);
+
+    this.join();
+  }
+
   join() {
-    if (!this.name.trim()) return;
+    if (!this.name.trim() || !this.gameId.trim()) return;
 
     localStorage.setItem('playerName', this.name);
-    this.signalr.joinLobby(this.playerId, this.name);
+    localStorage.setItem('gameId', this.gameId);
+
+    this.signalr.joinLobby(this.gameId, this.playerId, this.name);
     this.isJoined = true;
   }
 
   autoJoin() {
-    if (!this.name.trim()) return;
+    if (!this.name.trim() || !this.gameId.trim()) return;
 
-    this.signalr.joinLobby(this.playerId, this.name);
+    this.signalr.joinLobby(this.gameId, this.playerId, this.name);
     this.isJoined = true;
   }
 }
