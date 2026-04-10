@@ -14,17 +14,19 @@ public class GameHub : Hub
 
     public async Task JoinLobby(string gameId, string playerId, string name)
     {
-        var state = _gameService.Join(gameId, Context.ConnectionId, playerId, name);
+        var (resolvedGameId, state) =
+            _gameService.Join(gameId, Context.ConnectionId, playerId, name);
 
-        if (state == null)
+        if (resolvedGameId == null || state == null)
         {
             await Clients.Caller.SendAsync("JoinFailed", "Game does not exist");
             return;
         }
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
+        await Groups.AddToGroupAsync(Context.ConnectionId, resolvedGameId);
 
-        await Clients.Group(gameId).SendAsync("LobbyUpdated", state);
+        await Clients.Group(resolvedGameId)
+            .SendAsync("LobbyUpdated", state);
     }
     
     public async Task<string> CreateGame()
@@ -36,50 +38,44 @@ public class GameHub : Hub
     
     public async Task ToggleReady()
     {
-        var (gameId, state) = _gameService.ToggleReadyWithGame(Context.ConnectionId);
+        var (gameId, state) =
+            _gameService.ToggleReady(Context.ConnectionId);
 
-        if (gameId == null || state == null) return;
+        if (gameId == null || state == null)
+            return;
 
-        await Clients.Group(gameId).SendAsync("LobbyUpdated", state);
+        await Clients.Group(gameId)
+            .SendAsync("LobbyUpdated", state);
     }
     
     public async Task StartGame()
     {
-        var result = _gameService.StartGame(Context.ConnectionId);
+        var (gameId, success, state) =
+            _gameService.StartGame(Context.ConnectionId);
 
-        if (result == null) return;
-
-        var (success, state) = result.Value;
+        if (gameId == null || state == null)
+            return;
 
         if (!success)
         {
-            await Clients.Caller.SendAsync("StartFailed", "Not allowed to start");
+            await Clients.Caller
+                .SendAsync("StartFailed", "Cannot start game");
             return;
         }
 
-        var (gameId, _) = _gameService.Disconnect("__dummy__"); // placeholder
-
-        // For now just broadcast updated state
-        if (state != null)
-        {
-            await Clients.All.SendAsync("LobbyUpdated", state);
-        }
-    }
-
-    public override async Task OnConnectedAsync()
-    {
-        // Extra connected logic?
-
-        await base.OnConnectedAsync();
+        await Clients.Group(gameId)
+            .SendAsync("LobbyUpdated", state);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var (gameId, state) = _gameService.Disconnect(Context.ConnectionId);
+        var (gameId, state) =
+            _gameService.Disconnect(Context.ConnectionId);
 
         if (gameId != null && state != null)
         {
-            await Clients.Group(gameId).SendAsync("LobbyUpdated", state);
+            await Clients.Group(gameId)
+                .SendAsync("LobbyUpdated", state);
         }
 
         await base.OnDisconnectedAsync(exception);
