@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
+import { GameStateService, Player } from '../state/game-state.service';
 
 @Injectable({
   providedIn: 'root',
@@ -7,11 +8,18 @@ import * as signalR from '@microsoft/signalr';
 export class SignalrService {
   private connection?: signalR.HubConnection;
 
+  constructor(private gameState: GameStateService) {}
+
   start(): void {
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl('http://localhost:5066/hub/game')
       .withAutomaticReconnect()
       .build();
+
+    this.connection.on('PlayerListUpdated', (players: Player[]) => {
+      console.log('PlayerListUpdated', players);
+      this.gameState.setPlayers(players);
+    });
 
     this.connection
       .start()

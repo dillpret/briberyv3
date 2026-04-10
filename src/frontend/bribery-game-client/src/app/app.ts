@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { SignalrService } from './core/signalr.service';
+import { GameStateService } from './state/game-state.service';
 
 @Component({
   selector: 'app-root',
@@ -8,7 +9,15 @@ import { SignalrService } from './core/signalr.service';
   styleUrl: './app.css',
 })
 export class App implements OnInit {
-  constructor(private signalr: SignalrService) {}
+
+  players;
+
+  constructor(
+    private signalr: SignalrService,
+    private gameState: GameStateService,
+  ) {
+    this.players = this.gameState.players;
+  }
 
   ngOnInit(): void {
     this.signalr.start();

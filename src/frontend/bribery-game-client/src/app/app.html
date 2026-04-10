@@ -1,1 +1,9 @@
-<h1>Bribery Game</h1>
+<h1>Lobby (POC)</h1>
+
+<ul>
+  @for (player of players(); track player.id) {
+    <li>
+      {{ player.name }} - {{ player.connected ? 'online' : 'offline' }}
+    </li>
+  }
+</ul>
