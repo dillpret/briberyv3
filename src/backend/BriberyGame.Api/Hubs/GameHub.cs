@@ -12,9 +12,9 @@ public class GameHub : Hub
         _gameService = gameService;
     }
 
-    public async Task JoinLobby(string name)
+    public async Task JoinLobby(string playerId, string name)
     {
-        var players = _gameService.Join(Context.ConnectionId, name);
+        var players = _gameService.Join(Context.ConnectionId, playerId, name);
 
         await Clients.All.SendAsync("PlayerListUpdated", players);
     }

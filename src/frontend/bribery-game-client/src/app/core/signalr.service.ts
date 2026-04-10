@@ -27,9 +27,9 @@ export class SignalrService {
       .catch((err) => console.error('SignalR error:', err));
   }
 
-  joinLobby(name: string): void {
+  joinLobby(playerId: string, name: string): void {
     this.connection
-      ?.invoke('JoinLobby', name)
+      ?.invoke('JoinLobby', playerId, name)
       .catch((err) => console.error('JoinLobby error:', err));
   }
 }

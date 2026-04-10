@@ -13,11 +13,13 @@ import { FormsModule } from '@angular/forms';
 export class App implements OnInit {
   players;
   name = '';
+  playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
 
   constructor(
     private signalr: SignalrService,
     private gameState: GameStateService,
   ) {
+    localStorage.setItem('playerId', this.playerId);
     this.players = this.gameState.players;
   }
 
@@ -27,6 +29,6 @@ export class App implements OnInit {
 
   join() {
     if (!this.name.trim()) return;
-    this.signalr.joinLobby(this.name);
+    this.signalr.joinLobby(this.playerId, this.name);
   }
 }

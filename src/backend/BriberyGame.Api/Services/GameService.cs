@@ -18,19 +18,31 @@ public class GameService
         });
     }
 
-    public List<Player> Join(string connectionId, string name)
+    public List<Player> Join(string connectionId, string playerId, string name)
     {
         var game = GetGame();
-
-        // Prevent duplicate joins
-        if (game.Players.Any(p => p.Id == connectionId))
+        
+        // If this connection already has a player, reject
+        if (game.Players.Any(p => p.ConnectionId == connectionId))
+        {
             return game.Players;
+        }
+
+        var existing = game.Players.FirstOrDefault(p => p.Id == playerId);
+
+        if (existing != null)
+        {
+            existing.ConnectionId = connectionId;
+            existing.Connected = true;
+            return game.Players;
+        }
 
         var player = new Player
         {
-            Id = connectionId,
+            Id = playerId,
             Name = name,
-            Connected = true
+            Connected = true,
+            ConnectionId = connectionId
         };
 
         game.Players.Add(player);
@@ -42,7 +54,7 @@ public class GameService
     {
         var game = GetGame();
 
-        var player = game.Players.FirstOrDefault(p => p.Id == connectionId);
+        var player = game.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
 
         if (player != null)
         {
