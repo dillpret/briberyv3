@@ -1,0 +1,48 @@
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { SignalrService } from '../../core/signalr.service';
+import { GameStateService } from '../../state/game-state.service';
+
+@Component({
+  standalone: true,
+  templateUrl: './lobby.html',
+})
+export class Lobby implements OnInit {
+  players;
+  hostPlayerId;
+
+  gameId = '';
+  name = localStorage.getItem('playerName') ?? '';
+  playerId = localStorage.getItem('playerId') ?? '';
+
+  constructor(
+    private route: ActivatedRoute,
+    private signalr: SignalrService,
+    private gameState: GameStateService,
+  ) {
+    this.players = this.gameState.players;
+    this.hostPlayerId = this.gameState.hostPlayerId;
+  }
+
+  async ngOnInit(): Promise<void> {
+    const gameId = this.route.snapshot.paramMap.get('gameId');
+
+    if (!gameId) return;
+
+    this.gameId = gameId;
+
+    await this.signalr.start();
+
+    await this.autoJoin();
+  }
+
+  async autoJoin() {
+    if (!this.name.trim() || !this.gameId.trim()) return;
+
+    try {
+      await this.signalr.joinLobby(this.gameId, this.playerId, this.name);
+    } catch (err) {
+      console.error('Join failed', err);
+    }
+  }
+}

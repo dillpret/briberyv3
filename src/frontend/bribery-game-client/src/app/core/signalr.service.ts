@@ -34,13 +34,19 @@ export class SignalrService {
     }
   }
 
-  joinLobby(gameId: string, playerId: string, name: string): void {
-    this.connection
-      ?.invoke('JoinLobby', gameId, playerId, name)
-      .catch((err) => console.error('JoinLobby error:', err));
+  async joinLobby(gameId: string, playerId: string, name: string): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('JoinLobby', gameId, playerId, name);
   }
 
   async createGame(): Promise<string> {
+    await this.ensureConnection();
     return await this.connection!.invoke<string>('CreateGame');
+  }
+
+  private async ensureConnection(): Promise<void> {
+    if (!this.connection) {
+      await this.start();
+    }
   }
 }

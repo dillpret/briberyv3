@@ -1,0 +1,24 @@
+<div class="p-4 max-w-md mx-auto space-y-4">
+
+  <h1 class="text-xl font-bold">Lobby</h1>
+
+  <p class="text-sm text-gray-600">Game ID: {{ gameId }}</p>
+
+  <ul class="space-y-1">
+    @for (player of players(); track player.id) {
+      <li class="flex justify-between">
+        <span>
+          {{ player.name }}
+          @if (player.id === hostPlayerId()) {
+            <strong>(Host)</strong>
+          }
+        </span>
+
+        <span class="text-xs text-gray-500">
+          {{ player.connected ? 'online' : 'offline' }}
+        </span>
+      </li>
+    }
+  </ul>
+
+</div>

@@ -1,0 +1,25 @@
+<div class="p-4 max-w-md mx-auto space-y-4">
+
+  <h1 class="text-xl font-bold">Welcome</h1>
+
+  <div class="border p-3 rounded">
+    <label class="block text-sm font-medium mb-1">Your Name</label>
+    <input [(ngModel)]="name" class="border px-2 py-1 w-full" />
+  </div>
+
+  <div class="border p-3 rounded">
+    <button (click)="createGame()" class="bg-blue-500 text-white px-3 py-1 rounded w-full">
+      Create Game
+    </button>
+  </div>
+
+  <div class="border p-3 rounded space-y-2">
+    <label class="block text-sm font-medium">Game Code</label>
+    <input [(ngModel)]="gameId" class="border px-2 py-1 w-full" />
+
+    <button (click)="join()" class="bg-green-500 text-white px-3 py-1 rounded w-full">
+      Join Game
+    </button>
+  </div>
+
+</div>
