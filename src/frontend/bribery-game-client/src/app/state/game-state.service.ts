@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { GamePhase } from '../models/game-phase';
 
 export interface Player {
   id: string;
@@ -13,13 +14,15 @@ export interface Player {
 export class GameStateService {
   players = signal<Player[]>([]);
   hostPlayerId = signal<string | null>(null);
+  phase = signal<GamePhase>('Lobby');
 
   setPlayers(players: Player[]) {
     this.players.set(players);
   }
 
-  setLobbyState(state: { players: Player[]; hostPlayerId: string | null }) {
+  setLobbyState(state: any) {
     this.players.set(state.players);
     this.hostPlayerId.set(state.hostPlayerId);
+    this.phase.set(state.phase);
   }
 }

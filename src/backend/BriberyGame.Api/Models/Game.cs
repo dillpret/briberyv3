@@ -91,6 +91,9 @@ public class Game
 
     public (bool success, LobbyStateDto state) StartGame(string connectionId)
     {
+        if (State.Phase != GamePhase.Lobby)
+            return (false, BuildState());
+        
         var player = State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
 
         if (player == null || player.Id != State.HostPlayerId)
@@ -109,7 +112,8 @@ public class Game
         return new LobbyStateDto
         {
             Players = State.Players,
-            HostPlayerId = State.HostPlayerId
+            HostPlayerId = State.HostPlayerId,
+            Phase = State.Phase
         };
     }
 }

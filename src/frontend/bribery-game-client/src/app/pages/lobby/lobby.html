@@ -2,6 +2,10 @@
 
   <h1 class="text-xl font-bold">Lobby</h1>
 
+  <p class="text-sm text-gray-600">
+    Phase: {{ phase() }}
+  </p>
+
   <p class="text-sm text-gray-600">Game ID: {{ gameId }}</p>
 
   <ul class="space-y-1">
@@ -24,14 +28,26 @@
     }
   </ul>
 
-  <button (click)="toggleReady()" class="bg-yellow-500 text-white px-2 py-1 rounded">
+  <button
+    (click)="toggleReady()"
+    [disabled]="phase() !== 'Lobby'"
+    class="bg-yellow-500 text-white px-2 py-1 rounded">
     Toggle Ready
   </button>
 
   @if (playerId === hostPlayerId()) {
-    <button (click)="startGame()" class="bg-red-500 text-white px-3 py-1 rounded">
+    <button
+      (click)="startGame()"
+      [disabled]="phase() !== 'Lobby'"
+      class="bg-red-500 text-white px-3 py-1 rounded">
       Start Game
     </button>
+  }
+
+  @if (phase() === 'InGame') {
+    <p class="text-green-600 font-semibold">
+      Game has started
+    </p>
   }
 
 </div>

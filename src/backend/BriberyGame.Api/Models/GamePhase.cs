@@ -2,6 +2,7 @@
 
 public enum GamePhase
 {
-    Lobby,
-    InGame
+    NotSet = 0,
+    Lobby = 1,
+    InGame = 2
 }
