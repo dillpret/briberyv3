@@ -123,6 +123,24 @@ public class GameHub : Hub
         await SendGameStateUpdates(gameId);
     }
 
+    public async Task StartNextRound()
+    {
+        var (gameId, result) =
+            _gameService.StartNextRound(Context.ConnectionId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await Clients.Caller
+                .SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var (gameId, state) =

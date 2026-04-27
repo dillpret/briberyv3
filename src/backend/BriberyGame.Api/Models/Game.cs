@@ -13,6 +13,7 @@ public class Game
             [GamePhase.Prompt] = [GamePhase.Submission],
             [GamePhase.Submission] = [GamePhase.Voting],
             [GamePhase.Voting] = [GamePhase.Results],
+            [GamePhase.Results] = [GamePhase.Prompt],
         };
 
     public GameState State { get; }
@@ -252,6 +253,33 @@ public class Game
             if (!transitionResult.Success)
                 return Result<GameStateDto>.Fail(transitionResult.Error!);
         }
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> StartNextRound(string connectionId)
+    {
+        var phaseResult = RequirePhase(GamePhase.Results, "Cannot start next round outside results phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+
+        if (player == null || player.Id != State.HostPlayerId)
+            return Result<GameStateDto>.Fail("Player is not host and cannot start the next round");
+
+        State.CurrentRound += 1;
+        ClearRoundState();
+
+        foreach (var roundPlayer in State.Players)
+        {
+            roundPlayer.IsActive = true;
+            roundPlayer.IsReady = false;
+        }
+
+        var transitionResult = TransitionTo(GamePhase.Prompt);
+        if (!transitionResult.Success)
+            return Result<GameStateDto>.Fail(transitionResult.Error!);
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
     }

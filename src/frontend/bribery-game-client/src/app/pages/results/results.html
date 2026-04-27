@@ -1,6 +1,8 @@
 <div class="p-4 max-w-md mx-auto space-y-4">
   <h1 class="text-xl font-bold">Results</h1>
 
+  <p class="text-sm text-gray-600">Round {{ currentRound() }}</p>
+
   @for (result of results()?.roundResults ?? []; track result.promptOwnerPlayerId) {
     <section class="space-y-1 border rounded p-3">
       <p class="font-semibold">{{ result.promptOwnerName }}</p>
@@ -18,4 +20,12 @@
       <p>{{ player.name }}: {{ player.score }}</p>
     }
   </section>
+
+  @if (playerId === hostPlayerId()) {
+    <button
+      (click)="startNextRound()"
+      class="bg-blue-600 text-white px-3 py-1 rounded">
+      Start Next Round
+    </button>
+  }
 </div>

@@ -75,6 +75,11 @@ export class SignalrService {
     await this.connection!.invoke('SubmitVote', bribeId);
   }
 
+  async startNextRound(): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('StartNextRound');
+  }
+
   private async ensureConnection(): Promise<void> {
     if (!this.connection) {
       await this.start();
