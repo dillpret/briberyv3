@@ -2,6 +2,15 @@
 
 public class Game
 {
+    private const int MaxPromptLength = 200;
+
+    private static readonly IReadOnlyDictionary<GamePhase, GamePhase[]> AllowedTransitions =
+        new Dictionary<GamePhase, GamePhase[]>
+        {
+            [GamePhase.Lobby] = [GamePhase.Prompt],
+            [GamePhase.Prompt] = [GamePhase.Submission],
+        };
+
     public GameState State { get; }
 
     public Game(string gameId)
@@ -12,7 +21,7 @@ public class Game
         };
     }
 
-    public LobbyStateDto Join(string connectionId, string playerId, string name)
+    public GameStateDto Join(string connectionId, string playerId, string name)
     {
         // Prevent duplicate connection join
         if (State.Players.Any(p => p.ConnectionId == connectionId))
@@ -61,7 +70,7 @@ public class Game
         return BuildState();
     }
 
-    public LobbyStateDto Disconnect(string connectionId)
+    public GameStateDto Disconnect(string connectionId)
     {
         var player = State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
 
@@ -79,18 +88,19 @@ public class Game
         return BuildState();
     }
 
-    public Result<LobbyStateDto> ToggleReady(string connectionId)
+    public Result<GameStateDto> ToggleReady(string connectionId)
     {
-        if (State.Phase != GamePhase.Lobby)
-            return Result<LobbyStateDto>.Fail("Cannot toggle ready outside lobby");
+        var phaseResult = RequirePhase(GamePhase.Lobby, "Cannot toggle ready outside lobby");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
 
         var player = State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
         if (player == null)
-            return Result<LobbyStateDto>.Fail("Player not found");
+            return Result<GameStateDto>.Fail("Player not found");
 
         player.IsReady = !player.IsReady;
 
-        return Result<LobbyStateDto>.Ok(BuildState());
+        return Result<GameStateDto>.Ok(BuildState());
     }
 
     public bool CanStart()
@@ -100,31 +110,136 @@ public class Game
             .All(p => p.IsReady);
     }
 
-    public Result<LobbyStateDto> StartGame(string connectionId)
+    public Result<GameStateDto> StartGame(string connectionId)
     {
-        if (State.Phase != GamePhase.Lobby)
-            return Result<LobbyStateDto>.Fail("Cannot start game outside lobby");
+        var phaseResult = RequirePhase(GamePhase.Lobby, "Cannot start game outside lobby");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
         
         var player = State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
 
         if (player == null || player.Id != State.HostPlayerId)
-            return Result<LobbyStateDto>.Fail("Player is not host and cannot start game");
+            return Result<GameStateDto>.Fail("Player is not host and cannot start game");
 
         if (!CanStart())
-            return Result<LobbyStateDto>.Fail("Cannot start game before all players are ready");;
+            return Result<GameStateDto>.Fail("Cannot start game before all players are ready");
 
-        State.Phase = GamePhase.InGame;
+        State.CurrentRound = 1;
+        State.Prompts.Clear();
 
-        return Result<LobbyStateDto>.Ok(BuildState());
+        foreach (var activePlayer in State.Players)
+        {
+            activePlayer.IsActive = true;
+            activePlayer.IsReady = false;
+        }
+
+        var transitionResult = TransitionTo(GamePhase.Prompt);
+        if (!transitionResult.Success)
+            return Result<GameStateDto>.Fail(transitionResult.Error!);
+
+        return Result<GameStateDto>.Ok(BuildState());
     }
 
-    private LobbyStateDto BuildState()
+    public Result<GameStateDto> SubmitPrompt(string connectionId, string text)
     {
-        return new LobbyStateDto
+        var phaseResult = RequirePhase(GamePhase.Prompt, "Cannot submit prompt outside prompt phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot submit prompts");
+
+        var promptText = text.Trim();
+
+        if (promptText.Length == 0)
+            return Result<GameStateDto>.Fail("Prompt cannot be empty");
+
+        if (promptText.Length > MaxPromptLength)
+            return Result<GameStateDto>.Fail($"Prompt cannot exceed {MaxPromptLength} characters");
+
+        if (State.Prompts.ContainsKey(player.Id))
+            return Result<GameStateDto>.Fail("Prompt has already been submitted");
+
+        State.Prompts[player.Id] = new PromptSubmission
         {
-            Players = State.Players,
+            PlayerId = player.Id,
+            Text = promptText,
+            SubmittedAt = DateTimeOffset.UtcNow
+        };
+
+        if (AllActivePlayersSubmittedPrompts())
+        {
+            var transitionResult = TransitionTo(GamePhase.Submission);
+            if (!transitionResult.Success)
+                return Result<GameStateDto>.Fail(transitionResult.Error!);
+        }
+
+        return Result<GameStateDto>.Ok(BuildState());
+    }
+
+    private Result<object> RequirePhase(GamePhase expectedPhase, string error)
+    {
+        return State.Phase == expectedPhase
+            ? Result<object>.Ok(new object())
+            : Result<object>.Fail(error);
+    }
+
+    private Result<object> TransitionTo(GamePhase nextPhase)
+    {
+        if (!AllowedTransitions.TryGetValue(State.Phase, out var allowedNextPhases) ||
+            !allowedNextPhases.Contains(nextPhase))
+        {
+            return Result<object>.Fail($"Cannot transition from {State.Phase} to {nextPhase}");
+        }
+
+        State.Phase = nextPhase;
+        return Result<object>.Ok(new object());
+    }
+
+    private bool AllActivePlayersSubmittedPrompts()
+    {
+        var activePlayerIds = State.Players
+            .Where(p => p.IsActive)
+            .Select(p => p.Id)
+            .ToHashSet();
+
+        return activePlayerIds.Count > 0 &&
+               activePlayerIds.All(State.Prompts.ContainsKey);
+    }
+
+    private GameStateDto BuildState()
+    {
+        var activePlayerIds = State.Players
+            .Where(p => p.IsActive)
+            .Select(p => p.Id)
+            .ToHashSet();
+
+        var submittedPromptOwnerIds = State.Prompts.Keys
+            .Where(activePlayerIds.Contains)
+            .ToList();
+
+        return new GameStateDto
+        {
+            Players = State.Players.Select(p => new Player
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Connected = p.Connected,
+                ConnectionId = p.ConnectionId,
+                IsReady = p.IsReady,
+                IsActive = p.IsActive
+            }).ToList(),
             HostPlayerId = State.HostPlayerId,
-            Phase = State.Phase
+            Phase = State.Phase,
+            CurrentRound = State.CurrentRound,
+            TotalRounds = State.TotalRounds,
+            PromptSubmittedCount = submittedPromptOwnerIds.Count,
+            PromptRequiredCount = activePlayerIds.Count,
+            SubmittedPromptOwnerIds = submittedPromptOwnerIds
         };
     }
 }

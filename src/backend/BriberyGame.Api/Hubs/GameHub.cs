@@ -71,6 +71,25 @@ public class GameHub : Hub
             .SendAsync("LobbyUpdated", result.Data);
     }
 
+    public async Task SubmitPrompt(string text)
+    {
+        var (gameId, result) =
+            _gameService.SubmitPrompt(Context.ConnectionId, text);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await Clients.Caller
+                .SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await Clients.Group(gameId)
+            .SendAsync("LobbyUpdated", result.Data);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var (gameId, state) =

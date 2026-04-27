@@ -4,5 +4,6 @@ public enum GamePhase
 {
     NotSet = 0,
     Lobby = 1,
-    InGame = 2
+    Prompt = 2,
+    Submission = 3
 }

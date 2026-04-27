@@ -4,18 +4,25 @@ import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
 import { CommonModule } from '@angular/common';
 import { GamePhase } from '../../models/game-phase';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './lobby.html',
 })
 export class Lobby implements OnInit {
   players;
   hostPlayerId;
+  currentRound;
+  totalRounds;
+  promptSubmittedCount;
+  promptRequiredCount;
+  submittedPromptOwnerIds;
   gameId = '';
   name = localStorage.getItem('playerName') ?? '';
   playerId = localStorage.getItem('playerId') ?? '';
+  promptText = '';
   phase = signal<GamePhase>('NotSet');
 
   constructor(
@@ -26,6 +33,11 @@ export class Lobby implements OnInit {
     this.players = this.gameState.players;
     this.hostPlayerId = this.gameState.hostPlayerId;
     this.phase = this.gameState.phase;
+    this.currentRound = this.gameState.currentRound;
+    this.totalRounds = this.gameState.totalRounds;
+    this.promptSubmittedCount = this.gameState.promptSubmittedCount;
+    this.promptRequiredCount = this.gameState.promptRequiredCount;
+    this.submittedPromptOwnerIds = this.gameState.submittedPromptOwnerIds;
   }
 
   async ngOnInit(): Promise<void> {
@@ -56,5 +68,13 @@ export class Lobby implements OnInit {
 
   async startGame() {
     await this.signalr.startGame();
+  }
+
+  async submitPrompt() {
+    await this.signalr.submitPrompt(this.promptText);
+  }
+
+  hasSubmittedPrompt(): boolean {
+    return this.submittedPromptOwnerIds().includes(this.playerId);
   }
 }

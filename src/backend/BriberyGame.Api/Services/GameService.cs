@@ -28,7 +28,7 @@ public class GameService
         return gameId;
     }
     
-    public (string? gameId, LobbyStateDto? state) Join(
+    public (string? gameId, GameStateDto? state) Join(
         string gameId,
         string connectionId,
         string playerId,
@@ -44,7 +44,7 @@ public class GameService
         return (gameId, state);
     }
 
-    public (string? gameId, LobbyStateDto? state) Disconnect(string connectionId)
+    public (string? gameId, GameStateDto? state) Disconnect(string connectionId)
     {
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
@@ -54,7 +54,7 @@ public class GameService
         return (gameId, state);
     }
     
-    public (string? gameId, Result<LobbyStateDto>? result) ToggleReady(string connectionId)
+    public (string? gameId, Result<GameStateDto>? result) ToggleReady(string connectionId)
     {
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
@@ -64,12 +64,22 @@ public class GameService
         return (gameId, result);
     }
     
-    public (string? gameId, Result<LobbyStateDto>? result) StartGame(string connectionId)
+    public (string? gameId, Result<GameStateDto>? result) StartGame(string connectionId)
     {
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
         var result = game.StartGame(connectionId);
+
+        return (gameId, result);
+    }
+
+    public (string? gameId, Result<GameStateDto>? result) SubmitPrompt(string connectionId, string text)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        var result = game.SubmitPrompt(connectionId, text);
 
         return (gameId, result);
     }

@@ -26,6 +26,11 @@ export class SignalrService {
       alert(message); // TODO: Proper error handling
     });
 
+    this.connection.on('ActionFailed', (message: string) => {
+      console.error('Action failed:', message);
+      alert(message); // TODO: Proper error handling
+    });
+
     try {
       await this.connection.start();
       console.log('SignalR connected');
@@ -53,6 +58,11 @@ export class SignalrService {
   async startGame(): Promise<void> {
     await this.ensureConnection();
     await this.connection!.invoke('StartGame');
+  }
+
+  async submitPrompt(text: string): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('SubmitPrompt', text);
   }
 
   private async ensureConnection(): Promise<void> {

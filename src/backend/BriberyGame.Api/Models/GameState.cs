@@ -6,4 +6,7 @@ public class GameState
     public List<Player> Players { get; set; } = new();
     public string? HostPlayerId { get; set; }
     public GamePhase Phase { get; set; } = GamePhase.Lobby;
+    public int CurrentRound { get; set; }
+    public int TotalRounds { get; set; } = 1;
+    public Dictionary<string, PromptSubmission> Prompts { get; set; } = new();
 }
