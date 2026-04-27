@@ -83,6 +83,37 @@ public class GameService
 
         return (gameId, result);
     }
+
+    public (string? gameId, Result<GameStateDto>? result) SubmitBribe(
+        string connectionId,
+        string targetPlayerId,
+        string text)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        var result = game.SubmitBribe(connectionId, targetPlayerId, text);
+
+        return (gameId, result);
+    }
+
+    public (string? gameId, Result<GameStateDto>? result) SubmitVote(
+        string connectionId,
+        string bribeId)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        var result = game.SubmitVote(connectionId, bribeId);
+
+        return (gameId, result);
+    }
+
+    public List<ConnectionGameStateDto> GetConnectedPlayerStates(string gameId)
+    {
+        var game = GetGame(gameId);
+        return game?.GetConnectedPlayerStates() ?? [];
+    }
     
     private (string? gameId, Game? game) ResolveGame(string connectionId)
     {

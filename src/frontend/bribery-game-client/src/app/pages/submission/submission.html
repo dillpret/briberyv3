@@ -1,0 +1,33 @@
+<div class="p-4 max-w-md mx-auto space-y-4">
+  <h1 class="text-xl font-bold">Submission Phase</h1>
+
+  <p class="text-sm text-gray-600">
+    Bribes submitted: {{ bribeSubmittedCount() }} / {{ bribeRequiredCount() }}
+  </p>
+
+  @for (target of submission()?.targets ?? []; track target.playerId) {
+    <section class="space-y-2 border rounded p-3">
+      <h2 class="font-semibold">{{ target.name }}</h2>
+      <p class="text-sm text-gray-700">{{ target.prompt }}</p>
+
+      @if (hasSubmitted(target.playerId)) {
+        <p class="text-green-600 font-semibold">Bribe submitted</p>
+      } @else {
+        <textarea
+          [ngModel]="draftFor(target.playerId)"
+          (ngModelChange)="setDraft(target.playerId, $event)"
+          maxlength="500"
+          rows="3"
+          class="w-full border rounded p-2"
+          placeholder="Enter your bribe"></textarea>
+
+        <button
+          (click)="submitBribe(target)"
+          [disabled]="!draftFor(target.playerId).trim()"
+          class="bg-blue-600 text-white px-3 py-1 rounded">
+          Submit Bribe
+        </button>
+      }
+    </section>
+  }
+</div>

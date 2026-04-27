@@ -1,0 +1,21 @@
+<div class="p-4 max-w-md mx-auto space-y-4">
+  <h1 class="text-xl font-bold">Results</h1>
+
+  @for (result of results()?.roundResults ?? []; track result.promptOwnerPlayerId) {
+    <section class="space-y-1 border rounded p-3">
+      <p class="font-semibold">{{ result.promptOwnerName }}</p>
+      <p class="text-sm text-gray-700">{{ result.promptText }}</p>
+      <p>
+        {{ result.winningPlayerName }} won with:
+        <strong>{{ result.winningBribeText }}</strong>
+      </p>
+    </section>
+  }
+
+  <section class="space-y-1 border-t pt-3">
+    <h2 class="font-semibold">Scores</h2>
+    @for (player of players(); track player.id) {
+      <p>{{ player.name }}: {{ player.score }}</p>
+    }
+  </section>
+</div>

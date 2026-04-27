@@ -3,10 +3,9 @@
 } @else if (phase() === 'Prompt') {
   <app-prompt />
 } @else if (phase() === 'Submission') {
-  <div class="p-4 max-w-md mx-auto space-y-4">
-    <h1 class="text-xl font-bold">Submission Phase</h1>
-    <p class="text-green-600 font-semibold">
-      Prompt phase complete
-    </p>
-  </div>
+  <app-submission />
+} @else if (phase() === 'Voting') {
+  <app-voting />
+} @else if (phase() === 'Results') {
+  <app-results />
 }

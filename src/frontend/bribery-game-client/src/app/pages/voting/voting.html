@@ -1,0 +1,29 @@
+<div class="p-4 max-w-md mx-auto space-y-4">
+  <h1 class="text-xl font-bold">Voting Phase</h1>
+
+  <p class="text-sm text-gray-600">
+    Votes submitted: {{ voteSubmittedCount() }} / {{ voteRequiredCount() }}
+  </p>
+
+  @if (voting()?.selectedBribeId) {
+    <p class="text-green-600 font-semibold">Vote submitted</p>
+  } @else {
+    @for (bribe of voting()?.bribes ?? []; track bribe.bribeId) {
+      <label class="block border rounded p-3">
+        <input
+          type="radio"
+          name="bribe"
+          [checked]="currentSelection() === bribe.bribeId"
+          (change)="selectedBribeId.set(bribe.bribeId)" />
+        <span class="ml-2">{{ bribe.text }}</span>
+      </label>
+    }
+
+    <button
+      (click)="submitVote()"
+      [disabled]="!currentSelection()"
+      class="bg-blue-600 text-white px-3 py-1 rounded">
+      Submit Vote
+    </button>
+  }
+</div>

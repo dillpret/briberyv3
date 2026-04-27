@@ -8,4 +8,5 @@ public class Player
     public string ConnectionId { get; set; } = ""; // current connection
     public bool IsReady { get; set; }
     public bool IsActive { get; set; } // participating in current round
+    public double Score { get; set; }
 }

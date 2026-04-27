@@ -6,11 +6,14 @@ import { GameStateService } from '../../state/game-state.service';
 import { GamePhase } from '../../models/game-phase';
 import { Lobby } from '../lobby/lobby';
 import { Prompt } from '../prompt/prompt';
+import { Submission } from '../submission/submission';
+import { Voting } from '../voting/voting';
+import { Results } from '../results/results';
 
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [CommonModule, Lobby, Prompt],
+  imports: [CommonModule, Lobby, Prompt, Submission, Voting, Results],
   templateUrl: './game.html',
 })
 export class Game implements OnInit {

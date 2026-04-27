@@ -15,9 +15,8 @@ export class Prompt {
   totalRounds;
   promptSubmittedCount;
   promptRequiredCount;
-  submittedPromptOwnerIds;
+  prompt;
   promptText = '';
-  playerId = localStorage.getItem('playerId') ?? '';
 
   constructor(
     private signalr: SignalrService,
@@ -27,7 +26,7 @@ export class Prompt {
     this.totalRounds = this.gameState.totalRounds;
     this.promptSubmittedCount = this.gameState.promptSubmittedCount;
     this.promptRequiredCount = this.gameState.promptRequiredCount;
-    this.submittedPromptOwnerIds = this.gameState.submittedPromptOwnerIds;
+    this.prompt = this.gameState.prompt;
   }
 
   async submitPrompt() {
@@ -35,6 +34,6 @@ export class Prompt {
   }
 
   hasSubmittedPrompt(): boolean {
-    return this.submittedPromptOwnerIds().includes(this.playerId);
+    return this.prompt()?.hasSubmittedPrompt ?? false;
   }
 }

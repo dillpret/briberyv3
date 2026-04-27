@@ -25,8 +25,7 @@ public class GameHub : Hub
 
         await Groups.AddToGroupAsync(Context.ConnectionId, resolvedGameId);
 
-        await Clients.Group(resolvedGameId)
-            .SendAsync("LobbyUpdated", state);
+        await SendGameStateUpdates(resolvedGameId);
     }
     
     public async Task<string> CreateGame()
@@ -49,7 +48,7 @@ public class GameHub : Hub
             return;
         }
 
-        await Clients.Group(gameId).SendAsync("LobbyUpdated", result.Data);
+        await SendGameStateUpdates(gameId);
     }
     
     public async Task StartGame()
@@ -67,8 +66,7 @@ public class GameHub : Hub
             return;
         }
 
-        await Clients.Group(gameId)
-            .SendAsync("LobbyUpdated", result.Data);
+        await SendGameStateUpdates(gameId);
     }
 
     public async Task SubmitPrompt(string text)
@@ -86,8 +84,43 @@ public class GameHub : Hub
             return;
         }
 
-        await Clients.Group(gameId)
-            .SendAsync("LobbyUpdated", result.Data);
+        await SendGameStateUpdates(gameId);
+    }
+
+    public async Task SubmitBribe(string targetPlayerId, string text)
+    {
+        var (gameId, result) =
+            _gameService.SubmitBribe(Context.ConnectionId, targetPlayerId, text);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await Clients.Caller
+                .SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
+    }
+
+    public async Task SubmitVote(string bribeId)
+    {
+        var (gameId, result) =
+            _gameService.SubmitVote(Context.ConnectionId, bribeId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await Clients.Caller
+                .SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -97,10 +130,20 @@ public class GameHub : Hub
 
         if (gameId != null && state != null)
         {
-            await Clients.Group(gameId)
-                .SendAsync("LobbyUpdated", state);
+            await SendGameStateUpdates(gameId);
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    private async Task SendGameStateUpdates(string gameId)
+    {
+        var states = _gameService.GetConnectedPlayerStates(gameId);
+
+        foreach (var state in states)
+        {
+            await Clients.Client(state.ConnectionId)
+                .SendAsync("GameStateUpdated", state.State);
+        }
     }
 }

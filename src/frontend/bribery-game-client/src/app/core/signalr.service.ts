@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
-import { GameStateService, Player } from '../state/game-state.service';
+import { GameStateService } from '../state/game-state.service';
 
 @Injectable({
   providedIn: 'root',
@@ -16,9 +16,9 @@ export class SignalrService {
       .withAutomaticReconnect()
       .build();
 
-    this.connection.on('LobbyUpdated', (state) => {
-      console.log('LOBBY UPDATE RECEIVED', state);
-      this.gameState.setLobbyState(state);
+    this.connection.on('GameStateUpdated', (state) => {
+      console.log('GAME STATE RECEIVED', state);
+      this.gameState.setGameState(state);
     });
 
     this.connection.on('JoinFailed', (message: string) => {
@@ -63,6 +63,16 @@ export class SignalrService {
   async submitPrompt(text: string): Promise<void> {
     await this.ensureConnection();
     await this.connection!.invoke('SubmitPrompt', text);
+  }
+
+  async submitBribe(targetPlayerId: string, text: string): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('SubmitBribe', targetPlayerId, text);
+  }
+
+  async submitVote(bribeId: string): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('SubmitVote', bribeId);
   }
 
   private async ensureConnection(): Promise<void> {
