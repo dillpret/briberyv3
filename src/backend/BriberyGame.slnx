@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="BriberyGame.Api/BriberyGame.Api.csproj" />
+  <Project Path="BriberyGame.Api.Tests/BriberyGame.Api.Tests.csproj" />
 </Solution>
