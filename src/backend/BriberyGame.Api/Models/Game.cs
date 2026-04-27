@@ -14,33 +14,45 @@ public class Game
 
     public LobbyStateDto Join(string connectionId, string playerId, string name)
     {
-        if (State.Phase != GamePhase.Lobby)
-            return BuildState();
-
+        // Prevent duplicate connection join
         if (State.Players.Any(p => p.ConnectionId == connectionId))
             return BuildState();
 
         var existing = State.Players.FirstOrDefault(p => p.Id == playerId);
 
+        // --- RECONNECT CASE ---
         if (existing != null)
         {
             existing.ConnectionId = connectionId;
             existing.Connected = true;
+
+            // Reset readiness always
             existing.IsReady = false;
+
+            // Critical: decide activity based on phase
+            if (State.Phase == GamePhase.Lobby)
+            {
+                existing.IsActive = true;
+            }
+            // else: keep whatever it was (usually false if they joined mid-game)
+
             return BuildState();
         }
 
+        // --- NEW PLAYER CASE ---
         var player = new Player
         {
             Id = playerId,
             Name = name,
             Connected = true,
             ConnectionId = connectionId,
-            IsReady = false
+            IsReady = false,
+            IsActive = State.Phase == GamePhase.Lobby
         };
 
         State.Players.Add(player);
 
+        // Assign host if first player
         if (State.HostPlayerId == null)
         {
             State.HostPlayerId = player.Id;

@@ -6,6 +6,7 @@ export interface Player {
   name: string;
   connected: boolean;
   isReady: boolean;
+  isActive: boolean;
 }
 
 @Injectable({

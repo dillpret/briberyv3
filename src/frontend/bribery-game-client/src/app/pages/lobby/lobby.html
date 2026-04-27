@@ -19,6 +19,9 @@
           @if (player.isReady) {
             <span class="text-green-600">(Ready)</span>
           }
+          @if (!player.isActive) {
+            <span>(Waiting)</span>
+          }
         </span>
 
         <span class="text-xs text-gray-500">
