@@ -7,4 +7,5 @@ public class Player
     public bool Connected { get; set; }
     public string ConnectionId { get; set; } = ""; // current connection
     public bool IsReady { get; set; }
+    public bool IsActive { get; set; } // participating in current round
 }

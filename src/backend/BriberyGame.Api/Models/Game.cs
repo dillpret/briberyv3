@@ -67,19 +67,18 @@ public class Game
         return BuildState();
     }
 
-    public LobbyStateDto ToggleReady(string connectionId)
+    public Result<LobbyStateDto> ToggleReady(string connectionId)
     {
         if (State.Phase != GamePhase.Lobby)
-            return BuildState();
+            return Result<LobbyStateDto>.Fail("Cannot toggle ready outside lobby");
 
         var player = State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
+        if (player == null)
+            return Result<LobbyStateDto>.Fail("Player not found");
 
-        if (player != null)
-        {
-            player.IsReady = !player.IsReady;
-        }
+        player.IsReady = !player.IsReady;
 
-        return BuildState();
+        return Result<LobbyStateDto>.Ok(BuildState());
     }
 
     public bool CanStart()
@@ -89,22 +88,22 @@ public class Game
             .All(p => p.IsReady);
     }
 
-    public (bool success, LobbyStateDto state) StartGame(string connectionId)
+    public Result<LobbyStateDto> StartGame(string connectionId)
     {
         if (State.Phase != GamePhase.Lobby)
-            return (false, BuildState());
+            return Result<LobbyStateDto>.Fail("Cannot start game outside lobby");
         
         var player = State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
 
         if (player == null || player.Id != State.HostPlayerId)
-            return (false, BuildState());
+            return Result<LobbyStateDto>.Fail("Player is not host and cannot start game");
 
         if (!CanStart())
-            return (false, BuildState());
+            return Result<LobbyStateDto>.Fail("Cannot start game before all players are ready");;
 
         State.Phase = GamePhase.InGame;
 
-        return (true, BuildState());
+        return Result<LobbyStateDto>.Ok(BuildState());
     }
 
     private LobbyStateDto BuildState()

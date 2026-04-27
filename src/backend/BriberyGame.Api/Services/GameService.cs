@@ -54,24 +54,24 @@ public class GameService
         return (gameId, state);
     }
     
-    public (string? gameId, LobbyStateDto? state) ToggleReady(string connectionId)
+    public (string? gameId, Result<LobbyStateDto>? result) ToggleReady(string connectionId)
     {
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var state = game.ToggleReady(connectionId);
+        var result = game.ToggleReady(connectionId);
 
-        return (gameId, state);
+        return (gameId, result);
     }
     
-    public (string? gameId, bool success, LobbyStateDto? state) StartGame(string connectionId)
+    public (string? gameId, Result<LobbyStateDto>? result) StartGame(string connectionId)
     {
         var (gameId, game) = ResolveGame(connectionId);
-        if (game == null) return (null, false, null);
+        if (game == null) return (null, null);
 
-        var (success, state) = game.StartGame(connectionId);
+        var result = game.StartGame(connectionId);
 
-        return (gameId, success, state);
+        return (gameId, result);
     }
     
     private (string? gameId, Game? game) ResolveGame(string connectionId)

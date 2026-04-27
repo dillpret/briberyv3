@@ -38,33 +38,37 @@ public class GameHub : Hub
     
     public async Task ToggleReady()
     {
-        var (gameId, state) =
-            _gameService.ToggleReady(Context.ConnectionId);
+        var (gameId, result) = _gameService.ToggleReady(Context.ConnectionId);
 
-        if (gameId == null || state == null)
+        if (gameId == null || result == null)
             return;
 
-        await Clients.Group(gameId)
-            .SendAsync("LobbyUpdated", state);
+        if (!result.Success)
+        {
+            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await Clients.Group(gameId).SendAsync("LobbyUpdated", result.Data);
     }
     
     public async Task StartGame()
     {
-        var (gameId, success, state) =
+        var (gameId, result) =
             _gameService.StartGame(Context.ConnectionId);
 
-        if (gameId == null || state == null)
+        if (gameId == null || result == null)
             return;
 
-        if (!success)
+        if (!result.Success)
         {
             await Clients.Caller
-                .SendAsync("StartFailed", "Cannot start game");
+                .SendAsync("StartFailed", result.Error);
             return;
         }
 
         await Clients.Group(gameId)
-            .SendAsync("LobbyUpdated", state);
+            .SendAsync("LobbyUpdated", result.Data);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
