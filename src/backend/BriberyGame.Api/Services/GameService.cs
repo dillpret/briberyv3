@@ -34,14 +34,15 @@ public class GameService
         string playerId,
         string name)
     {
-        var game = GetGame(gameId);
+        var normalizedGameId = NormalizeGameId(gameId);
+        var game = GetGame(normalizedGameId);
         if (game == null) return (null, null);
 
-        _connectionToGame[connectionId] = gameId;
+        _connectionToGame[connectionId] = normalizedGameId;
 
         var state = game.Join(connectionId, playerId, name);
 
-        return (gameId, state);
+        return (normalizedGameId, state);
     }
 
     public (string? gameId, GameStateDto? state) Disconnect(string connectionId)
@@ -139,8 +140,13 @@ public class GameService
     
     private Game? GetGame(string gameId)
     {
-        _games.TryGetValue(gameId, out var game);
+        _games.TryGetValue(NormalizeGameId(gameId), out var game);
         return game;
+    }
+
+    private static string NormalizeGameId(string gameId)
+    {
+        return gameId.Trim().ToUpperInvariant();
     }
 
     private string GenerateGameId()

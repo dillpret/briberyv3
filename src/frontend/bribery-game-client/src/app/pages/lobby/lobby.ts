@@ -15,6 +15,7 @@ export class Lobby {
   players;
   hostPlayerId;
   playerId = localStorage.getItem('playerId') ?? '';
+  copyMessage = '';
 
   constructor(
     private signalr: SignalrService,
@@ -57,5 +58,30 @@ export class Lobby {
     if (this.connectedCount() < 3) return 'Waiting for at least three connected players.';
     if (this.pendingReadyCount() > 0) return `Waiting for ${this.pendingReadyCount()} player(s) to ready up.`;
     return 'Everyone is ready.';
+  }
+
+  async copyCode() {
+    await this.copyText(this.normalizedGameId(), 'Copied code');
+  }
+
+  async copyLink() {
+    await this.copyText(`${window.location.origin}/game/${this.normalizedGameId()}`, 'Copied link');
+  }
+
+  normalizedGameId(): string {
+    return this.gameId.trim().toUpperCase();
+  }
+
+  private async copyText(text: string, successMessage: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copyMessage = successMessage;
+    } catch {
+      this.copyMessage = 'Copy failed';
+    }
+
+    window.setTimeout(() => {
+      this.copyMessage = '';
+    }, 1800);
   }
 }

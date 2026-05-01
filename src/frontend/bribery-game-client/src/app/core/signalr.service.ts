@@ -7,6 +7,8 @@ import { GameStateService } from '../state/game-state.service';
 })
 export class SignalrService {
   private connection?: signalR.HubConnection;
+  private pendingJoinResolve?: () => void;
+  private pendingJoinReject?: (reason?: unknown) => void;
 
   constructor(private gameState: GameStateService) {}
 
@@ -19,11 +21,16 @@ export class SignalrService {
     this.connection.on('GameStateUpdated', (state) => {
       console.log('GAME STATE RECEIVED', state);
       this.gameState.setGameState(state);
+      this.pendingJoinResolve?.();
+      this.pendingJoinResolve = undefined;
+      this.pendingJoinReject = undefined;
     });
 
     this.connection.on('JoinFailed', (message: string) => {
       console.error('Join failed:', message);
-      alert(message); // TODO: Proper error handling
+      this.pendingJoinReject?.(new Error(message));
+      this.pendingJoinResolve = undefined;
+      this.pendingJoinReject = undefined;
     });
 
     this.connection.on('ActionFailed', (message: string) => {
@@ -42,7 +49,20 @@ export class SignalrService {
 
   async joinLobby(gameId: string, playerId: string, name: string): Promise<void> {
     await this.ensureConnection();
-    await this.connection!.invoke('JoinLobby', gameId, playerId, name);
+    return new Promise<void>((resolve, reject) => {
+      this.pendingJoinResolve = resolve;
+      this.pendingJoinReject = reject;
+
+      this.connection!.invoke('JoinLobby', gameId, playerId, name)
+        .then(() => {
+          // Resolution happens when the server sends the personalized state update.
+        })
+        .catch((error) => {
+          this.pendingJoinResolve = undefined;
+          this.pendingJoinReject = undefined;
+          reject(error);
+        });
+    });
   }
 
   async createGame(): Promise<string> {

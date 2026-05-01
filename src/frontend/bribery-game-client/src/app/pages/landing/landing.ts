@@ -13,6 +13,7 @@ export class Landing {
   name = localStorage.getItem('playerName') ?? '';
   gameId = localStorage.getItem('gameId') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
+  errorMessage = history.state?.message ?? '';
 
   constructor(
     private signalr: SignalrService,
@@ -35,11 +36,17 @@ export class Landing {
   }
 
   join() {
-    if (!this.name.trim() || !this.gameId.trim()) return;
+    const normalizedGameId = this.normalizeGameId(this.gameId);
+
+    if (!this.name.trim() || !normalizedGameId) return;
 
     localStorage.setItem('playerName', this.name);
-    localStorage.setItem('gameId', this.gameId);
+    localStorage.setItem('gameId', normalizedGameId);
 
-    this.router.navigate(['/game', this.gameId]);
+    this.router.navigate(['/game', normalizedGameId]);
+  }
+
+  normalizeGameId(gameId: string): string {
+    return gameId.trim().toUpperCase();
   }
 }
