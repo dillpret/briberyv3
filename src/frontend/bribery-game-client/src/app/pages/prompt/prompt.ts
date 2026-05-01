@@ -16,6 +16,7 @@ export class Prompt {
   promptSubmittedCount;
   promptRequiredCount;
   isCurrentPlayerActive;
+  players;
   prompt;
   promptText = '';
 
@@ -28,6 +29,7 @@ export class Prompt {
     this.promptSubmittedCount = this.gameState.promptSubmittedCount;
     this.promptRequiredCount = this.gameState.promptRequiredCount;
     this.isCurrentPlayerActive = this.gameState.isCurrentPlayerActive;
+    this.players = this.gameState.players;
     this.prompt = this.gameState.prompt;
   }
 
@@ -50,5 +52,13 @@ export class Prompt {
 
   remainingCharacters(): number {
     return 200 - this.promptText.length;
+  }
+
+  waitingText(): string {
+    const pendingPlayers = this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
+    if (pendingPlayers.length === 0) return 'Waiting for the next phase.';
+    if (pendingPlayers.length === 1) return `Waiting for ${pendingPlayers[0].name}.`;
+    if (pendingPlayers.length === 2) return `Waiting for ${pendingPlayers[0].name} and ${pendingPlayers[1].name}.`;
+    return `Waiting for ${pendingPlayers.length} players.`;
   }
 }

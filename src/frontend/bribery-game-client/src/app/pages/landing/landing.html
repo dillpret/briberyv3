@@ -1,20 +1,16 @@
 <main class="phase-shell justify-center">
-  <section class="space-y-4 text-center">
-    <p class="text-sm font-semibold uppercase tracking-wide text-rose-500">Bribery</p>
-    <h1 class="text-3xl font-bold text-stone-900 sm:text-4xl">Settle in for a cosy round</h1>
-    <p class="mx-auto max-w-sm text-sm leading-6 text-stone-600">
-      Create a room, share the code, and trade tiny text bribes with friends.
-    </p>
+  <section class="text-center">
+    <h1 class="text-6xl font-black tracking-tight text-slate-900 sm:text-7xl">Bribery</h1>
   </section>
 
   <section class="soft-panel space-y-4">
     <label class="block space-y-2">
-      <span class="text-sm font-semibold text-stone-700">Your name</span>
+        <span class="text-sm font-semibold text-slate-700">Your name</span>
       <input
         [(ngModel)]="name"
         class="soft-input"
         autocomplete="nickname"
-        placeholder="A friendly alias" />
+        placeholder="Your real name" />
     </label>
 
     <button
@@ -27,7 +23,7 @@
 
   <section class="soft-panel space-y-4">
     <label class="block space-y-2">
-      <span class="text-sm font-semibold text-stone-700">Game code</span>
+      <span class="text-sm font-semibold text-slate-700">Game code</span>
       <input
         [(ngModel)]="gameId"
         class="soft-input uppercase"

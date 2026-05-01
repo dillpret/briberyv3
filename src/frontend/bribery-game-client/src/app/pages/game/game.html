@@ -1,11 +1,19 @@
-@if (phase() === 'Lobby') {
-  <app-lobby [gameId]="gameId" />
-} @else if (phase() === 'Prompt') {
-  <app-prompt />
-} @else if (phase() === 'Submission') {
-  <app-submission />
-} @else if (phase() === 'Voting') {
-  <app-voting />
-} @else if (phase() === 'Results') {
-  <app-results />
-}
+<div class="game-layout">
+  <section class="min-w-0">
+    @if (phase() === 'Lobby') {
+      <app-lobby [gameId]="gameId" />
+    } @else if (phase() === 'Prompt') {
+      <app-prompt />
+    } @else if (phase() === 'Submission') {
+      <app-submission />
+    } @else if (phase() === 'Voting') {
+      <app-voting />
+    } @else if (phase() === 'Results') {
+      <app-results />
+    }
+  </section>
+
+  @if (phase() !== 'NotSet') {
+    <app-player-panel />
+  }
+</div>

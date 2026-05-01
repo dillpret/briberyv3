@@ -421,7 +421,9 @@ public class Game
                 Connected = p.Connected,
                 IsReady = p.IsReady,
                 IsActive = p.IsActive,
-                Score = p.Score
+                Score = p.Score,
+                PhaseStatus = GetPhaseStatus(p),
+                PhaseStatusLabel = GetPhaseStatusLabel(p)
             }).ToList(),
             HostPlayerId = State.HostPlayerId,
             Phase = State.Phase,
@@ -529,5 +531,65 @@ public class Game
                 };
             }).ToList()
         };
+    }
+
+    private PlayerPhaseStatus GetPhaseStatus(Player player)
+    {
+        if (!player.Connected)
+            return PlayerPhaseStatus.None;
+
+        if (!player.IsActive && State.Phase != GamePhase.Lobby)
+            return PlayerPhaseStatus.Waiting;
+
+        return State.Phase switch
+        {
+            GamePhase.Lobby => player.IsReady ? PlayerPhaseStatus.Ready : PlayerPhaseStatus.Pending,
+            GamePhase.Prompt => State.Prompts.ContainsKey(player.Id)
+                ? PlayerPhaseStatus.Done
+                : PlayerPhaseStatus.Pending,
+            GamePhase.Submission => HasSubmittedAllAssignedBribes(player)
+                ? PlayerPhaseStatus.Done
+                : PlayerPhaseStatus.Pending,
+            GamePhase.Voting => State.Votes.ContainsKey(player.Id)
+                ? PlayerPhaseStatus.Done
+                : PlayerPhaseStatus.Pending,
+            GamePhase.Results => PlayerPhaseStatus.Done,
+            _ => PlayerPhaseStatus.None
+        };
+    }
+
+    private string GetPhaseStatusLabel(Player player)
+    {
+        if (!player.Connected)
+            return "Offline";
+
+        if (!player.IsActive && State.Phase != GamePhase.Lobby)
+            return "Waiting next round";
+
+        return State.Phase switch
+        {
+            GamePhase.Lobby => player.IsReady ? "Ready" : "Not ready",
+            GamePhase.Prompt => State.Prompts.ContainsKey(player.Id) ? "Submitted" : "Needs prompt",
+            GamePhase.Submission => HasSubmittedAllAssignedBribes(player) ? "Submitted" : "Needs bribes",
+            GamePhase.Voting => State.Votes.ContainsKey(player.Id) ? "Voted" : "Needs vote",
+            GamePhase.Results => "Done",
+            _ => ""
+        };
+    }
+
+    private bool HasSubmittedAllAssignedBribes(Player player)
+    {
+        if (!player.IsActive)
+            return false;
+
+        if (!State.TargetAssignments.TryGetValue(player.Id, out var targets))
+            return false;
+
+        var submittedTargetIds = State.Bribes.Values
+            .Where(b => b.FromPlayerId == player.Id)
+            .Select(b => b.ToPlayerId)
+            .ToHashSet();
+
+        return targets.All(submittedTargetIds.Contains);
     }
 }

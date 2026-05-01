@@ -9,11 +9,12 @@ import { Prompt } from '../prompt/prompt';
 import { Submission } from '../submission/submission';
 import { Voting } from '../voting/voting';
 import { Results } from '../results/results';
+import { PlayerPanel } from '../../components/player-panel/player-panel';
 
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [CommonModule, Lobby, Prompt, Submission, Voting, Results],
+  imports: [CommonModule, Lobby, Prompt, Submission, Voting, Results, PlayerPanel],
   templateUrl: './game.html',
 })
 export class Game implements OnInit {

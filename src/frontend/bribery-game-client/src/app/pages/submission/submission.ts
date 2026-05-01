@@ -15,6 +15,7 @@ export class Submission {
   bribeSubmittedCount;
   bribeRequiredCount;
   isCurrentPlayerActive;
+  players;
   drafts = signal<Record<string, string>>({});
 
   constructor(
@@ -25,6 +26,7 @@ export class Submission {
     this.bribeSubmittedCount = this.gameState.bribeSubmittedCount;
     this.bribeRequiredCount = this.gameState.bribeRequiredCount;
     this.isCurrentPlayerActive = this.gameState.isCurrentPlayerActive;
+    this.players = this.gameState.players;
   }
 
   hasSubmitted(targetPlayerId: string): boolean {
@@ -57,5 +59,13 @@ export class Submission {
 
   remainingCharacters(targetPlayerId: string): number {
     return 500 - this.draftFor(targetPlayerId).length;
+  }
+
+  waitingText(): string {
+    const pendingPlayers = this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
+    if (pendingPlayers.length === 0) return 'Waiting for the next phase.';
+    if (pendingPlayers.length === 1) return `Waiting for ${pendingPlayers[0].name}.`;
+    if (pendingPlayers.length === 2) return `Waiting for ${pendingPlayers[0].name} and ${pendingPlayers[1].name}.`;
+    return `Waiting for ${pendingPlayers.length} players.`;
   }
 }

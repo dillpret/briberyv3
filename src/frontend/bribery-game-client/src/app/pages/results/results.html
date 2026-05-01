@@ -1,8 +1,8 @@
 <main class="phase-shell">
   <section class="soft-panel space-y-2 text-center">
-    <p class="text-sm font-semibold uppercase tracking-wide text-rose-500">Results</p>
-    <h1 class="text-2xl font-bold text-stone-900">Round {{ currentRound() }} wrapped</h1>
-    <p class="text-sm leading-6 text-stone-600">
+    <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Results</p>
+    <h1 class="text-2xl font-bold text-slate-900">Round {{ currentRound() }} wrapped</h1>
+    <p class="text-sm leading-6 text-slate-600">
       The winning bribes are out in the open. Scores below are cumulative.
     </p>
   </section>
@@ -11,49 +11,49 @@
     @for (result of results()?.roundResults ?? []; track result.promptOwnerPlayerId) {
       <article class="soft-card space-y-2">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="status-pill border-amber-200 bg-amber-50 text-amber-700">{{ result.promptOwnerName }}</span>
-          <span class="text-sm text-stone-500">chose</span>
+          <span class="status-pill border-violet-200 bg-violet-50 text-violet-700">{{ result.promptOwnerName }}</span>
+          <span class="text-sm text-slate-500">chose</span>
         </div>
-        <p class="rounded-xl bg-rose-50/80 p-3 text-sm leading-6 text-stone-700">{{ result.promptText }}</p>
-        <p class="text-sm leading-6 text-stone-700">
-          <span class="font-semibold text-stone-900">{{ result.winningPlayerName }}</span>
+        <p class="rounded-xl bg-sky-50/80 p-3 text-sm leading-6 text-slate-700">{{ result.promptText }}</p>
+        <p class="text-sm leading-6 text-slate-700">
+          <span class="font-semibold text-slate-900">{{ result.winningPlayerName }}</span>
           won with
-          <span class="font-semibold text-rose-700">{{ result.winningBribeText }}</span>
+          <span class="font-semibold text-sky-700">{{ result.winningBribeText }}</span>
       </p>
       </article>
     }
   </section>
 
   <section class="soft-panel space-y-3">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-stone-500">Scoreboard</h2>
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Scoreboard</h2>
     @for (player of sortedPlayers(); track player.id; let rank = $index) {
       <div class="flex items-center justify-between rounded-xl bg-white/70 p-3">
         <div class="flex min-w-0 items-center gap-3">
-          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-100 text-sm font-bold text-rose-700">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">
             {{ rank + 1 }}
           </span>
-          <p class="truncate font-semibold text-stone-800">
+          <p class="truncate font-semibold text-slate-800">
             {{ player.name }}
             @if (player.id === playerId) {
-              <span class="text-stone-400">(you)</span>
+              <span class="text-slate-400">(you)</span>
             }
           </p>
         </div>
-        <span class="font-bold text-stone-900">{{ player.score }}</span>
+        <span class="font-bold text-slate-900">{{ player.score }}</span>
       </div>
     }
   </section>
 
   <section class="soft-panel space-y-3 text-center">
   @if (isHost()) {
-      <p class="text-sm text-stone-600">Start another round when everyone has had a moment to bask.</p>
+      <p class="text-sm text-slate-600">Start another round when everyone is ready.</p>
       <button
         (click)="startNextRound()"
         class="primary-button">
         Start next round
       </button>
     } @else {
-      <p class="text-sm leading-6 text-stone-600">
+      <p class="text-sm leading-6 text-slate-600">
         Waiting for the host to start the next round.
       </p>
   }

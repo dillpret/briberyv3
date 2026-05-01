@@ -2,11 +2,12 @@
 
 @layer base {
   html {
-    @apply min-h-full bg-rose-50 text-stone-800;
+    @apply min-h-full bg-slate-50 text-slate-800;
   }
 
   body {
-    @apply min-h-screen bg-[radial-gradient(circle_at_top,_#fff7ed_0,_#fff1f2_38%,_#fefce8_100%)] antialiased;
+    @apply min-h-screen bg-[radial-gradient(circle_at_top,_#eef6ff_0,_#f4f1ff_42%,_#f8fbff_100%)] antialiased;
+    font-family: ui-rounded, "Nunito", "Avenir Next Rounded Std", "Segoe UI", system-ui, sans-serif;
   }
 
   button,
@@ -18,28 +19,28 @@
 
 @layer components {
   .phase-shell {
-    @apply mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8;
+    @apply mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8 lg:max-w-none lg:px-0 lg:py-0;
     animation: cosy-enter 220ms ease-out both;
   }
 
   .soft-panel {
-    @apply rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm shadow-rose-100/70 backdrop-blur sm:p-5;
+    @apply rounded-2xl border border-white/80 bg-white/75 p-4 shadow-sm shadow-sky-100/70 backdrop-blur sm:p-5;
   }
 
   .soft-card {
-    @apply rounded-2xl border border-rose-100 bg-white/80 p-4 shadow-sm shadow-rose-100/60 transition duration-200;
+    @apply rounded-2xl border border-sky-100 bg-white/80 p-4 shadow-sm shadow-sky-100/60 transition duration-200;
   }
 
   .soft-input {
-    @apply w-full rounded-xl border border-rose-100 bg-white/90 px-4 py-3 text-stone-800 shadow-inner shadow-rose-50 outline-none transition placeholder:text-stone-400 focus:border-rose-300 focus:ring-4 focus:ring-rose-100;
+    @apply w-full rounded-xl border border-sky-100 bg-white/90 px-4 py-3 text-slate-800 shadow-inner shadow-sky-50 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100;
   }
 
   .primary-button {
-    @apply w-full rounded-xl bg-rose-500 px-4 py-3 font-semibold text-white shadow-sm shadow-rose-200 transition duration-200 hover:bg-rose-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none;
+    @apply w-full rounded-xl bg-sky-500 px-4 py-3 font-semibold text-white shadow-sm shadow-sky-200 transition duration-200 hover:bg-sky-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none;
   }
 
   .secondary-button {
-    @apply w-full rounded-xl border border-rose-200 bg-white/85 px-4 py-3 font-semibold text-rose-700 shadow-sm shadow-rose-100 transition duration-200 hover:bg-rose-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:border-stone-200 disabled:text-stone-400;
+    @apply w-full rounded-xl border border-sky-200 bg-white/85 px-4 py-3 font-semibold text-sky-700 shadow-sm shadow-sky-100 transition duration-200 hover:bg-sky-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400;
   }
 
   .status-pill {
@@ -47,11 +48,15 @@
   }
 
   .progress-track {
-    @apply h-2 overflow-hidden rounded-full bg-rose-100;
+    @apply h-2 overflow-hidden rounded-full bg-sky-100;
   }
 
   .progress-fill {
-    @apply h-full rounded-full bg-rose-400 transition-all duration-300;
+    @apply h-full rounded-full bg-sky-400 transition-all duration-300;
+  }
+
+  .game-layout {
+    @apply mx-auto grid min-h-screen w-full max-w-6xl gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6;
   }
 }
 

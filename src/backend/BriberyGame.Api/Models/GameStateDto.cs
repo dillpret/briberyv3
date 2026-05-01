@@ -28,6 +28,8 @@ public class PlayerDto
     public bool IsReady { get; set; }
     public bool IsActive { get; set; }
     public double Score { get; set; }
+    public PlayerPhaseStatus PhaseStatus { get; set; }
+    public string PhaseStatusLabel { get; set; } = "";
 }
 
 public class PromptPhaseDto

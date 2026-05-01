@@ -14,6 +14,7 @@ export class Voting {
   voteSubmittedCount;
   voteRequiredCount;
   isCurrentPlayerActive;
+  players;
   selectedBribeId = signal<string | null>(null);
 
   constructor(
@@ -24,6 +25,7 @@ export class Voting {
     this.voteSubmittedCount = this.gameState.voteSubmittedCount;
     this.voteRequiredCount = this.gameState.voteRequiredCount;
     this.isCurrentPlayerActive = this.gameState.isCurrentPlayerActive;
+    this.players = this.gameState.players;
   }
 
   currentSelection(): string | null {
@@ -44,5 +46,13 @@ export class Voting {
   voteProgressPercent(): number {
     const required = this.voteRequiredCount();
     return required === 0 ? 0 : Math.round((this.voteSubmittedCount() / required) * 100);
+  }
+
+  waitingText(): string {
+    const pendingPlayers = this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
+    if (pendingPlayers.length === 0) return 'Waiting for results.';
+    if (pendingPlayers.length === 1) return `Waiting for ${pendingPlayers[0].name}.`;
+    if (pendingPlayers.length === 2) return `Waiting for ${pendingPlayers[0].name} and ${pendingPlayers[1].name}.`;
+    return `Waiting for ${pendingPlayers.length} players.`;
   }
 }

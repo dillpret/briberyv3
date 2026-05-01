@@ -8,6 +8,8 @@ export interface Player {
   isReady: boolean;
   isActive: boolean;
   score: number;
+  phaseStatus: 'None' | 'Ready' | 'Pending' | 'Done' | 'Waiting';
+  phaseStatusLabel: string;
 }
 
 export interface PromptPhaseState {
