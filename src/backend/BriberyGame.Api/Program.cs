@@ -12,17 +12,20 @@ builder.Services.AddSignalR()
 
 builder.Services.AddSingleton<GameService>();
 
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
+// builder.Services.AddCors(options =>
+// {
+//     options.AddDefaultPolicy(policy =>
+//     {
+//         policy
+//             .WithOrigins(
+//                 "http://localhost:4200",
+//                 "http://localhost:8080"
+//             )
+//             .AllowAnyHeader()
+//             .AllowAnyMethod()
+//             .AllowCredentials();
+//     });
+// });
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 {
@@ -32,10 +35,13 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =
 
 var app = builder.Build();
 
-app.UseCors();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
-app.MapGet("/", () => "Bribery Game API running");
+// app.UseCors();
 
 app.MapHub<GameHub>("/hub/game");
+
+app.MapFallbackToFile("index.html");
 
 app.Run();

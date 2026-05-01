@@ -14,7 +14,7 @@ export class SignalrService {
 
   async start(): Promise<void> {
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5066/hub/game')
+      .withUrl("/hub/game")
       .withAutomaticReconnect()
       .build();
 
