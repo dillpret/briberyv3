@@ -15,6 +15,7 @@ export class Prompt {
   totalRounds;
   promptSubmittedCount;
   promptRequiredCount;
+  isCurrentPlayerActive;
   prompt;
   promptText = '';
 
@@ -26,6 +27,7 @@ export class Prompt {
     this.totalRounds = this.gameState.totalRounds;
     this.promptSubmittedCount = this.gameState.promptSubmittedCount;
     this.promptRequiredCount = this.gameState.promptRequiredCount;
+    this.isCurrentPlayerActive = this.gameState.isCurrentPlayerActive;
     this.prompt = this.gameState.prompt;
   }
 
@@ -35,5 +37,18 @@ export class Prompt {
 
   hasSubmittedPrompt(): boolean {
     return this.prompt()?.hasSubmittedPrompt ?? false;
+  }
+
+  pendingPromptCount(): number {
+    return Math.max(this.promptRequiredCount() - this.promptSubmittedCount(), 0);
+  }
+
+  promptProgressPercent(): number {
+    const required = this.promptRequiredCount();
+    return required === 0 ? 0 : Math.round((this.promptSubmittedCount() / required) * 100);
+  }
+
+  remainingCharacters(): number {
+    return 200 - this.promptText.length;
   }
 }

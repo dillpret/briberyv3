@@ -31,4 +31,31 @@ export class Lobby {
   async startGame() {
     await this.signalr.startGame();
   }
+
+  connectedCount(): number {
+    return this.players().filter((player) => player.connected).length;
+  }
+
+  readyCount(): number {
+    return this.players().filter((player) => player.connected && player.isReady).length;
+  }
+
+  pendingReadyCount(): number {
+    return Math.max(this.connectedCount() - this.readyCount(), 0);
+  }
+
+  readyPercent(): number {
+    const connected = this.connectedCount();
+    return connected === 0 ? 0 : Math.round((this.readyCount() / connected) * 100);
+  }
+
+  isCurrentPlayerReady(): boolean {
+    return this.players().find((player) => player.id === this.playerId)?.isReady ?? false;
+  }
+
+  canStartHint(): string {
+    if (this.connectedCount() < 3) return 'Waiting for at least three connected players.';
+    if (this.pendingReadyCount() > 0) return `Waiting for ${this.pendingReadyCount()} player(s) to ready up.`;
+    return 'Everyone is ready.';
+  }
 }

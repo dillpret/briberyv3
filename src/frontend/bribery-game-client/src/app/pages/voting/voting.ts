@@ -13,6 +13,7 @@ export class Voting {
   voting;
   voteSubmittedCount;
   voteRequiredCount;
+  isCurrentPlayerActive;
   selectedBribeId = signal<string | null>(null);
 
   constructor(
@@ -22,6 +23,7 @@ export class Voting {
     this.voting = this.gameState.voting;
     this.voteSubmittedCount = this.gameState.voteSubmittedCount;
     this.voteRequiredCount = this.gameState.voteRequiredCount;
+    this.isCurrentPlayerActive = this.gameState.isCurrentPlayerActive;
   }
 
   currentSelection(): string | null {
@@ -33,5 +35,14 @@ export class Voting {
     if (!bribeId) return;
 
     await this.signalr.submitVote(bribeId);
+  }
+
+  pendingVoteCount(): number {
+    return Math.max(this.voteRequiredCount() - this.voteSubmittedCount(), 0);
+  }
+
+  voteProgressPercent(): number {
+    const required = this.voteRequiredCount();
+    return required === 0 ? 0 : Math.round((this.voteSubmittedCount() / required) * 100);
   }
 }

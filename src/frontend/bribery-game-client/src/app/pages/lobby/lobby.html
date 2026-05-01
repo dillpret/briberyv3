@@ -1,48 +1,81 @@
-<div class="p-4 max-w-md mx-auto space-y-4">
+<main class="phase-shell">
+  <section class="soft-panel space-y-4">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-wide text-rose-500">Lobby</p>
+        <h1 class="text-2xl font-bold text-stone-900">Gather your friends</h1>
+      </div>
+      <span class="status-pill border-amber-200 bg-amber-50 text-amber-700">Code {{ gameId }}</span>
+    </div>
 
-  <h1 class="text-xl font-bold">Lobby</h1>
+    <div class="space-y-2">
+      <div class="flex items-center justify-between text-sm text-stone-600">
+        <span>{{ readyCount() }} of {{ connectedCount() }} ready</span>
+        <span>{{ readyPercent() }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="readyPercent()"></div>
+      </div>
+      <p class="text-sm text-stone-600">{{ canStartHint() }}</p>
+    </div>
+  </section>
 
-  <p class="text-sm text-gray-600">
-    Phase: Lobby
-  </p>
-
-  <p class="text-sm text-gray-600">Game ID: {{ gameId }}</p>
-
-  <ul class="space-y-1">
+  <section class="soft-panel space-y-3">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-stone-500">Players</h2>
     @for (player of players(); track player.id) {
-      <li class="flex justify-between">
-        <span>
-          {{ player.name }}
+      <article class="flex items-center justify-between gap-3 rounded-xl bg-rose-50/70 p-3">
+        <div class="min-w-0">
+          <p class="truncate font-semibold text-stone-800">
+            {{ player.name }}
+            @if (player.id === playerId) {
+              <span class="text-stone-400">(you)</span>
+            }
+          </p>
+          <div class="mt-1 flex flex-wrap gap-1.5">
           @if (player.id === hostPlayerId()) {
-            <strong>(Host)</strong>
+              <span class="status-pill border-rose-200 bg-rose-100 text-rose-700">Host</span>
           }
           @if (player.isReady) {
-            <span class="text-green-600">(Ready)</span>
+              <span class="status-pill border-emerald-200 bg-emerald-50 text-emerald-700">Ready</span>
+            } @else {
+              <span class="status-pill border-stone-200 bg-white text-stone-500">Not ready</span>
           }
           @if (!player.isActive) {
-            <span>(Waiting)</span>
+              <span class="status-pill border-amber-200 bg-amber-50 text-amber-700">Waiting</span>
           }
-        </span>
+          </div>
+        </div>
 
-        <span class="text-xs text-gray-500">
+        <span
+          class="status-pill shrink-0"
+          [class.border-emerald-200]="player.connected"
+          [class.bg-emerald-50]="player.connected"
+          [class.text-emerald-700]="player.connected"
+          [class.border-stone-200]="!player.connected"
+          [class.bg-stone-50]="!player.connected"
+          [class.text-stone-500]="!player.connected">
           {{ player.connected ? 'online' : 'offline' }}
         </span>
-      </li>
+      </article>
     }
-  </ul>
+  </section>
 
-  <button
-    (click)="toggleReady()"
-    class="bg-yellow-500 text-white px-2 py-1 rounded">
-    Toggle Ready
-  </button>
-
-  @if (playerId === hostPlayerId()) {
+  <section class="soft-panel space-y-3">
     <button
-      (click)="startGame()"
-      class="bg-red-500 text-white px-3 py-1 rounded">
-      Start Game
+      (click)="toggleReady()"
+      class="secondary-button">
+      {{ isCurrentPlayerReady() ? 'I need a moment' : 'I am ready' }}
     </button>
-  }
 
-</div>
+    @if (playerId === hostPlayerId()) {
+      <button
+        (click)="startGame()"
+        class="primary-button">
+        Start game
+      </button>
+    } @else {
+      <p class="text-center text-sm text-stone-500">The host will start once everyone is ready.</p>
+    }
+  </section>
+
+</main>

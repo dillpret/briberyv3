@@ -1,25 +1,45 @@
-<div class="p-4 max-w-md mx-auto space-y-4">
+<main class="phase-shell justify-center">
+  <section class="space-y-4 text-center">
+    <p class="text-sm font-semibold uppercase tracking-wide text-rose-500">Bribery</p>
+    <h1 class="text-3xl font-bold text-stone-900 sm:text-4xl">Settle in for a cosy round</h1>
+    <p class="mx-auto max-w-sm text-sm leading-6 text-stone-600">
+      Create a room, share the code, and trade tiny text bribes with friends.
+    </p>
+  </section>
 
-  <h1 class="text-xl font-bold">Welcome</h1>
+  <section class="soft-panel space-y-4">
+    <label class="block space-y-2">
+      <span class="text-sm font-semibold text-stone-700">Your name</span>
+      <input
+        [(ngModel)]="name"
+        class="soft-input"
+        autocomplete="nickname"
+        placeholder="A friendly alias" />
+    </label>
 
-  <div class="border p-3 rounded">
-    <label class="block text-sm font-medium mb-1">Your Name</label>
-    <input [(ngModel)]="name" class="border px-2 py-1 w-full" />
-  </div>
-
-  <div class="border p-3 rounded">
-    <button (click)="createGame()" class="bg-blue-500 text-white px-3 py-1 rounded w-full">
-      Create Game
+    <button
+      (click)="createGame()"
+      [disabled]="!name.trim()"
+      class="primary-button">
+      Create a new room
     </button>
-  </div>
+  </section>
 
-  <div class="border p-3 rounded space-y-2">
-    <label class="block text-sm font-medium">Game Code</label>
-    <input [(ngModel)]="gameId" class="border px-2 py-1 w-full" />
+  <section class="soft-panel space-y-4">
+    <label class="block space-y-2">
+      <span class="text-sm font-semibold text-stone-700">Game code</span>
+      <input
+        [(ngModel)]="gameId"
+        class="soft-input uppercase"
+        autocomplete="off"
+        placeholder="AB12" />
+    </label>
 
-    <button (click)="join()" class="bg-green-500 text-white px-3 py-1 rounded w-full">
-      Join Game
+    <button
+      (click)="join()"
+      [disabled]="!name.trim() || !gameId.trim()"
+      class="secondary-button">
+      Join room
     </button>
-  </div>
-
-</div>
+  </section>
+</main>

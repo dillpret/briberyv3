@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { GameStateService } from '../../state/game-state.service';
+import { GameStateService, Player } from '../../state/game-state.service';
 import { SignalrService } from '../../core/signalr.service';
 
 @Component({
@@ -28,5 +28,13 @@ export class Results {
 
   async startNextRound() {
     await this.signalr.startNextRound();
+  }
+
+  sortedPlayers(): Player[] {
+    return [...this.players()].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  }
+
+  isHost(): boolean {
+    return this.playerId === this.hostPlayerId();
   }
 }

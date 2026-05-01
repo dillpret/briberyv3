@@ -14,6 +14,7 @@ export class Submission {
   submission;
   bribeSubmittedCount;
   bribeRequiredCount;
+  isCurrentPlayerActive;
   drafts = signal<Record<string, string>>({});
 
   constructor(
@@ -23,6 +24,7 @@ export class Submission {
     this.submission = this.gameState.submission;
     this.bribeSubmittedCount = this.gameState.bribeSubmittedCount;
     this.bribeRequiredCount = this.gameState.bribeRequiredCount;
+    this.isCurrentPlayerActive = this.gameState.isCurrentPlayerActive;
   }
 
   hasSubmitted(targetPlayerId: string): boolean {
@@ -42,5 +44,18 @@ export class Submission {
 
   async submitBribe(target: SubmissionTarget) {
     await this.signalr.submitBribe(target.playerId, this.draftFor(target.playerId));
+  }
+
+  pendingBribeCount(): number {
+    return Math.max(this.bribeRequiredCount() - this.bribeSubmittedCount(), 0);
+  }
+
+  bribeProgressPercent(): number {
+    const required = this.bribeRequiredCount();
+    return required === 0 ? 0 : Math.round((this.bribeSubmittedCount() / required) * 100);
+  }
+
+  remainingCharacters(targetPlayerId: string): number {
+    return 500 - this.draftFor(targetPlayerId).length;
   }
 }

@@ -1,29 +1,58 @@
-<div class="p-4 max-w-md mx-auto space-y-4">
-  <h1 class="text-xl font-bold">Voting Phase</h1>
+<main class="phase-shell">
+  <section class="soft-panel space-y-4">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-wide text-rose-500">Voting</p>
+      <h1 class="text-2xl font-bold text-stone-900">Pick your favourite</h1>
+    </div>
 
-  <p class="text-sm text-gray-600">
-    Votes submitted: {{ voteSubmittedCount() }} / {{ voteRequiredCount() }}
-  </p>
+    <div class="space-y-2">
+      <div class="flex justify-between text-sm text-stone-600">
+        <span>{{ voteSubmittedCount() }} of {{ voteRequiredCount() }} votes in</span>
+        <span>{{ voteProgressPercent() }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="voteProgressPercent()"></div>
+      </div>
+    </div>
+  </section>
 
-  @if (voting()?.selectedBribeId) {
-    <p class="text-green-600 font-semibold">Vote submitted</p>
+  @if (!isCurrentPlayerActive()) {
+    <section class="soft-panel space-y-2 text-center">
+      <h2 class="text-lg font-semibold text-stone-900">You are waiting for the next round</h2>
+      <p class="text-sm leading-6 text-stone-600">
+        Voting is only for players who received bribes this round.
+      </p>
+    </section>
+  } @else if (voting()?.selectedBribeId) {
+    <section class="soft-panel space-y-2 text-center">
+      <span class="status-pill mx-auto border-emerald-200 bg-emerald-50 text-emerald-700">Vote submitted</span>
+      <h2 class="text-lg font-semibold text-stone-900">Decision made.</h2>
+      <p class="text-sm leading-6 text-stone-600">
+        Waiting for {{ pendingVoteCount() }} more vote(s) before results.
+      </p>
+    </section>
   } @else {
     @for (bribe of voting()?.bribes ?? []; track bribe.bribeId) {
-      <label class="block border rounded p-3">
+      <label
+        class="soft-card block cursor-pointer"
+        [class.border-rose-300]="currentSelection() === bribe.bribeId"
+        [class.bg-rose-50]="currentSelection() === bribe.bribeId">
         <input
+          class="sr-only"
           type="radio"
           name="bribe"
           [checked]="currentSelection() === bribe.bribeId"
           (change)="selectedBribeId.set(bribe.bribeId)" />
-        <span class="ml-2">{{ bribe.text }}</span>
+        <span class="block text-sm font-semibold uppercase tracking-wide text-stone-500">Bribe option</span>
+        <span class="mt-2 block text-base leading-7 text-stone-800">{{ bribe.text }}</span>
       </label>
     }
 
     <button
       (click)="submitVote()"
       [disabled]="!currentSelection()"
-      class="bg-blue-600 text-white px-3 py-1 rounded">
-      Submit Vote
+      class="primary-button">
+      Submit vote
     </button>
   }
-</div>
+</main>
