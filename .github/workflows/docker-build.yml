@@ -24,3 +24,16 @@ jobs:
 
       - name: Push image
         run: docker push ghcr.io/${{ github.repository }}:latest
+
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker pull ghcr.io/${{ github.repository }}:latest
+            docker stop bribery-app || true
+            docker rm bribery-app || true
+            docker run -d -p 80:80 --restart unless-stopped --name bribery-app ghcr.io/${{ github.repository }}:latest
