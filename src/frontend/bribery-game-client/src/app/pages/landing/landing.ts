@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SignalrService } from '../../core/signalr.service';
 import { CommonModule } from '@angular/common';
+import { buildInfo } from '../../build-info.generated';
 
 @Component({
   standalone: true,
@@ -14,6 +15,7 @@ export class Landing {
   gameId = localStorage.getItem('gameId') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
   errorMessage = history.state?.message ?? '';
+  deploymentLabel = this.buildDeploymentLabel();
 
   constructor(
     private signalr: SignalrService,
@@ -40,7 +42,7 @@ export class Landing {
 
     if (!this.name.trim() || !normalizedGameId) return;
 
-    localStorage.setItem('playerName', this.name);
+    localStorage.setItem('playerName', this.name.trim());
     localStorage.setItem('gameId', normalizedGameId);
 
     this.router.navigate(['/game', normalizedGameId]);
@@ -48,5 +50,24 @@ export class Landing {
 
   normalizeGameId(gameId: string): string {
     return gameId.trim().toUpperCase();
+  }
+
+  private buildDeploymentLabel(): string {
+    if (!buildInfo.deployedAt) return `local build ${buildInfo.shortCommitHash}`;
+
+    return `deployed ${buildInfo.shortCommitHash} - ${this.formatUtcDate(buildInfo.deployedAt)}`;
+  }
+
+  private formatUtcDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return `${value} UTC`;
+
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hour = String(date.getUTCHours()).padStart(2, '0');
+    const minute = String(date.getUTCMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hour}:${minute} UTC`;
   }
 }

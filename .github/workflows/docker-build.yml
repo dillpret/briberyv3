@@ -19,8 +19,16 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Capture deployment timestamp
+        id: build_info
+        run: echo "deployed_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: Build image
-        run: docker build -t ghcr.io/${{ github.repository }}:latest .
+        run: |
+          docker build \
+            --build-arg COMMIT_HASH=${{ github.sha }} \
+            --build-arg DEPLOYED_AT=${{ steps.build_info.outputs.deployed_at }} \
+            -t ghcr.io/${{ github.repository }}:latest .
 
       - name: Push image
         run: docker push ghcr.io/${{ github.repository }}:latest

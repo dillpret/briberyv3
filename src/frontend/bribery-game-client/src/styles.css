@@ -19,7 +19,7 @@
 
 @layer components {
   .phase-shell {
-    @apply mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8 lg:max-w-none lg:px-0 lg:py-0;
+    @apply mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8 lg:px-0 lg:py-0;
     animation: cosy-enter 220ms ease-out both;
   }
 
@@ -70,7 +70,7 @@
   }
 
   .game-layout {
-    @apply mx-auto grid min-h-screen w-full max-w-6xl gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6;
+    @apply mx-auto grid min-h-screen w-full max-w-7xl gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6 xl:gap-6;
   }
 }
 

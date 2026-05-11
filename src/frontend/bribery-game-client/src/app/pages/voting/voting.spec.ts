@@ -5,17 +5,18 @@ import { GameStateService } from '../../state/game-state.service';
 
 describe('Voting', () => {
   let fixture: ComponentFixture<Voting>;
+  let component: Voting;
+  let signalr: Pick<SignalrService, 'submitVote' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
+    signalr = {
+      submitVote: vi.fn().mockResolvedValue(undefined),
+      advancePhaseWithoutOfflinePlayers: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [Voting],
-      providers: [{
-        provide: SignalrService,
-        useValue: {
-          submitVote: vi.fn().mockResolvedValue(undefined),
-          advancePhaseWithoutOfflinePlayers: vi.fn().mockResolvedValue(undefined),
-        },
-      }],
+      providers: [{ provide: SignalrService, useValue: signalr }],
     }).compileComponents();
 
     const gameState = TestBed.inject(GameStateService);
@@ -40,6 +41,7 @@ describe('Voting', () => {
     });
 
     fixture = TestBed.createComponent(Voting);
+    component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
@@ -49,5 +51,19 @@ describe('Voting', () => {
     expect(element.textContent).toContain('A text bribe');
     expect(element.querySelector('img')?.getAttribute('src')).toBe('/api/media/m1');
     expect(element.textContent).not.toContain('Player 2');
+  });
+
+  it('submits the selected bribe id', async () => {
+    component.selectedBribeId.set('b2');
+
+    await component.submitVote();
+
+    expect(signalr.submitVote).toHaveBeenCalledWith('b2');
+  });
+
+  it('does not submit without a selection', async () => {
+    await component.submitVote();
+
+    expect(signalr.submitVote).not.toHaveBeenCalled();
   });
 });

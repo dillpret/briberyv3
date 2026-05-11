@@ -1,6 +1,10 @@
 # -------- FRONTEND BUILD --------
 FROM node:20 AS frontend
 WORKDIR /app
+ARG COMMIT_HASH=local
+ARG DEPLOYED_AT=
+ENV COMMIT_HASH=$COMMIT_HASH
+ENV DEPLOYED_AT=$DEPLOYED_AT
 COPY src/frontend/bribery-game-client/ .
 RUN npm install
 RUN npm run build

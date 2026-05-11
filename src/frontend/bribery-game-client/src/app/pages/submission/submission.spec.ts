@@ -67,6 +67,52 @@ describe('Submission', () => {
     expect(fixture.nativeElement.textContent).toContain('bribe.png');
   });
 
+  it('submits a text bribe without uploading media', async () => {
+    component.setDraft('p2', 'A very persuasive sandwich');
+
+    await component.submitBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
+
+    expect(signalr.uploadBribeMedia).not.toHaveBeenCalled();
+    expect(signalr.submitBribe).toHaveBeenCalledWith({
+      targetPlayerId: 'p2',
+      text: 'A very persuasive sandwich',
+    });
+  });
+
+  it('selects pasted image media and clears existing text', () => {
+    component.setDraft('p2', 'Replace me');
+    const file = new File(['image'], 'pasted.gif', { type: 'image/gif' });
+
+    component.handlePaste('p2', {
+      preventDefault: vi.fn(),
+      clipboardData: { files: [file] },
+    } as unknown as ClipboardEvent);
+
+    expect(component.draftFor('p2')).toBe('');
+    expect(component.mediaDraftFor('p2')?.file).toBe(file);
+  });
+
+  it('selects dropped image media', () => {
+    const file = new File(['image'], 'dropped.gif', { type: 'image/gif' });
+
+    component.handleDrop('p2', {
+      preventDefault: vi.fn(),
+      dataTransfer: { files: [file] },
+    } as unknown as DragEvent);
+
+    expect(component.mediaDraftFor('p2')?.file).toBe(file);
+  });
+
+  it('clears media drafts and revokes their preview URL', () => {
+    const file = new File(['image'], 'bribe.gif', { type: 'image/gif' });
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+
+    component.clearMedia('p2');
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    expect(component.mediaDraftFor('p2')).toBeNull();
+  });
+
   it('shows an error for oversized media and does not upload it', async () => {
     const file = new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'huge.gif', { type: 'image/gif' });
 
@@ -79,6 +125,28 @@ describe('Submission', () => {
     await component.submitBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
 
     expect(signalr.uploadBribeMedia).not.toHaveBeenCalled();
+  });
+
+  it('shows an error for unsupported media types', () => {
+    const file = new File(['nope'], 'notes.txt', { type: 'text/plain' });
+
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Choose a PNG, JPG, GIF, WebP, or BMP image.');
+    expect(submitBribeButton().disabled).toBe(true);
+  });
+
+  it('shows upload failures without submitting the bribe', async () => {
+    vi.mocked(signalr.uploadBribeMedia).mockRejectedValue(new Error('Upload service is unavailable'));
+    const file = new File(['image'], 'bribe.gif', { type: 'image/gif' });
+
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+    await component.submitBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Upload service is unavailable');
+    expect(signalr.submitBribe).not.toHaveBeenCalled();
   });
 
   it('renders file and camera inputs with mobile-friendly attributes', () => {
