@@ -73,7 +73,7 @@ public class VotingAndResultsTests
         var duplicateVote = harness.Game.SubmitVote("c1", bribe.BribeId);
 
         harness.Game.Disconnect("c1");
-        var reconnectState = harness.Game.Join("c1-reconnected", "p1", "Player 1");
+        var reconnectState = harness.JoinPlayer("c1-reconnected", "p1", "Player 1");
 
         Assert.True(firstVote.Success, firstVote.Error);
         Assert.False(duplicateVote.Success);

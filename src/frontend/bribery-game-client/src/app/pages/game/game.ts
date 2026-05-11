@@ -66,10 +66,23 @@ export class Game implements OnInit {
 
     try {
       this.joinState.set('joining');
+      this.joinError.set('');
       await this.signalr.joinLobby(this.gameId, this.playerId, this.name.trim());
+      const currentPlayerId = this.gameState.currentPlayerId();
+      if (currentPlayerId) {
+        this.playerId = currentPlayerId;
+        localStorage.setItem('playerId', currentPlayerId);
+      }
       this.joinState.set('joined');
     } catch (err) {
       console.error('Join failed', err);
+      const message = err instanceof Error ? err.message : 'Unable to join this room.';
+      if (message !== 'Game does not exist') {
+        this.joinError.set(message);
+        this.joinState.set('needs-name');
+        return;
+      }
+
       this.joinState.set('failed');
       localStorage.removeItem('gameId');
       this.router.navigate(['/'], {

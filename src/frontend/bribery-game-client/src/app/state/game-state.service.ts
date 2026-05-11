@@ -55,6 +55,7 @@ export interface ResultsPhaseState {
 })
 export class GameStateService {
   players = signal<Player[]>([]);
+  currentPlayerId = signal('');
   hostPlayerId = signal<string | null>(null);
   phase = signal<GamePhase>('Lobby');
   currentRound = signal(0);
@@ -76,6 +77,7 @@ export class GameStateService {
 
   setGameState(state: any) {
     this.players.set(state.players ?? []);
+    this.currentPlayerId.set(state.currentPlayerId ?? '');
     this.hostPlayerId.set(state.hostPlayerId ?? null);
     this.phase.set(state.phase);
     this.currentRound.set(state.currentRound ?? 0);

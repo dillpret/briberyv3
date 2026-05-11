@@ -34,29 +34,37 @@ public class Game
         };
     }
 
-    public GameStateDto Join(string connectionId, string playerId, string name)
+    public Result<GameStateDto> Join(string connectionId, string playerId, string name)
     {
         if (State.Players.FirstOrDefault(p => p.ConnectionId == connectionId) is { } alreadyConnected)
-            return BuildStateForPlayer(alreadyConnected.Id);
+            return Result<GameStateDto>.Ok(BuildStateForPlayer(alreadyConnected.Id));
 
+        var trimmedName = name.Trim();
         var existing = State.Players.FirstOrDefault(p => p.Id == playerId);
 
         if (existing != null)
         {
-            existing.ConnectionId = connectionId;
-            existing.Connected = true;
-            existing.IsReady = false;
+            if (existing.Connected)
+                return Result<GameStateDto>.Fail("You are currently active on a different device or browser.");
 
-            if (State.Phase == GamePhase.Lobby)
-                existing.IsActive = true;
+            return Result<GameStateDto>.Ok(ReconnectPlayer(existing, connectionId));
+        }
 
-            return BuildStateForPlayer(existing.Id);
+        var nameMatch = State.Players.FirstOrDefault(p =>
+            string.Equals(p.Name.Trim(), trimmedName, StringComparison.OrdinalIgnoreCase));
+
+        if (nameMatch != null)
+        {
+            if (nameMatch.Connected)
+                return Result<GameStateDto>.Fail("Another player with that name is already in the game. Please enter a different name.");
+
+            return Result<GameStateDto>.Ok(ReconnectPlayer(nameMatch, connectionId));
         }
 
         var player = new Player
         {
             Id = playerId,
-            Name = name,
+            Name = trimmedName,
             Connected = true,
             ConnectionId = connectionId,
             IsReady = false,
@@ -68,7 +76,7 @@ public class Game
         if (State.HostPlayerId == null)
             State.HostPlayerId = player.Id;
 
-        return BuildStateForPlayer(player.Id);
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
     }
 
     public GameStateDto Disconnect(string connectionId)
@@ -343,6 +351,23 @@ public class Game
             .ToList();
     }
 
+    public bool HasConnection(string connectionId)
+    {
+        return State.Players.Any(p => p.ConnectionId == connectionId);
+    }
+
+    private GameStateDto ReconnectPlayer(Player player, string connectionId)
+    {
+        player.ConnectionId = connectionId;
+        player.Connected = true;
+        player.IsReady = false;
+
+        if (State.Phase == GamePhase.Lobby)
+            player.IsActive = true;
+
+        return BuildStateForPlayer(player.Id);
+    }
+
     private bool CanStart()
     {
         var connectedPlayers = State.Players.Where(p => p.Connected).ToList();
@@ -479,6 +504,7 @@ public class Game
                 PhaseStatus = GetPhaseStatus(p),
                 PhaseStatusLabel = GetPhaseStatusLabel(p)
             }).ToList(),
+            CurrentPlayerId = playerId,
             HostPlayerId = State.HostPlayerId,
             Phase = State.Phase,
             CurrentRound = State.CurrentRound,

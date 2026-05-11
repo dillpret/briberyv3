@@ -14,7 +14,7 @@ public class LateJoinAndWaitingTests
         var harness = new GameTestHarness();
         MoveToPhase(harness, joinPhase);
 
-        var state = harness.Game.Join("c4", "p4", "Late Player");
+        var state = harness.JoinPlayer("c4", "p4", "Late Player");
 
         Assert.False(state.IsCurrentPlayerActive);
         Assert.False(state.Players.Single(p => p.Id == "p4").IsActive);
@@ -25,7 +25,7 @@ public class LateJoinAndWaitingTests
     {
         var harness = new GameTestHarness();
         harness.StartPromptPhaseWithPlayers(3);
-        harness.Game.Join("c4", "p4", "Late Player");
+        harness.JoinPlayer("c4", "p4", "Late Player");
 
         Assert.False(harness.Game.SubmitPrompt("c4", "Late prompt").Success);
 
@@ -49,7 +49,7 @@ public class LateJoinAndWaitingTests
     {
         var harness = new GameTestHarness();
         harness.CompleteRoundToResults();
-        harness.Game.Join("c4", "p4", "Late Player");
+        harness.JoinPlayer("c4", "p4", "Late Player");
 
         var result = harness.Game.StartNextRound("c1");
 

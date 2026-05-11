@@ -10,14 +10,15 @@ public class GameServiceCodeTests
         var service = new GameService();
         var gameId = service.CreateGame();
 
-        var (resolvedGameId, state) = service.Join(
+        var (resolvedGameId, result) = service.Join(
             gameId.ToLowerInvariant(),
             "c1",
             "p1",
             "Player 1");
 
         Assert.Equal(gameId, resolvedGameId);
-        Assert.NotNull(state);
+        Assert.NotNull(result);
+        Assert.True(result.Success, result.Error);
     }
 
     [Fact]
@@ -26,14 +27,15 @@ public class GameServiceCodeTests
         var service = new GameService();
         var gameId = service.CreateGame();
 
-        var (resolvedGameId, state) = service.Join(
+        var (resolvedGameId, result) = service.Join(
             $"  {gameId}  ",
             "c1",
             "p1",
             "Player 1");
 
         Assert.Equal(gameId, resolvedGameId);
-        Assert.NotNull(state);
+        Assert.NotNull(result);
+        Assert.True(result.Success, result.Error);
     }
 
     [Fact]
@@ -41,14 +43,14 @@ public class GameServiceCodeTests
     {
         var service = new GameService();
 
-        var (resolvedGameId, state) = service.Join(
+        var (resolvedGameId, result) = service.Join(
             " nope ",
             "c1",
             "p1",
             "Player 1");
 
         Assert.Null(resolvedGameId);
-        Assert.Null(state);
+        Assert.Null(result);
     }
 
     [Fact]

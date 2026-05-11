@@ -66,7 +66,7 @@ public class RoundProgressionTests
     {
         var harness = new GameTestHarness();
         harness.StartPromptPhaseWithPlayers(3);
-        harness.Game.Join("c4", "p4", "Late Player");
+        harness.JoinPlayer("c4", "p4", "Late Player");
         harness.SubmitPromptsForActivePlayers();
         harness.SubmitAllAssignedBribes();
         harness.SubmitAllVotes();

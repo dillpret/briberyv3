@@ -13,8 +13,20 @@ internal sealed class GameTestHarness
     {
         for (var i = 1; i <= count; i++)
         {
-            Game.Join(ConnectionId(i), PlayerId(i), $"Player {i}");
+            JoinPlayer(i);
         }
+    }
+
+    public GameStateDto JoinPlayer(int number)
+    {
+        return JoinPlayer(ConnectionId(number), PlayerId(number), $"Player {number}");
+    }
+
+    public GameStateDto JoinPlayer(string connectionId, string playerId, string name)
+    {
+        var result = Game.Join(connectionId, playerId, name);
+        Assert.True(result.Success, result.Error);
+        return result.Data!;
     }
 
     public void ReadyPlayers(int count)

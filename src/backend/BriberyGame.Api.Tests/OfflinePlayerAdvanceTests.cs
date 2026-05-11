@@ -115,7 +115,7 @@ public class OfflinePlayerAdvanceTests
         harness.Game.Disconnect("c4");
         harness.Game.AdvancePhaseWithoutOfflinePlayers("c1");
 
-        var reconnectState = harness.Game.Join("c4-reconnected", "p4", "Player 4");
+        var reconnectState = harness.JoinPlayer("c4-reconnected", "p4", "Player 4");
 
         Assert.False(reconnectState.IsCurrentPlayerActive);
         Assert.False(reconnectState.Players.Single(p => p.Id == "p4").IsActive);

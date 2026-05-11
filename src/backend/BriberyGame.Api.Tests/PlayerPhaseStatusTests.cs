@@ -82,7 +82,7 @@ public class PlayerPhaseStatusTests
         var harness = new GameTestHarness();
         harness.StartPromptPhaseWithPlayers(3);
 
-        var state = harness.Game.Join("c4", "p4", "Late Player");
+        var state = harness.JoinPlayer("c4", "p4", "Late Player");
 
         Assert.Equal(PlayerPhaseStatus.Waiting, state.Players.Single(p => p.Id == "p4").PhaseStatus);
         Assert.Equal("Waiting next round", state.Players.Single(p => p.Id == "p4").PhaseStatusLabel);

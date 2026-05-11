@@ -28,7 +28,7 @@ public class GameService
         return gameId;
     }
     
-    public (string? gameId, GameStateDto? state) Join(
+    public (string? gameId, Result<GameStateDto>? result) Join(
         string gameId,
         string connectionId,
         string playerId,
@@ -38,11 +38,17 @@ public class GameService
         var game = GetGame(normalizedGameId);
         if (game == null) return (null, null);
 
+        var result = game.Join(connectionId, playerId, name);
+        if (!result.Success)
+        {
+            _connectionToGame.TryRemove(connectionId, out _);
+            return (normalizedGameId, result);
+        }
+
         _connectionToGame[connectionId] = normalizedGameId;
+        RemoveStaleConnectionMappings(normalizedGameId, game);
 
-        var state = game.Join(connectionId, playerId, name);
-
-        return (normalizedGameId, state);
+        return (normalizedGameId, result);
     }
 
     public (string? gameId, GameStateDto? state) Disconnect(string connectionId)
@@ -51,6 +57,7 @@ public class GameService
         if (game == null) return (null, null);
 
         var state = game.Disconnect(connectionId);
+        _connectionToGame.TryRemove(connectionId, out _);
 
         return (gameId, state);
     }
@@ -152,6 +159,15 @@ public class GameService
     {
         _games.TryGetValue(NormalizeGameId(gameId), out var game);
         return game;
+    }
+
+    private void RemoveStaleConnectionMappings(string gameId, Game game)
+    {
+        foreach (var mapping in _connectionToGame)
+        {
+            if (mapping.Value == gameId && !game.HasConnection(mapping.Key))
+                _connectionToGame.TryRemove(mapping.Key, out _);
+        }
     }
 
     private static string NormalizeGameId(string gameId)

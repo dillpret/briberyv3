@@ -14,12 +14,18 @@ public class GameHub : Hub
 
     public async Task JoinLobby(string gameId, string playerId, string name)
     {
-        var (resolvedGameId, state) =
+        var (resolvedGameId, result) =
             _gameService.Join(gameId, Context.ConnectionId, playerId, name);
 
-        if (resolvedGameId == null || state == null)
+        if (resolvedGameId == null || result == null)
         {
             await Clients.Caller.SendAsync("JoinFailed", "Game does not exist");
+            return;
+        }
+
+        if (!result.Success)
+        {
+            await Clients.Caller.SendAsync("JoinFailed", result.Error);
             return;
         }
 

@@ -3,6 +3,7 @@ namespace BriberyGame.Api.Models;
 public class GameStateDto
 {
     public List<PlayerDto> Players { get; set; } = new();
+    public string CurrentPlayerId { get; set; } = "";
     public string? HostPlayerId { get; set; }
     public GamePhase Phase { get; set; }
     public int CurrentRound { get; set; }

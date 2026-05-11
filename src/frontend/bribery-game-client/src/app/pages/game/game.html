@@ -6,6 +6,12 @@
         <h1 class="text-2xl font-bold text-slate-900">Choose a name</h1>
       </div>
 
+      @if (joinError()) {
+        <p class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+          {{ joinError() }}
+        </p>
+      }
+
       <label class="block space-y-2">
         <span class="text-sm font-semibold text-slate-700">Your name</span>
         <input
