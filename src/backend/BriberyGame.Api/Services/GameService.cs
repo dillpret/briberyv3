@@ -120,6 +120,16 @@ public class GameService
         return (gameId, result);
     }
 
+    public (string? gameId, Result<GameStateDto>? result) AdvancePhaseWithoutOfflinePlayers(string connectionId)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        var result = game.AdvancePhaseWithoutOfflinePlayers(connectionId);
+
+        return (gameId, result);
+    }
+
     public List<ConnectionGameStateDto> GetConnectedPlayerStates(string gameId)
     {
         var game = GetGame(gameId);

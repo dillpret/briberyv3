@@ -46,9 +46,10 @@
 
   <section class="soft-panel space-y-3 text-center">
   @if (isHost()) {
-      <p class="text-sm text-slate-600">Start another round when everyone is ready.</p>
+      <p class="text-sm text-slate-600">{{ nextRoundHint() }}</p>
       <button
         (click)="startNextRound()"
+        [disabled]="!canStartNextRound()"
         class="primary-button">
         Start next round
       </button>

@@ -5,6 +5,7 @@ public class Game
     private const int MaxPromptLength = 200;
     private const int MaxBribeLength = 500;
     private const int TargetsPerPlayer = 2;
+    private const int MinimumActivePlayers = 3;
 
     private static readonly IReadOnlyDictionary<GamePhase, GamePhase[]> AllowedTransitions =
         new Dictionary<GamePhase, GamePhase[]>
@@ -15,6 +16,13 @@ public class Game
             [GamePhase.Voting] = [GamePhase.Results],
             [GamePhase.Results] = [GamePhase.Prompt],
         };
+
+    private static readonly GamePhase[] OfflineAdvancePhases =
+    [
+        GamePhase.Prompt,
+        GamePhase.Submission,
+        GamePhase.Voting
+    ];
 
     public GameState State { get; }
 
@@ -76,6 +84,8 @@ public class Game
                 var nextHost = State.Players.FirstOrDefault(p => p.Connected);
                 State.HostPlayerId = nextHost?.Id;
             }
+
+            AdvancePhaseIfComplete();
         }
 
         return BuildStateForPlayer(player?.Id ?? "");
@@ -92,6 +102,39 @@ public class Game
             return Result<GameStateDto>.Fail("Player not found");
 
         player.IsReady = !player.IsReady;
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> AdvancePhaseWithoutOfflinePlayers(string connectionId)
+    {
+        if (!OfflineAdvancePhases.Contains(State.Phase))
+            return Result<GameStateDto>.Fail("Cannot advance without offline players during this phase");
+
+        var player = FindPlayerByConnection(connectionId);
+
+        if (player == null || player.Id != State.HostPlayerId)
+            return Result<GameStateDto>.Fail("Player is not host and cannot advance the phase");
+
+        var blockingPlayers = GetOfflineBlockingPlayers();
+        if (blockingPlayers.Count == 0)
+            return Result<GameStateDto>.Fail("No offline players are blocking this phase");
+
+        var remainingActiveConnectedPlayers = State.Players
+            .Count(p => p.IsActive && p.Connected && blockingPlayers.All(blocker => blocker.Id != p.Id));
+
+        if (remainingActiveConnectedPlayers < MinimumActivePlayers)
+            return Result<GameStateDto>.Fail(
+                $"Cannot advance without offline players because at least {MinimumActivePlayers} active connected players are required");
+
+        foreach (var skippedPlayer in blockingPlayers)
+        {
+            skippedPlayer.IsActive = false;
+            skippedPlayer.IsReady = false;
+        }
+
+        RemoveRoundDataForPlayers(blockingPlayers.Select(p => p.Id).ToHashSet());
+        AdvancePhaseIfComplete();
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
     }
@@ -268,12 +311,16 @@ public class Game
         if (player == null || player.Id != State.HostPlayerId)
             return Result<GameStateDto>.Fail("Player is not host and cannot start the next round");
 
+        if (State.Players.Count(p => p.Connected) < MinimumActivePlayers)
+            return Result<GameStateDto>.Fail(
+                $"Cannot start the next round before at least {MinimumActivePlayers} players are connected");
+
         State.CurrentRound += 1;
         ClearRoundState();
 
         foreach (var roundPlayer in State.Players)
         {
-            roundPlayer.IsActive = true;
+            roundPlayer.IsActive = roundPlayer.Connected;
             roundPlayer.IsReady = false;
         }
 
@@ -366,7 +413,9 @@ public class Game
 
     private bool AllRequiredBribesSubmitted()
     {
-        return GetActivePlayerIds().Count * TargetsPerPlayer == State.Bribes.Count;
+        return GetRequiredBribeKeys().All(key => State.Bribes.Values.Any(b =>
+            b.FromPlayerId == key.FromPlayerId &&
+            b.ToPlayerId == key.ToPlayerId));
     }
 
     private bool AllActivePlayersVoted()
@@ -389,9 +438,14 @@ public class Game
     {
         State.RoundResults.Clear();
 
-        foreach (var vote in State.Votes.Values)
+        var activePlayerIds = GetActivePlayerIds();
+
+        foreach (var vote in State.Votes.Values.Where(v => activePlayerIds.Contains(v.VoterPlayerId)))
         {
             var bribe = State.Bribes[vote.BribeId];
+            if (!activePlayerIds.Contains(bribe.FromPlayerId) || !activePlayerIds.Contains(bribe.ToPlayerId))
+                continue;
+
             var winner = State.Players.First(p => p.Id == bribe.FromPlayerId);
             var prompt = State.Prompts[bribe.ToPlayerId];
 
@@ -432,11 +486,21 @@ public class Game
             IsCurrentPlayerActive = activePlayerIds.Contains(playerId),
             PromptSubmittedCount = State.Prompts.Keys.Count(activePlayerIds.Contains),
             PromptRequiredCount = activePlayerIds.Count,
-            BribeSubmittedCount = State.Bribes.Count,
-            BribeRequiredCount = activePlayerIds.Count * TargetsPerPlayer,
+            BribeSubmittedCount = GetSubmittedRequiredBribeCount(),
+            BribeRequiredCount = GetRequiredBribeKeys().Count,
             VoteSubmittedCount = State.Votes.Keys.Count(activePlayerIds.Contains),
             VoteRequiredCount = activePlayerIds.Count
         };
+
+        var offlineBlockingPlayers = GetOfflineBlockingPlayers();
+        state.OfflineBlockingPlayerNames = offlineBlockingPlayers.Select(p => p.Name).ToList();
+        state.CanHostAdvanceWithoutOfflinePlayers =
+            offlineBlockingPlayers.Count > 0 &&
+            State.Players.Count(p => p.IsActive && p.Connected) >= MinimumActivePlayers;
+        state.AdvanceWithoutOfflinePlayersBlockedReason =
+            offlineBlockingPlayers.Count > 0 && !state.CanHostAdvanceWithoutOfflinePlayers
+                ? $"At least {MinimumActivePlayers} active connected players are required to continue."
+                : null;
 
         state.Prompt = BuildPromptPhaseForPlayer(playerId);
         state.Submission = BuildSubmissionPhaseForPlayer(playerId);
@@ -592,4 +656,122 @@ public class Game
 
         return targets.All(submittedTargetIds.Contains);
     }
+
+    private void AdvancePhaseIfComplete()
+    {
+        if (State.Phase == GamePhase.Prompt && AllActivePlayersSubmittedPrompts())
+        {
+            GenerateTargetAssignments();
+            TransitionTo(GamePhase.Submission);
+            return;
+        }
+
+        if (State.Phase == GamePhase.Submission && AllRequiredBribesSubmitted())
+        {
+            TransitionTo(GamePhase.Voting);
+            return;
+        }
+
+        if (State.Phase == GamePhase.Voting && AllActivePlayersVoted())
+        {
+            ScoreRound();
+            TransitionTo(GamePhase.Results);
+        }
+    }
+
+    private List<Player> GetOfflineBlockingPlayers()
+    {
+        if (!OfflineAdvancePhases.Contains(State.Phase))
+            return [];
+
+        return State.Players
+            .Where(p => p.IsActive && !p.Connected && IsBlockingCurrentPhase(p))
+            .OrderBy(p => p.Name)
+            .ToList();
+    }
+
+    private bool IsBlockingCurrentPhase(Player player)
+    {
+        return State.Phase switch
+        {
+            GamePhase.Prompt => !State.Prompts.ContainsKey(player.Id),
+            GamePhase.Submission => !HasSubmittedAllAssignedBribes(player),
+            GamePhase.Voting => !State.Votes.ContainsKey(player.Id),
+            _ => false
+        };
+    }
+
+    private void RemoveRoundDataForPlayers(HashSet<string> playerIds)
+    {
+        foreach (var playerId in playerIds)
+        {
+            State.Prompts.Remove(playerId);
+            State.TargetAssignments.Remove(playerId);
+            State.Votes.Remove(playerId);
+        }
+
+        foreach (var playerId in State.Votes
+                     .Where(v => playerIds.Contains(v.Value.VoterPlayerId))
+                     .Select(v => v.Key)
+                     .ToList())
+        {
+            State.Votes.Remove(playerId);
+        }
+
+        foreach (var bribeId in State.Bribes
+                     .Where(b => playerIds.Contains(b.Value.FromPlayerId) ||
+                                 playerIds.Contains(b.Value.ToPlayerId))
+                     .Select(b => b.Key)
+                     .ToList())
+        {
+            State.Bribes.Remove(bribeId);
+        }
+
+        foreach (var assignment in State.TargetAssignments.ToList())
+        {
+            if (playerIds.Contains(assignment.Key))
+            {
+                State.TargetAssignments.Remove(assignment.Key);
+                continue;
+            }
+
+            assignment.Value.RemoveAll(playerIds.Contains);
+        }
+
+        RemoveInvalidVotes();
+    }
+
+    private void RemoveInvalidVotes()
+    {
+        foreach (var vote in State.Votes
+                     .Where(v => !State.Bribes.ContainsKey(v.Value.BribeId))
+                     .Select(v => v.Key)
+                     .ToList())
+        {
+            State.Votes.Remove(vote);
+        }
+    }
+
+    private List<RequiredBribeKey> GetRequiredBribeKeys()
+    {
+        var activePlayerIds = GetActivePlayerIds();
+
+        return State.TargetAssignments
+            .Where(assignment => activePlayerIds.Contains(assignment.Key))
+            .SelectMany(assignment => assignment.Value
+                .Where(activePlayerIds.Contains)
+                .Distinct()
+                .Select(targetId => new RequiredBribeKey(assignment.Key, targetId)))
+            .ToList();
+    }
+
+    private int GetSubmittedRequiredBribeCount()
+    {
+        var required = GetRequiredBribeKeys().ToHashSet();
+
+        return State.Bribes.Values
+            .Count(bribe => required.Contains(new RequiredBribeKey(bribe.FromPlayerId, bribe.ToPlayerId)));
+    }
+
+    private sealed record RequiredBribeKey(string FromPlayerId, string ToPlayerId);
 }

@@ -37,4 +37,13 @@ export class Results {
   isHost(): boolean {
     return this.playerId === this.hostPlayerId();
   }
+
+  canStartNextRound(): boolean {
+    return this.players().filter((player) => player.connected).length >= 3;
+  }
+
+  nextRoundHint(): string {
+    if (this.canStartNextRound()) return 'Start another round when everyone is ready.';
+    return 'At least three connected players are needed to start the next round.';
+  }
 }

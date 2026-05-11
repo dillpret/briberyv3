@@ -16,6 +16,26 @@
     </div>
   </section>
 
+  @if (offlineBlockingPlayerNames().length > 0) {
+    <section class="soft-panel space-y-3 border-amber-200 bg-amber-50/80">
+      <div class="space-y-1">
+        <h2 class="text-lg font-semibold text-slate-900">Offline player blocking progress</h2>
+        <p class="text-sm leading-6 text-slate-600">{{ offlineBlockerText() }}</p>
+        @if (advanceWithoutOfflinePlayersBlockedReason()) {
+          <p class="text-sm font-semibold text-amber-700">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
+        }
+      </div>
+      @if (isHost()) {
+        <button
+          (click)="advanceWithoutOfflinePlayers()"
+          [disabled]="!canHostAdvanceWithoutOfflinePlayers()"
+          class="secondary-button">
+          Advance without offline players
+        </button>
+      }
+    </section>
+  }
+
   @if (!isCurrentPlayerActive()) {
     <section class="soft-panel space-y-2 text-center">
       <h2 class="text-lg font-semibold text-slate-900">You are waiting for the next round</h2>

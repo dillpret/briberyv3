@@ -14,6 +14,9 @@ public class GameStateDto
     public int BribeRequiredCount { get; set; }
     public int VoteSubmittedCount { get; set; }
     public int VoteRequiredCount { get; set; }
+    public bool CanHostAdvanceWithoutOfflinePlayers { get; set; }
+    public List<string> OfflineBlockingPlayerNames { get; set; } = new();
+    public string? AdvanceWithoutOfflinePlayersBlockedReason { get; set; }
     public PromptPhaseDto? Prompt { get; set; }
     public SubmissionPhaseDto? Submission { get; set; }
     public VotingPhaseDto? Voting { get; set; }

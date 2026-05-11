@@ -66,6 +66,9 @@ export class GameStateService {
   bribeRequiredCount = signal(0);
   voteSubmittedCount = signal(0);
   voteRequiredCount = signal(0);
+  canHostAdvanceWithoutOfflinePlayers = signal(false);
+  offlineBlockingPlayerNames = signal<string[]>([]);
+  advanceWithoutOfflinePlayersBlockedReason = signal<string | null>(null);
   prompt = signal<PromptPhaseState | null>(null);
   submission = signal<SubmissionPhaseState | null>(null);
   voting = signal<VotingPhaseState | null>(null);
@@ -84,6 +87,9 @@ export class GameStateService {
     this.bribeRequiredCount.set(state.bribeRequiredCount ?? 0);
     this.voteSubmittedCount.set(state.voteSubmittedCount ?? 0);
     this.voteRequiredCount.set(state.voteRequiredCount ?? 0);
+    this.canHostAdvanceWithoutOfflinePlayers.set(state.canHostAdvanceWithoutOfflinePlayers ?? false);
+    this.offlineBlockingPlayerNames.set(state.offlineBlockingPlayerNames ?? []);
+    this.advanceWithoutOfflinePlayersBlockedReason.set(state.advanceWithoutOfflinePlayersBlockedReason ?? null);
     this.prompt.set(state.prompt ?? null);
     this.submission.set(state.submission ?? null);
     this.voting.set(state.voting ?? null);

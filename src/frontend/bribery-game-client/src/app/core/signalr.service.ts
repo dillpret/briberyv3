@@ -100,6 +100,11 @@ export class SignalrService {
     await this.connection!.invoke('StartNextRound');
   }
 
+  async advancePhaseWithoutOfflinePlayers(): Promise<void> {
+    await this.ensureConnection();
+    await this.connection!.invoke('AdvancePhaseWithoutOfflinePlayers');
+  }
+
   private async ensureConnection(): Promise<void> {
     if (!this.connection) {
       await this.start();
