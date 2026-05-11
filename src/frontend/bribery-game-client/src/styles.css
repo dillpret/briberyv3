@@ -55,8 +55,29 @@
     @apply h-full rounded-full bg-sky-400 transition-all duration-300;
   }
 
+  .media-bribe {
+    @apply mt-3 flex w-full items-center justify-center overflow-hidden rounded-xl border border-sky-100 bg-slate-950/5;
+    max-height: 45vh;
+  }
+
+  .media-bribe img {
+    @apply block h-full w-full object-contain;
+    max-height: 45vh;
+  }
+
+  .media-bribe-fallback {
+    @apply mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-700;
+  }
+
   .game-layout {
     @apply mx-auto grid min-h-screen w-full max-w-6xl gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .media-bribe,
+  .media-bribe img {
+    max-height: 420px;
   }
 }
 

@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, signal } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 
 @Component({
   selector: 'app-voting',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BribeDisplay],
   templateUrl: './voting.html',
 })
 export class Voting {

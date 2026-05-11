@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { GameStateService, Player } from '../../state/game-state.service';
 import { SignalrService } from '../../core/signalr.service';
+import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 
 @Component({
   selector: 'app-results',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BribeDisplay],
   templateUrl: './results.html',
 })
 export class Results {

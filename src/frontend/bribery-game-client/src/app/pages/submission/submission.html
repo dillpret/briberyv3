@@ -70,10 +70,58 @@
           <textarea
             [ngModel]="draftFor(target.playerId)"
             (ngModelChange)="setDraft(target.playerId, $event)"
+            (paste)="handlePaste(target.playerId, $event)"
+            [disabled]="!!mediaDraftFor(target.playerId)"
             maxlength="500"
             rows="4"
             class="soft-input resize-none"
             placeholder="Write a tempting little bribe"></textarea>
+
+          <div
+            class="rounded-xl border border-dashed border-sky-200 bg-sky-50/50 p-3"
+            (dragover)="$event.preventDefault()"
+            (drop)="handleDrop(target.playerId, $event)">
+            @if (mediaDraftFor(target.playerId); as mediaDraft) {
+              <div class="space-y-2">
+                @if (mediaDraft.previewUrl) {
+                  <img
+                    [src]="mediaDraft.previewUrl"
+                    alt="Selected bribe preview"
+                    class="max-h-64 w-full rounded-lg object-contain" />
+                }
+                <div class="flex items-center justify-between gap-3 text-xs text-slate-600">
+                  <span class="min-w-0 truncate">{{ mediaDraft.file.name }} · {{ formatBytes(mediaDraft.file.size) }}</span>
+                  <button type="button" class="font-semibold text-sky-700" (click)="clearMedia(target.playerId)">Remove</button>
+                </div>
+                @if (mediaDraft.error) {
+                  <p class="text-sm font-semibold text-rose-700">{{ mediaDraft.error }}</p>
+                }
+                @if (mediaDraft.uploading) {
+                  <p class="text-sm font-semibold text-sky-700">Uploading media...</p>
+                }
+              </div>
+            } @else {
+              <div class="grid gap-2 sm:grid-cols-2">
+                <label class="secondary-button cursor-pointer text-center">
+                  Add image or GIF
+                  <input
+                    type="file"
+                    class="sr-only"
+                    [accept]="mediaAccept"
+                    (change)="chooseFile(target.playerId, $event)" />
+                </label>
+                <label class="secondary-button cursor-pointer text-center">
+                  Take photo
+                  <input
+                    type="file"
+                    class="sr-only"
+                    accept="image/*"
+                    capture="environment"
+                    (change)="chooseFile(target.playerId, $event)" />
+                </label>
+              </div>
+            }
+          </div>
 
           <div class="flex items-center justify-between text-xs text-slate-500">
             <span>{{ waitingText() }}</span>
@@ -82,7 +130,7 @@
 
           <button
             (click)="submitBribe(target)"
-            [disabled]="!draftFor(target.playerId).trim()"
+            [disabled]="!canSubmit(target.playerId)"
             class="primary-button">
             Submit bribe
           </button>

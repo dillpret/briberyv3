@@ -1,6 +1,13 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { GameStateService } from '../state/game-state.service';
+import { BribeMedia } from '../state/game-state.service';
+
+export interface SubmitBribeRequest {
+  targetPlayerId: string;
+  text?: string;
+  media?: BribeMedia;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -85,9 +92,27 @@ export class SignalrService {
     await this.connection!.invoke('SubmitPrompt', text);
   }
 
-  async submitBribe(targetPlayerId: string, text: string): Promise<void> {
+  async submitBribe(request: SubmitBribeRequest): Promise<void> {
     await this.ensureConnection();
-    await this.connection!.invoke('SubmitBribe', targetPlayerId, text);
+    await this.connection!.invoke('SubmitBribe', request);
+  }
+
+  async uploadBribeMedia(gameId: string, playerId: string, file: File): Promise<BribeMedia> {
+    const body = new FormData();
+    body.append('playerId', playerId);
+    body.append('file', file);
+
+    const response = await fetch(`/api/games/${encodeURIComponent(gameId)}/media`, {
+      method: 'POST',
+      body,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Media upload failed' }));
+      throw new Error(error.error ?? 'Media upload failed');
+    }
+
+    return await response.json();
   }
 
   async submitVote(bribeId: string): Promise<void> {

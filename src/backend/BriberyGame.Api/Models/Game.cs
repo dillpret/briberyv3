@@ -4,6 +4,7 @@ public class Game
 {
     private const int MaxPromptLength = 200;
     private const int MaxBribeLength = 500;
+    public const long MaxMediaBribeBytes = 8 * 1024 * 1024;
     private const int TargetsPerPlayer = 2;
     private const int MinimumActivePlayers = 3;
 
@@ -223,6 +224,15 @@ public class Game
 
     public Result<GameStateDto> SubmitBribe(string connectionId, string targetPlayerId, string text)
     {
+        return SubmitBribe(connectionId, new SubmitBribeRequest
+        {
+            TargetPlayerId = targetPlayerId,
+            Text = text
+        });
+    }
+
+    public Result<GameStateDto> SubmitBribe(string connectionId, SubmitBribeRequest request)
+    {
         var phaseResult = RequirePhase(GamePhase.Submission, "Cannot submit bribe outside submission phase");
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
@@ -234,17 +244,36 @@ public class Game
         if (!player.IsActive)
             return Result<GameStateDto>.Fail("Inactive players cannot submit bribes");
 
+        var targetPlayerId = request.TargetPlayerId;
         if (!State.TargetAssignments.TryGetValue(player.Id, out var targets) ||
             !targets.Contains(targetPlayerId))
             return Result<GameStateDto>.Fail("Cannot submit a bribe to an unassigned target");
 
-        var bribeText = text.Trim();
+        var bribeText = request.Text?.Trim() ?? "";
+        var media = request.Media;
+        var hasText = bribeText.Length > 0;
+        var hasMedia = media != null;
 
-        if (bribeText.Length == 0)
+        if (!hasText && !hasMedia)
             return Result<GameStateDto>.Fail("Bribe cannot be empty");
 
-        if (bribeText.Length > MaxBribeLength)
+        if (hasText && hasMedia)
+            return Result<GameStateDto>.Fail("Bribe must be either text or media, not both");
+
+        if (hasText && bribeText.Length > MaxBribeLength)
             return Result<GameStateDto>.Fail($"Bribe cannot exceed {MaxBribeLength} characters");
+
+        if (hasMedia)
+        {
+            if (media!.ByteSize <= 0 || media.ByteSize > MaxMediaBribeBytes)
+                return Result<GameStateDto>.Fail("Media bribe cannot exceed 8 MB");
+
+            if (!IsAllowedMediaContentType(media.ContentType))
+                return Result<GameStateDto>.Fail("Media bribe must be a supported image or GIF");
+
+            if (string.IsNullOrWhiteSpace(media.MediaId) || string.IsNullOrWhiteSpace(media.Url))
+                return Result<GameStateDto>.Fail("Media bribe is missing upload information");
+        }
 
         if (State.Bribes.Values.Any(b => b.FromPlayerId == player.Id && b.ToPlayerId == targetPlayerId))
             return Result<GameStateDto>.Fail("Bribe has already been submitted for this target");
@@ -256,7 +285,9 @@ public class Game
             Id = bribeId,
             FromPlayerId = player.Id,
             ToPlayerId = targetPlayerId,
+            Kind = hasMedia ? BribeContentKind.Media : BribeContentKind.Text,
             Text = bribeText,
+            Media = media,
             SubmittedAt = DateTimeOffset.UtcNow
         };
 
@@ -481,7 +512,9 @@ public class Game
                 PromptOwnerPlayerId = bribe.ToPlayerId,
                 PromptText = prompt.Text,
                 WinningBribeId = bribe.Id,
+                WinningBribeKind = bribe.Kind,
                 WinningBribeText = bribe.Text,
+                WinningBribeMedia = bribe.Media,
                 WinningPlayerId = bribe.FromPlayerId
             });
         }
@@ -589,7 +622,9 @@ public class Game
                 .Select(b => new VotingBribeDto
                 {
                     BribeId = b.Id,
-                    Text = b.Text
+                    Kind = b.Kind,
+                    Text = b.Text,
+                    Media = b.Media
                 })
                 .ToList(),
             SelectedBribeId = State.Votes.TryGetValue(playerId, out var vote)
@@ -615,7 +650,9 @@ public class Game
                     PromptOwnerPlayerId = r.PromptOwnerPlayerId,
                     PromptOwnerName = promptOwner.Name,
                     PromptText = r.PromptText,
+                    WinningBribeKind = r.WinningBribeKind,
                     WinningBribeText = r.WinningBribeText,
+                    WinningBribeMedia = r.WinningBribeMedia,
                     WinningPlayerId = r.WinningPlayerId,
                     WinningPlayerName = winner.Name
                 };
@@ -797,6 +834,15 @@ public class Game
 
         return State.Bribes.Values
             .Count(bribe => required.Contains(new RequiredBribeKey(bribe.FromPlayerId, bribe.ToPlayerId)));
+    }
+
+    private static bool IsAllowedMediaContentType(string contentType)
+    {
+        return contentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) ||
+               contentType.Equals("image/png", StringComparison.OrdinalIgnoreCase) ||
+               contentType.Equals("image/gif", StringComparison.OrdinalIgnoreCase) ||
+               contentType.Equals("image/webp", StringComparison.OrdinalIgnoreCase) ||
+               contentType.Equals("image/bmp", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed record RequiredBribeKey(string FromPlayerId, string ToPlayerId);

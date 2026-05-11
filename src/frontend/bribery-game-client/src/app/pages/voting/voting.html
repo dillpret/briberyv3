@@ -64,7 +64,11 @@
           [checked]="currentSelection() === bribe.bribeId"
           (change)="selectedBribeId.set(bribe.bribeId)" />
         <span class="block text-sm font-semibold uppercase tracking-wide text-slate-500">Bribe option</span>
-        <span class="mt-2 block text-base leading-7 text-slate-800">{{ bribe.text }}</span>
+        <app-bribe-display
+          [kind]="bribe.kind"
+          [text]="bribe.text"
+          [media]="bribe.media"
+          label="Bribe option" />
       </label>
     }
 

@@ -62,6 +62,68 @@ public class SubmissionPhaseTests
     }
 
     [Fact]
+    public void PlayerCanSubmitValidImageOrGifBribeMetadata()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(3);
+        harness.SubmitPromptsForActivePlayers();
+        var target = harness.GetPlayerState("p1").Submission!.Targets[0];
+
+        var result = harness.Game.SubmitBribe("c1", new SubmitBribeRequest
+        {
+            TargetPlayerId = target.PlayerId,
+            Media = new BribeMedia
+            {
+                MediaId = "media-1",
+                Url = "/api/media/media-1",
+                ContentType = "image/gif",
+                ByteSize = 1024
+            }
+        });
+
+        Assert.True(result.Success, result.Error);
+        var bribe = harness.Game.State.Bribes.Values.Single(b => b.FromPlayerId == "p1");
+        Assert.Equal(BribeContentKind.Media, bribe.Kind);
+        Assert.Equal("media-1", bribe.Media!.MediaId);
+    }
+
+    [Fact]
+    public void MediaBribeMustUseSupportedTypeAndStayUnderEightMegabytes()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(3);
+        harness.SubmitPromptsForActivePlayers();
+        var target = harness.GetPlayerState("p1").Submission!.Targets[0];
+
+        var unsupported = harness.Game.SubmitBribe("c1", new SubmitBribeRequest
+        {
+            TargetPlayerId = target.PlayerId,
+            Media = new BribeMedia
+            {
+                MediaId = "media-1",
+                Url = "/api/media/media-1",
+                ContentType = "image/svg+xml",
+                ByteSize = 1024
+            }
+        });
+
+        var oversized = harness.Game.SubmitBribe("c1", new SubmitBribeRequest
+        {
+            TargetPlayerId = target.PlayerId,
+            Media = new BribeMedia
+            {
+                MediaId = "media-2",
+                Url = "/api/media/media-2",
+                ContentType = "image/png",
+                ByteSize = Game.MaxMediaBribeBytes + 1
+            }
+        });
+
+        Assert.False(unsupported.Success);
+        Assert.False(oversized.Success);
+    }
+
+    [Fact]
     public void DuplicateBribeForSameTargetFails()
     {
         var harness = new GameTestHarness();

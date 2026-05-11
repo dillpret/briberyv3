@@ -63,7 +63,9 @@ public class VotingPhaseDto
 public class VotingBribeDto
 {
     public string BribeId { get; set; } = "";
+    public BribeContentKind Kind { get; set; } = BribeContentKind.Text;
     public string Text { get; set; } = "";
+    public BribeMedia? Media { get; set; }
 }
 
 public class ResultsPhaseDto
@@ -76,7 +78,9 @@ public class RoundResultDto
     public string PromptOwnerPlayerId { get; set; } = "";
     public string PromptOwnerName { get; set; } = "";
     public string PromptText { get; set; } = "";
+    public BribeContentKind WinningBribeKind { get; set; } = BribeContentKind.Text;
     public string WinningBribeText { get; set; } = "";
+    public BribeMedia? WinningBribeMedia { get; set; }
     public string WinningPlayerId { get; set; } = "";
     public string WinningPlayerName { get; set; } = "";
 }

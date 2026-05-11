@@ -1,6 +1,7 @@
 ﻿namespace BriberyGame.Api.Hubs;
 
 using Microsoft.AspNetCore.SignalR;
+using BriberyGame.Api.Models;
 using BriberyGame.Api.Services;
 
 public class GameHub : Hub
@@ -93,10 +94,10 @@ public class GameHub : Hub
         await SendGameStateUpdates(gameId);
     }
 
-    public async Task SubmitBribe(string targetPlayerId, string text)
+    public async Task SubmitBribe(SubmitBribeRequest request)
     {
         var (gameId, result) =
-            _gameService.SubmitBribe(Context.ConnectionId, targetPlayerId, text);
+            _gameService.SubmitBribe(Context.ConnectionId, request);
 
         if (gameId == null || result == null)
             return;

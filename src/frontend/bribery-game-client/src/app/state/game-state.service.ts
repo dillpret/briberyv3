@@ -27,9 +27,20 @@ export interface SubmissionPhaseState {
   submittedTargetPlayerIds: string[];
 }
 
+export interface BribeMedia {
+  mediaId: string;
+  url: string;
+  contentType: string;
+  byteSize: number;
+}
+
+export type BribeKind = 'Text' | 'Media';
+
 export interface VotingBribe {
   bribeId: string;
+  kind: BribeKind;
   text: string;
+  media: BribeMedia | null;
 }
 
 export interface VotingPhaseState {
@@ -41,7 +52,9 @@ export interface RoundResult {
   promptOwnerPlayerId: string;
   promptOwnerName: string;
   promptText: string;
+  winningBribeKind: BribeKind;
   winningBribeText: string;
+  winningBribeMedia: BribeMedia | null;
   winningPlayerId: string;
   winningPlayerName: string;
 }

@@ -46,6 +46,40 @@ public class VotingAndResultsTests
     }
 
     [Fact]
+    public void VotingProjectionIncludesMediaMetadataWithoutSubmitterIdentity()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(3);
+        harness.SubmitPromptsForActivePlayers();
+
+        var mediaTarget = harness.GetPlayerState("p1").Submission!.Targets[0];
+        var mediaResult = harness.Game.SubmitBribe("c1", new SubmitBribeRequest
+        {
+            TargetPlayerId = mediaTarget.PlayerId,
+            Media = new BribeMedia
+            {
+                MediaId = "media-1",
+                Url = "/api/media/media-1",
+                ContentType = "image/png",
+                ByteSize = 2048
+            }
+        });
+        Assert.True(mediaResult.Success, mediaResult.Error);
+
+        harness.SubmitAllAssignedBribes();
+
+        var projected = harness.GetPlayerState(mediaTarget.PlayerId).Voting!.Bribes
+            .Single(bribe => bribe.Media?.MediaId == "media-1");
+
+        Assert.Equal(BribeContentKind.Media, projected.Kind);
+        Assert.Equal("/api/media/media-1", projected.Media!.Url);
+        Assert.DoesNotContain(
+            projected.GetType().GetProperties(),
+            property => property.Name.Contains("Player", StringComparison.OrdinalIgnoreCase) ||
+                        property.Name.Contains("Submitter", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void PlayerCannotVoteForBribeThatWasNotSentToThem()
     {
         var harness = new GameTestHarness();
@@ -117,5 +151,48 @@ public class VotingAndResultsTests
             Assert.False(string.IsNullOrWhiteSpace(result.WinningPlayerName));
         });
         Assert.Equal(3, state.Players.Sum(player => player.Score));
+    }
+
+    [Fact]
+    public void ResultsPreserveWinningMediaMetadata()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(3);
+        harness.SubmitPromptsForActivePlayers();
+
+        var mediaTarget = harness.GetPlayerState("p1").Submission!.Targets[0];
+        var mediaResult = harness.Game.SubmitBribe("c1", new SubmitBribeRequest
+        {
+            TargetPlayerId = mediaTarget.PlayerId,
+            Media = new BribeMedia
+            {
+                MediaId = "media-1",
+                Url = "/api/media/media-1",
+                ContentType = "image/gif",
+                ByteSize = 4096
+            }
+        });
+        Assert.True(mediaResult.Success, mediaResult.Error);
+
+        harness.SubmitAllAssignedBribes();
+        var mediaBribe = harness.GetPlayerState(mediaTarget.PlayerId).Voting!.Bribes
+            .Single(bribe => bribe.Media?.MediaId == "media-1");
+        var voteResult = harness.Game.SubmitVote(
+            harness.Game.State.Players.Single(p => p.Id == mediaTarget.PlayerId).ConnectionId,
+            mediaBribe.BribeId);
+        Assert.True(voteResult.Success, voteResult.Error);
+
+        foreach (var player in harness.ActivePlayers().Where(player => player.Id != mediaTarget.PlayerId))
+        {
+            var state = harness.GetPlayerState(player.Id);
+            var result = harness.Game.SubmitVote(player.ConnectionId, state.Voting!.Bribes[0].BribeId);
+            Assert.True(result.Success, result.Error);
+        }
+
+        var winningMedia = harness.GetPlayerState("p1").Results!.RoundResults
+            .Single(result => result.WinningBribeMedia?.MediaId == "media-1");
+
+        Assert.Equal(BribeContentKind.Media, winningMedia.WinningBribeKind);
+        Assert.Equal("image/gif", winningMedia.WinningBribeMedia!.ContentType);
     }
 }

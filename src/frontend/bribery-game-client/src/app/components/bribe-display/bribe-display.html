@@ -1,0 +1,16 @@
+@if (kind === 'Media' && media && !failed()) {
+  <figure class="media-bribe">
+    <img
+      [src]="media.url"
+      [alt]="mediaAlt()"
+      loading="lazy"
+      (error)="failed.set(true)" />
+    <figcaption class="sr-only">{{ label }}</figcaption>
+  </figure>
+} @else if (kind === 'Media') {
+  <div class="media-bribe-fallback">
+    Media preview unavailable
+  </div>
+} @else {
+  <span class="block text-base leading-7 text-slate-800">{{ text }}</span>
+}

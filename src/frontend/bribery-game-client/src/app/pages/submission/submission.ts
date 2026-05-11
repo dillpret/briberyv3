@@ -21,7 +21,11 @@ export class Submission {
   offlineBlockingPlayerNames;
   advanceWithoutOfflinePlayersBlockedReason;
   drafts = signal<Record<string, string>>({});
+  mediaDrafts = signal<Record<string, MediaDraft>>({});
   playerId = localStorage.getItem('playerId') ?? '';
+  gameId = localStorage.getItem('gameId') ?? '';
+  readonly maxMediaBytes = 8 * 1024 * 1024;
+  readonly mediaAccept = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,.gif';
 
   constructor(
     private signalr: SignalrService,
@@ -54,7 +58,39 @@ export class Submission {
   }
 
   async submitBribe(target: SubmissionTarget) {
-    await this.signalr.submitBribe(target.playerId, this.draftFor(target.playerId));
+    const mediaDraft = this.mediaDraftFor(target.playerId);
+
+    if (mediaDraft?.file) {
+      if (mediaDraft.error) return;
+
+      this.setMediaDraft(target.playerId, {
+        ...mediaDraft,
+        error: null,
+        uploading: true,
+      });
+
+      try {
+        const processedFile = await this.prepareMediaFile(mediaDraft.file);
+        const media = await this.signalr.uploadBribeMedia(this.gameId, this.playerId, processedFile);
+        await this.signalr.submitBribe({
+          targetPlayerId: target.playerId,
+          media,
+        });
+      } catch (error) {
+        this.setMediaDraft(target.playerId, {
+          ...mediaDraft,
+          error: error instanceof Error ? error.message : 'Media upload failed',
+          uploading: false,
+        });
+      }
+
+      return;
+    }
+
+    await this.signalr.submitBribe({
+      targetPlayerId: target.playerId,
+      text: this.draftFor(target.playerId),
+    });
   }
 
   async advanceWithoutOfflinePlayers() {
@@ -72,6 +108,59 @@ export class Submission {
 
   remainingCharacters(targetPlayerId: string): number {
     return 500 - this.draftFor(targetPlayerId).length;
+  }
+
+  mediaDraftFor(targetPlayerId: string): MediaDraft | null {
+    return this.mediaDrafts()[targetPlayerId] ?? null;
+  }
+
+  hasContent(targetPlayerId: string): boolean {
+    return !!this.draftFor(targetPlayerId).trim() || !!this.mediaDraftFor(targetPlayerId)?.file;
+  }
+
+  canSubmit(targetPlayerId: string): boolean {
+    const mediaDraft = this.mediaDraftFor(targetPlayerId);
+    return this.hasContent(targetPlayerId) && !mediaDraft?.error && !mediaDraft?.uploading;
+  }
+
+  chooseFile(targetPlayerId: string, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) this.selectMedia(targetPlayerId, file);
+    input.value = '';
+  }
+
+  handlePaste(targetPlayerId: string, event: ClipboardEvent) {
+    const file = Array.from(event.clipboardData?.files ?? [])
+      .find((item) => item.type.startsWith('image/'));
+
+    if (file) {
+      event.preventDefault();
+      this.selectMedia(targetPlayerId, file);
+    }
+  }
+
+  handleDrop(targetPlayerId: string, event: DragEvent) {
+    event.preventDefault();
+    const file = Array.from(event.dataTransfer?.files ?? [])
+      .find((item) => item.type.startsWith('image/'));
+
+    if (file) this.selectMedia(targetPlayerId, file);
+  }
+
+  clearMedia(targetPlayerId: string) {
+    const existing = this.mediaDraftFor(targetPlayerId);
+    if (existing?.previewUrl) URL.revokeObjectURL(existing.previewUrl);
+
+    this.mediaDrafts.update((drafts) => {
+      const next = { ...drafts };
+      delete next[targetPlayerId];
+      return next;
+    });
+  }
+
+  formatBytes(bytes: number): string {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   waitingText(): string {
@@ -98,4 +187,92 @@ export class Submission {
     if (names.length === 2) return `Waiting on offline players: ${names[0]} and ${names[1]}.`;
     return `Waiting on ${names.length} offline players.`;
   }
+
+  private selectMedia(targetPlayerId: string, file: File) {
+    const error = this.validateMedia(file);
+    const existing = this.mediaDraftFor(targetPlayerId);
+    if (existing?.previewUrl) URL.revokeObjectURL(existing.previewUrl);
+    this.setDraft(targetPlayerId, '');
+
+    this.setMediaDraft(targetPlayerId, {
+      file,
+      previewUrl: typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : '',
+      error,
+      uploading: false,
+    });
+  }
+
+  private setMediaDraft(targetPlayerId: string, draft: MediaDraft) {
+    this.mediaDrafts.update((drafts) => ({
+      ...drafts,
+      [targetPlayerId]: draft,
+    }));
+  }
+
+  private validateMedia(file: File): string | null {
+    if (!this.isSupportedMediaType(file.type))
+      return 'Choose a PNG, JPG, GIF, WebP, or BMP image.';
+
+    if (file.size > this.maxMediaBytes)
+      return 'Media bribes can be up to 8 MB.';
+
+    return null;
+  }
+
+  private isSupportedMediaType(contentType: string): boolean {
+    return ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'].includes(contentType);
+  }
+
+  private async prepareMediaFile(file: File): Promise<File> {
+    if (file.type === 'image/gif') return file;
+    if (typeof Image === 'undefined') return file;
+
+    return await this.compressStaticImage(file);
+  }
+
+  private async compressStaticImage(file: File): Promise<File> {
+    const imageUrl = URL.createObjectURL(file);
+
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Could not process image'));
+        img.src = imageUrl;
+      });
+
+      const longestEdge = Math.max(image.naturalWidth, image.naturalHeight);
+      if (longestEdge <= 1600) return file;
+
+      const scale = 1600 / longestEdge;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(image.naturalWidth * scale);
+      canvas.height = Math.round(image.naturalHeight * scale);
+
+      const context = canvas.getContext('2d');
+      if (!context) return file;
+
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.82);
+      });
+
+      if (!blob || blob.size > file.size) return file;
+
+      return new File([blob], file.name, {
+        type: blob.type || file.type,
+        lastModified: Date.now(),
+      });
+    } finally {
+      URL.revokeObjectURL(imageUrl);
+    }
+  }
+}
+
+interface MediaDraft {
+  file: File;
+  previewUrl: string;
+  error: string | null;
+  uploading: boolean;
 }

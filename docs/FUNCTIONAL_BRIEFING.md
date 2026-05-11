@@ -53,7 +53,7 @@ Progression rules:
 - The UI reveals round number, total rounds, and either the shared prompt (traditional mode) or clear cards for each target showing the target’s name and personalised prompt.
 - For every assigned target, players can submit **exactly one** bribe using:
   - Free-form text area (supports plain text or pasted links).
-  - Drag-and-drop image upload, clipboard paste, or mobile file/camera picker accepting standard image formats and GIFs up to 5 MB. Oversized images are compressed/resized while preserving aspect ratio; GIFs retain animation.
+  - Drag-and-drop image upload, clipboard paste, or mobile file/camera picker accepting standard image formats and GIFs up to 8 MB. Oversized images are compressed/resized where practical while preserving aspect ratio; GIFs retain animation.
 - Once a bribe is submitted, its controls disable and show a success state. A submission timer (if set) auto-submits any non-empty drafts (text or processed images) when it expires.
 - Progress indicators broadcast the count of players who finished versus the total, calling out specific pending names when two or fewer remain. When everyone finishes, the timer stops.
 - The system tracks per-round, per-target submissions. Missing entries when the phase ends are filled with whimsical random bribes sourced from curated noun/activity lists. Random entries are flagged internally for scoring and later UI labelling.

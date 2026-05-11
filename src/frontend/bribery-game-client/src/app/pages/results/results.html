@@ -17,9 +17,13 @@
         <p class="rounded-xl bg-sky-50/80 p-3 text-sm leading-6 text-slate-700">{{ result.promptText }}</p>
         <p class="text-sm leading-6 text-slate-700">
           <span class="font-semibold text-slate-900">{{ result.winningPlayerName }}</span>
-          won with
-          <span class="font-semibold text-sky-700">{{ result.winningBribeText }}</span>
+          won with:
       </p>
+        <app-bribe-display
+          [kind]="result.winningBribeKind"
+          [text]="result.winningBribeText"
+          [media]="result.winningBribeMedia"
+          [label]="result.winningPlayerName + ' winning bribe'" />
       </article>
     }
   </section>
