@@ -24,6 +24,7 @@ export class Prompt {
   prompt;
   promptText = '';
   playerId = localStorage.getItem('playerId') ?? '';
+  private promptIdeas: string[] | null = null;
 
   constructor(
     private signalr: SignalrService,
@@ -44,6 +45,14 @@ export class Prompt {
 
   async submitPrompt() {
     await this.signalr.submitPrompt(this.promptText);
+  }
+
+  async giveMeAnIdea() {
+    const ideas = await this.loadPromptIdeas();
+    if (ideas.length === 0) return;
+
+    const randomIndex = Math.floor(Math.random() * ideas.length);
+    this.promptText = ideas[randomIndex];
   }
 
   async advanceWithoutOfflinePlayers() {
@@ -90,5 +99,27 @@ export class Prompt {
     if (names.length === 1) return `Waiting on offline player: ${names[0]}.`;
     if (names.length === 2) return `Waiting on offline players: ${names[0]} and ${names[1]}.`;
     return `Waiting on ${names.length} offline players.`;
+  }
+
+  private async loadPromptIdeas(): Promise<string[]> {
+    if (this.promptIdeas !== null) return this.promptIdeas;
+
+    try {
+      const response = await fetch('/prompt-ideas.txt');
+      if (!response.ok) {
+        this.promptIdeas = [];
+        return this.promptIdeas;
+      }
+
+      const text = await response.text();
+      this.promptIdeas = text
+        .split(/\r?\n/)
+        .map((idea) => idea.trim())
+        .filter((idea) => idea.length > 0);
+      return this.promptIdeas;
+    } catch {
+      this.promptIdeas = [];
+      return this.promptIdeas;
+    }
   }
 }
