@@ -5,6 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSignalR(options =>
     {
+        options.ClientTimeoutInterval = TimeSpan.FromMinutes(2);
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        options.HandshakeTimeout = TimeSpan.FromSeconds(30);
         options.MaximumReceiveMessageSize = 128 * 1024;
     })
     .AddJsonProtocol(options =>
