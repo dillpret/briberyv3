@@ -3,7 +3,7 @@
     <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Results</p>
     <h1 class="text-2xl font-bold text-slate-900">Round {{ currentRound() }} wrapped</h1>
     <p class="text-sm leading-6 text-slate-600">
-      The winning bribes are out in the open. Scores below are cumulative.
+      The winning bribes are out in the open now. Scores below are cumulative.
     </p>
   </section>
 
@@ -11,13 +11,13 @@
     @for (result of results()?.roundResults ?? []; track result.promptOwnerPlayerId) {
       <article class="soft-card space-y-2">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="status-pill border-violet-200 bg-violet-50 text-violet-700">{{ result.promptOwnerName }}</span>
-          <span class="text-sm text-slate-500">chose</span>
+          <span class="font-semibold text-slate-900">{{ result.promptOwnerName }}</span>
+          <span class="text-sm text-slate-500">picked</span>
+          <span class="status-pill border-teal-200 bg-teal-50 text-teal-700">{{ result.winningPlayerName }}'s bribe</span>
         </div>
         <p class="rounded-xl bg-sky-50/80 p-3 text-sm leading-6 text-slate-700">{{ result.promptText }}</p>
         <p class="text-sm leading-6 text-slate-700">
-          <span class="font-semibold text-slate-900">{{ result.winningPlayerName }}</span>
-          won with:
+          The winning bribe for this prompt:
       </p>
         <app-bribe-display
           [kind]="result.winningBribeKind"

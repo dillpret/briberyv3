@@ -93,10 +93,20 @@ describe('Prompt', () => {
     expect(component.promptText).toBe('Keep my draft');
   });
 
+  it('explains prompts and the idea button replacement behavior', () => {
+    fixture = TestBed.createComponent(Prompt);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Write the thing other players will bribe you for');
+    expect(element.textContent).toContain('The idea button replaces your draft');
+    expect(element.querySelector('[aria-label="Use a random prompt idea"]')).not.toBeNull();
+  });
+
   async function clickIdeaButton() {
-    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
-    const button = buttons.find((candidate) =>
-      candidate.textContent?.includes('Give me an idea'),
+    const button = fixture.nativeElement.querySelector(
+      '[aria-label="Use a random prompt idea"]',
     ) as HTMLButtonElement;
 
     button.click();

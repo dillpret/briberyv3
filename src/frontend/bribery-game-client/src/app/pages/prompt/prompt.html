@@ -4,6 +4,9 @@
       <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Prompt</p>
         <h1 class="text-2xl font-bold text-slate-900">Write your prompt</h1>
+        <p class="mt-1 text-sm leading-6 text-slate-600">
+          Write the thing other players will bribe you for. Later, you will pick your favourite response.
+        </p>
       </div>
       <span class="status-pill border-violet-200 bg-violet-50 text-violet-700">
         Round {{ currentRound() }}
@@ -64,8 +67,10 @@
           <button
             type="button"
             (click)="giveMeAnIdea()"
-            class="inline-flex w-fit items-center justify-center rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700 shadow-sm shadow-violet-100 transition duration-200 hover:bg-violet-100 active:scale-[0.99]">
-            Give me an idea
+            aria-label="Use a random prompt idea"
+            title="Use a random prompt idea"
+            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-sky-200 bg-white text-lg font-black text-sky-700 shadow-sm shadow-sky-100 transition duration-200 hover:bg-sky-50 active:scale-[0.97]">
+            ?
           </button>
         </span>
         <textarea
@@ -73,11 +78,11 @@
           maxlength="200"
           rows="5"
           class="soft-input resize-none"
-          placeholder="What should people bribe you for?"></textarea>
+          placeholder="What would convince you to pick someone's bribe?"></textarea>
       </label>
 
       <div class="flex items-center justify-between text-xs text-slate-500">
-        <span>Keep it playful and specific.</span>
+        <span>Keep it playful and specific. The idea button replaces your draft.</span>
         <span>{{ remainingCharacters() }} left</span>
       </div>
 

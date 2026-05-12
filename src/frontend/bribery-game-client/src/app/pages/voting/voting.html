@@ -3,6 +3,9 @@
     <div>
       <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Voting</p>
       <h1 class="text-2xl font-bold text-slate-900">Pick your favourite</h1>
+      <p class="mt-1 text-sm leading-6 text-slate-600">
+        These are the anonymous bribes sent to your prompt. Pick the response you like best; the player who sent it gets 1 point.
+      </p>
     </div>
 
     <div class="space-y-2">
@@ -52,6 +55,13 @@
       </p>
     </section>
   } @else {
+    <section class="soft-panel space-y-1">
+      <h2 class="text-lg font-semibold text-slate-900">Choose the winning bribe</h2>
+      <p class="text-sm leading-6 text-slate-600">
+        Vote for the response that best answers your prompt or wins you over.
+      </p>
+    </section>
+
     @for (bribe of voting()?.bribes ?? []; track bribe.bribeId) {
       <label
         class="soft-card block cursor-pointer"

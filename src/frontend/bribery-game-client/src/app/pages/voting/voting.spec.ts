@@ -66,4 +66,12 @@ describe('Voting', () => {
 
     expect(signalr.submitVote).not.toHaveBeenCalled();
   });
+
+  it('explains that voting picks the favourite bribe sent to your prompt', () => {
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('anonymous bribes sent to your prompt');
+    expect(element.textContent).toContain('Pick the response you like best');
+    expect(element.textContent).toContain('the player who sent it gets 1 point');
+  });
 });

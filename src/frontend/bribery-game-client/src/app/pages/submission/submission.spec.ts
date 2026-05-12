@@ -220,6 +220,15 @@ describe('Submission', () => {
     expect(inputs[1].getAttribute('capture')).toBe('environment');
   });
 
+  it('explains anonymous bribes and recipient voting', () => {
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain("Each card is another player's prompt");
+    expect(element.textContent).toContain('anonymous text, image, or GIF bribe');
+    expect(element.textContent).toContain('Only Player 2 will vote on this prompt');
+    expect(element.textContent).toContain('Send a bribe to');
+  });
+
   function submitBribeButton(): HTMLButtonElement {
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     return buttons.find((button) => button.textContent?.includes('Submit bribe'))!;

@@ -54,6 +54,10 @@ describe('Results', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.textContent).toContain('Player 1');
+    expect(element.textContent).toContain('Player 2');
+    expect(element.textContent).toContain('picked');
+    expect(element.textContent).toContain("Player 1's bribe");
+    expect(element.textContent).toContain('The winning bribe for this prompt');
     expect(element.querySelector('img')?.getAttribute('src')).toBe('/api/media/m1');
   });
 
