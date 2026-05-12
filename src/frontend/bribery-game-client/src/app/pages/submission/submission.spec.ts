@@ -82,14 +82,77 @@ describe('Submission', () => {
   it('selects pasted image media and clears existing text', () => {
     component.setDraft('p2', 'Replace me');
     const file = new File(['image'], 'pasted.gif', { type: 'image/gif' });
+    const preventDefault = vi.fn();
+
+    component.handlePaste('p2', {
+      preventDefault,
+      clipboardData: { files: [file] },
+    } as unknown as ClipboardEvent);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(component.draftFor('p2')).toBe('');
+    expect(component.mediaDraftFor('p2')?.file).toBe(file);
+  });
+
+  it('selects pasted image media from clipboard items when clipboard files is empty', () => {
+    const file = new File(['image'], 'keyboard.gif', { type: 'image/gif' });
+    const preventDefault = vi.fn();
+
+    component.handlePaste('p2', {
+      preventDefault,
+      clipboardData: {
+        files: [],
+        items: [fileItem(file)],
+      },
+    } as unknown as ClipboardEvent);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(component.mediaDraftFor('p2')?.file).toBe(file);
+  });
+
+  it('selects inserted image media from beforeinput data transfer items', () => {
+    const file = new File(['image'], 'win-menu.gif', { type: 'image/gif' });
+    const preventDefault = vi.fn();
+
+    component.handleBeforeInput('p2', {
+      preventDefault,
+      dataTransfer: {
+        files: [],
+        items: [fileItem(file)],
+      },
+    } as unknown as InputEvent);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(component.mediaDraftFor('p2')?.file).toBe(file);
+  });
+
+  it('allows text and emoji beforeinput events when no image file is present', () => {
+    const preventDefault = vi.fn();
+
+    component.handleBeforeInput('p2', {
+      preventDefault,
+      dataTransfer: null,
+    } as unknown as InputEvent);
+
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(component.mediaDraftFor('p2')).toBeNull();
+  });
+
+  it('detects image files with missing mime types by filename', async () => {
+    const file = new File(['image'], 'keyboard.GIF', { type: '' });
 
     component.handlePaste('p2', {
       preventDefault: vi.fn(),
       clipboardData: { files: [file] },
     } as unknown as ClipboardEvent);
 
-    expect(component.draftFor('p2')).toBe('');
+    expect(component.mediaDraftFor('p2')?.error).toBeNull();
     expect(component.mediaDraftFor('p2')?.file).toBe(file);
+
+    await component.submitBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
+
+    const uploadedFile = vi.mocked(signalr.uploadBribeMedia).mock.calls[0][2];
+    expect(uploadedFile.type).toBe('image/gif');
   });
 
   it('selects dropped image media', () => {
@@ -160,5 +223,13 @@ describe('Submission', () => {
   function submitBribeButton(): HTMLButtonElement {
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     return buttons.find((button) => button.textContent?.includes('Submit bribe'))!;
+  }
+
+  function fileItem(file: File): DataTransferItem {
+    return {
+      kind: 'file',
+      type: file.type,
+      getAsFile: () => file,
+    } as DataTransferItem;
   }
 });

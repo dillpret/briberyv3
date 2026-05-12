@@ -70,6 +70,7 @@
           <textarea
             [ngModel]="draftFor(target.playerId)"
             (ngModelChange)="setDraft(target.playerId, $event)"
+            (beforeinput)="handleBeforeInput(target.playerId, $event)"
             (paste)="handlePaste(target.playerId, $event)"
             [disabled]="!!mediaDraftFor(target.playerId)"
             maxlength="500"
@@ -79,7 +80,9 @@
 
           <div
             class="rounded-xl border border-dashed border-sky-200 bg-sky-50/50 p-3"
+            tabindex="0"
             (dragover)="$event.preventDefault()"
+            (paste)="handlePaste(target.playerId, $event)"
             (drop)="handleDrop(target.playerId, $event)">
             @if (mediaDraftFor(target.playerId); as mediaDraft) {
               <div class="space-y-2">
@@ -90,7 +93,7 @@
                     class="max-h-64 w-full rounded-lg object-contain" />
                 }
                 <div class="flex items-center justify-between gap-3 text-xs text-slate-600">
-                  <span class="min-w-0 truncate">{{ mediaDraft.file.name }} · {{ formatBytes(mediaDraft.file.size) }}</span>
+                  <span class="min-w-0 truncate">{{ mediaDraft.file.name }} - {{ formatBytes(mediaDraft.file.size) }}</span>
                   <button type="button" class="font-semibold text-sky-700" (click)="clearMedia(target.playerId)">Remove</button>
                 </div>
                 @if (mediaDraft.error) {

@@ -132,8 +132,17 @@ export class Submission {
   }
 
   handlePaste(targetPlayerId: string, event: ClipboardEvent) {
-    const file = Array.from(event.clipboardData?.files ?? [])
-      .find((item) => item.type.startsWith('image/'));
+    const file = this.extractImageFile(event.clipboardData);
+
+    if (file) {
+      event.preventDefault();
+      this.selectMedia(targetPlayerId, file);
+    }
+  }
+
+  handleBeforeInput(targetPlayerId: string, event: Event) {
+    const inputEvent = event as InputEvent;
+    const file = this.extractImageFile(inputEvent.dataTransfer);
 
     if (file) {
       event.preventDefault();
@@ -143,8 +152,7 @@ export class Submission {
 
   handleDrop(targetPlayerId: string, event: DragEvent) {
     event.preventDefault();
-    const file = Array.from(event.dataTransfer?.files ?? [])
-      .find((item) => item.type.startsWith('image/'));
+    const file = this.extractImageFile(event.dataTransfer);
 
     if (file) this.selectMedia(targetPlayerId, file);
   }
@@ -211,7 +219,7 @@ export class Submission {
   }
 
   private validateMedia(file: File): string | null {
-    if (!this.isSupportedMediaType(file.type))
+    if (!this.isSupportedMediaFile(file))
       return 'Choose a PNG, JPG, GIF, WebP, or BMP image.';
 
     if (file.size > this.maxMediaBytes)
@@ -221,14 +229,66 @@ export class Submission {
   }
 
   private isSupportedMediaType(contentType: string): boolean {
-    return ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'].includes(contentType);
+    return ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'].includes(contentType.toLowerCase());
+  }
+
+  private isSupportedMediaFile(file: File): boolean {
+    return this.isSupportedMediaType(file.type) || (!file.type && !!this.inferImageContentType(file.name));
+  }
+
+  private extractImageFile(dataTransfer: DataTransfer | null | undefined): File | null {
+    const itemFile = Array.from(dataTransfer?.items ?? [])
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .find((file): file is File => !!file && this.isImageFile(file));
+
+    if (itemFile) return itemFile;
+
+    return Array.from(dataTransfer?.files ?? [])
+      .find((file) => this.isImageFile(file)) ?? null;
+  }
+
+  private isImageFile(file: File): boolean {
+    return file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(file.name);
   }
 
   private async prepareMediaFile(file: File): Promise<File> {
-    if (file.type === 'image/gif') return file;
-    if (typeof Image === 'undefined') return file;
+    const normalizedFile = this.normalizeMediaFile(file);
+    if (normalizedFile.type === 'image/gif') return normalizedFile;
+    if (typeof Image === 'undefined') return normalizedFile;
 
-    return await this.compressStaticImage(file);
+    return await this.compressStaticImage(normalizedFile);
+  }
+
+  private normalizeMediaFile(file: File): File {
+    if (file.type) return file;
+
+    const contentType = this.inferImageContentType(file.name);
+    if (!contentType) return file;
+
+    return new File([file], file.name, {
+      type: contentType,
+      lastModified: file.lastModified,
+    });
+  }
+
+  private inferImageContentType(fileName: string): string | null {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'bmp':
+        return 'image/bmp';
+      default:
+        return null;
+    }
   }
 
   private async compressStaticImage(file: File): Promise<File> {
