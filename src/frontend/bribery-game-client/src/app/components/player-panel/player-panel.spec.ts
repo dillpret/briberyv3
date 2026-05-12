@@ -8,7 +8,7 @@ describe('PlayerPanel', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    localStorage.setItem('playerId', 'p2');
+    localStorage.setItem('playerId', 'stale-player-id');
 
     await TestBed.configureTestingModule({
       imports: [PlayerPanel],
@@ -17,6 +17,7 @@ describe('PlayerPanel', () => {
     const gameState = TestBed.inject(GameStateService);
     gameState.setGameState({
       phase: 'Voting',
+      currentPlayerId: 'p2',
       hostPlayerId: 'p1',
       players: [
         player({ id: 'p3', name: 'Charlie', score: 1, phaseStatus: 'Pending', phaseStatusLabel: 'Voting' }),

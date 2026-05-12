@@ -14,7 +14,7 @@ export class Lobby {
 
   players;
   hostPlayerId;
-  playerId = localStorage.getItem('playerId') ?? '';
+  currentPlayerId;
   copyMessage = '';
 
   constructor(
@@ -23,6 +23,7 @@ export class Lobby {
   ) {
     this.players = this.gameState.players;
     this.hostPlayerId = this.gameState.hostPlayerId;
+    this.currentPlayerId = this.gameState.currentPlayerId;
   }
 
   async toggleReady() {
@@ -51,7 +52,11 @@ export class Lobby {
   }
 
   isCurrentPlayerReady(): boolean {
-    return this.players().find((player) => player.id === this.playerId)?.isReady ?? false;
+    return this.players().find((player) => player.id === this.currentPlayerId())?.isReady ?? false;
+  }
+
+  isHost(): boolean {
+    return this.currentPlayerId() === this.hostPlayerId();
   }
 
   canStartHint(): string {

@@ -9,28 +9,38 @@ export interface SubmitBribeRequest {
   media?: BribeMedia;
 }
 
-interface LastJoin {
+interface ActiveSession {
   gameId: string;
   playerId: string;
   name: string;
 }
+
+type ConnectionMode = 'not-connected' | 'reconnecting' | 'connected';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SignalrService {
   private connection?: signalR.HubConnection;
+  private connectionMode: ConnectionMode = 'not-connected';
   private startPromise?: Promise<void>;
-  private lastJoin?: LastJoin;
+  private activeSession?: ActiveSession;
+  private reconnectPromise?: Promise<void>;
+  private resolveReconnect?: () => void;
+  private rejectReconnect?: (reason?: unknown) => void;
   private pendingJoinResolve?: () => void;
   private pendingJoinReject?: (reason?: unknown) => void;
 
   constructor(private gameState: GameStateService) {
     if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => void this.reconnectAndRejoin());
+      window.addEventListener('online', () => {
+        void this.restoreConnectionAndSession().catch((err) =>
+          console.error('SignalR reconnect failed:', err));
+      });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          void this.reconnectAndRejoin();
+          void this.restoreConnectionAndSession().catch((err) =>
+            console.error('SignalR reconnect failed:', err));
         }
       });
     }
@@ -47,6 +57,8 @@ export class SignalrService {
     }
 
     if (this.connection?.state === signalR.HubConnectionState.Reconnecting) {
+      this.beginReconnect();
+      await this.reconnectPromise;
       return;
     }
 
@@ -54,8 +66,10 @@ export class SignalrService {
       this.startPromise = this.connection.start()
         .then(() => {
           console.log('SignalR connected');
+          this.connectionMode = 'connected';
         })
         .catch((err) => {
+          this.connectionMode = 'not-connected';
           console.error('SignalR error:', err);
           throw err;
         })
@@ -76,9 +90,9 @@ export class SignalrService {
 
     this.connection.on('GameStateUpdated', (state) => {
       console.log('GAME STATE RECEIVED', state);
-      if (this.lastJoin && state.currentPlayerId) {
-        this.lastJoin = {
-          ...this.lastJoin,
+      if (this.activeSession && state.currentPlayerId) {
+        this.activeSession = {
+          ...this.activeSession,
           playerId: state.currentPlayerId,
         };
       }
@@ -100,22 +114,34 @@ export class SignalrService {
       alert(message); // TODO: Proper error handling
     });
 
+    this.connection.onreconnecting(() => {
+      this.beginReconnect();
+    });
+
     this.connection.onreconnected(() => {
-      void this.rejoinLastLobby();
+      void this.completeReconnect();
     });
 
     this.connection.onclose(() => {
+      this.connectionMode = 'not-connected';
       this.pendingJoinReject?.(new Error('Connection lost. Reconnecting...'));
       this.pendingJoinResolve = undefined;
       this.pendingJoinReject = undefined;
-      window.setTimeout(() => void this.reconnectAndRejoin(), 1000);
+      this.rejectReconnect?.(new Error('Connection closed before reconnect completed.'));
+      this.clearReconnectWaiters();
+      window.setTimeout(() => {
+        void this.restoreConnectionAndSession().catch((err) =>
+          console.error('SignalR reconnect failed:', err));
+      }, 1000);
     });
 
     try {
       this.startPromise = this.connection.start();
       await this.startPromise;
       console.log('SignalR connected');
+      this.connectionMode = 'connected';
     } catch (err) {
+      this.connectionMode = 'not-connected';
       console.error('SignalR error:', err);
       throw err;
     } finally {
@@ -124,8 +150,8 @@ export class SignalrService {
   }
 
   async joinLobby(gameId: string, playerId: string, name: string): Promise<void> {
-    await this.ensureConnection();
-    this.lastJoin = { gameId, playerId, name };
+    await this.ensureTransportConnected();
+    this.activeSession = { gameId, playerId, name };
     return new Promise<void>((resolve, reject) => {
       this.pendingJoinResolve = resolve;
       this.pendingJoinReject = reject;
@@ -143,27 +169,27 @@ export class SignalrService {
   }
 
   async createGame(): Promise<string> {
-    await this.ensureConnection();
+    await this.ensureTransportConnected();
     return await this.connection!.invoke<string>('CreateGame');
   }
 
   async toggleReady(): Promise<void> {
-    await this.ensureConnection();
+    await this.ensureReadyForAction();
     await this.connection!.invoke('ToggleReady');
   }
 
   async startGame(): Promise<void> {
-    await this.ensureConnection();
+    await this.ensureReadyForAction();
     await this.connection!.invoke('StartGame');
   }
 
   async submitPrompt(text: string): Promise<void> {
-    await this.ensureConnection();
+    await this.ensureReadyForAction();
     await this.connection!.invoke('SubmitPrompt', text);
   }
 
   async submitBribe(request: SubmitBribeRequest): Promise<void> {
-    await this.ensureConnection();
+    await this.ensureReadyForAction();
     await this.connection!.invoke('SubmitBribe', request);
   }
 
@@ -186,50 +212,90 @@ export class SignalrService {
   }
 
   async submitVote(bribeId: string): Promise<void> {
-    await this.ensureConnection();
+    await this.ensureReadyForAction();
     await this.connection!.invoke('SubmitVote', bribeId);
   }
 
   async startNextRound(): Promise<void> {
-    await this.ensureConnection();
+    await this.ensureReadyForAction();
     await this.connection!.invoke('StartNextRound');
   }
 
   async advancePhaseWithoutOfflinePlayers(): Promise<void> {
-    await this.ensureConnection();
+    await this.ensureReadyForAction();
     await this.connection!.invoke('AdvancePhaseWithoutOfflinePlayers');
   }
 
-  private async ensureConnection(): Promise<void> {
-    if (!this.connection) {
-      await this.start();
+  private async ensureReadyForAction(): Promise<void> {
+    await this.restoreConnectionAndSession();
+
+    if (this.connectionMode !== 'connected' || this.connection?.state !== signalR.HubConnectionState.Connected) {
+      throw new Error('Connection is still reconnecting. Please try again in a moment.');
+    }
+  }
+
+  private async ensureTransportConnected(): Promise<void> {
+    await this.start();
+
+    if (this.connectionMode !== 'connected' || this.connection?.state !== signalR.HubConnectionState.Connected) {
+      throw new Error('Connection is still reconnecting. Please try again in a moment.');
+    }
+  }
+
+  private async restoreConnectionAndSession(): Promise<void> {
+    const wasReconnecting = this.connection?.state === signalR.HubConnectionState.Reconnecting;
+
+    await this.start();
+
+    if (wasReconnecting) {
       return;
     }
 
-    if (this.connection.state === signalR.HubConnectionState.Disconnected) {
-      await this.reconnectAndRejoin();
-    }
+    await this.restoreActiveSession();
   }
 
-  private async reconnectAndRejoin(): Promise<void> {
-    try {
-      await this.start();
-      await this.rejoinLastLobby();
-    } catch (err) {
-      console.error('SignalR reconnect failed:', err);
-    }
-  }
-
-  private async rejoinLastLobby(): Promise<void> {
-    if (!this.lastJoin || this.connection?.state !== signalR.HubConnectionState.Connected) {
+  private async restoreActiveSession(): Promise<void> {
+    if (!this.activeSession || this.connection?.state !== signalR.HubConnectionState.Connected) {
       return;
     }
 
     await this.connection.invoke(
       'JoinLobby',
-      this.lastJoin.gameId,
-      this.lastJoin.playerId,
-      this.lastJoin.name,
+      this.activeSession.gameId,
+      this.activeSession.playerId,
+      this.activeSession.name,
     );
+  }
+
+  private beginReconnect(): void {
+    this.connectionMode = 'reconnecting';
+
+    if (this.reconnectPromise) {
+      return;
+    }
+
+    this.reconnectPromise = new Promise<void>((resolve, reject) => {
+      this.resolveReconnect = resolve;
+      this.rejectReconnect = reject;
+    });
+  }
+
+  private async completeReconnect(): Promise<void> {
+    try {
+      await this.restoreActiveSession();
+      this.connectionMode = 'connected';
+      this.resolveReconnect?.();
+    } catch (err) {
+      this.connectionMode = 'not-connected';
+      this.rejectReconnect?.(err);
+    } finally {
+      this.clearReconnectWaiters();
+    }
+  }
+
+  private clearReconnectWaiters(): void {
+    this.reconnectPromise = undefined;
+    this.resolveReconnect = undefined;
+    this.rejectReconnect = undefined;
   }
 }

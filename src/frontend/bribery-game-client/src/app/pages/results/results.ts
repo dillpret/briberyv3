@@ -15,7 +15,7 @@ export class Results {
   results;
   hostPlayerId;
   currentRound;
-  playerId = localStorage.getItem('playerId') ?? '';
+  currentPlayerId;
 
   constructor(
     private signalr: SignalrService,
@@ -25,6 +25,7 @@ export class Results {
     this.results = this.gameState.results;
     this.hostPlayerId = this.gameState.hostPlayerId;
     this.currentRound = this.gameState.currentRound;
+    this.currentPlayerId = this.gameState.currentPlayerId;
   }
 
   async startNextRound() {
@@ -36,7 +37,11 @@ export class Results {
   }
 
   isHost(): boolean {
-    return this.playerId === this.hostPlayerId();
+    return this.currentPlayerId() === this.hostPlayerId();
+  }
+
+  isCurrentPlayer(player: Player): boolean {
+    return player.id === this.currentPlayerId();
   }
 
   canStartNextRound(): boolean {

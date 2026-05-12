@@ -38,7 +38,7 @@
           </span>
           <p class="truncate font-semibold text-slate-800">
             {{ player.name }}
-            @if (player.id === playerId) {
+            @if (isCurrentPlayer(player)) {
               <span class="text-slate-400">(you)</span>
             }
           </p>

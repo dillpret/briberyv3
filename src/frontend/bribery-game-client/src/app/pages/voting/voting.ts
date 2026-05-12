@@ -21,7 +21,7 @@ export class Voting {
   offlineBlockingPlayerNames;
   advanceWithoutOfflinePlayersBlockedReason;
   selectedBribeId = signal<string | null>(null);
-  playerId = localStorage.getItem('playerId') ?? '';
+  currentPlayerId;
 
   constructor(
     private signalr: SignalrService,
@@ -36,6 +36,7 @@ export class Voting {
     this.canHostAdvanceWithoutOfflinePlayers = this.gameState.canHostAdvanceWithoutOfflinePlayers;
     this.offlineBlockingPlayerNames = this.gameState.offlineBlockingPlayerNames;
     this.advanceWithoutOfflinePlayersBlockedReason = this.gameState.advanceWithoutOfflinePlayersBlockedReason;
+    this.currentPlayerId = this.gameState.currentPlayerId;
   }
 
   currentSelection(): string | null {
@@ -76,7 +77,7 @@ export class Voting {
   }
 
   isHost(): boolean {
-    return this.playerId === this.hostPlayerId();
+    return this.currentPlayerId() === this.hostPlayerId();
   }
 
   offlineBlockerText(): string {

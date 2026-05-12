@@ -23,7 +23,7 @@ export class Prompt {
   advanceWithoutOfflinePlayersBlockedReason;
   prompt;
   promptText = '';
-  playerId = localStorage.getItem('playerId') ?? '';
+  currentPlayerId;
   private promptIdeas: string[] | null = null;
 
   constructor(
@@ -41,6 +41,7 @@ export class Prompt {
     this.offlineBlockingPlayerNames = this.gameState.offlineBlockingPlayerNames;
     this.advanceWithoutOfflinePlayersBlockedReason = this.gameState.advanceWithoutOfflinePlayersBlockedReason;
     this.prompt = this.gameState.prompt;
+    this.currentPlayerId = this.gameState.currentPlayerId;
   }
 
   async submitPrompt() {
@@ -90,7 +91,7 @@ export class Prompt {
   }
 
   isHost(): boolean {
-    return this.playerId === this.hostPlayerId();
+    return this.currentPlayerId() === this.hostPlayerId();
   }
 
   offlineBlockerText(): string {

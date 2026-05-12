@@ -10,7 +10,7 @@ describe('Results', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    localStorage.setItem('playerId', 'p1');
+    localStorage.setItem('playerId', 'stale-player-id');
 
     await TestBed.configureTestingModule({
       imports: [Results],

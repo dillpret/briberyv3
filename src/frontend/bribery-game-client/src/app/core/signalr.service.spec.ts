@@ -6,6 +6,7 @@ import * as signalR from '@microsoft/signalr';
 type Handler = (...args: any[]) => void;
 
 let handlers: Record<string, Handler>;
+let onReconnecting: Handler | undefined;
 let onReconnected: Handler | undefined;
 let onClose: Handler | undefined;
 let connection: {
@@ -13,6 +14,7 @@ let connection: {
   start: ReturnType<typeof vi.fn>;
   invoke: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
+  onreconnecting: ReturnType<typeof vi.fn>;
   onreconnected: ReturnType<typeof vi.fn>;
   onclose: ReturnType<typeof vi.fn>;
 };
@@ -58,6 +60,7 @@ describe('SignalrService', () => {
 
   beforeEach(() => {
     handlers = {};
+    onReconnecting = undefined;
     onReconnected = undefined;
     onClose = undefined;
     connection = {
@@ -69,6 +72,9 @@ describe('SignalrService', () => {
       invoke: vi.fn().mockResolvedValue(undefined),
       on: vi.fn((eventName: string, handler: Handler) => {
         handlers[eventName] = handler;
+      }),
+      onreconnecting: vi.fn((handler: Handler) => {
+        onReconnecting = handler;
       }),
       onreconnected: vi.fn((handler: Handler) => {
         onReconnected = handler;
@@ -101,9 +107,11 @@ describe('SignalrService', () => {
     await joinAndReceiveState('p-new', 'p1');
 
     connection.invoke.mockClear();
-    await (onReconnected?.('new-connection-id') as unknown as Promise<void>);
+    onReconnected?.('new-connection-id');
 
-    expect(connection.invoke).toHaveBeenCalledWith('JoinLobby', 'ABCD', 'p1', 'Player 1');
+    await vi.waitFor(() => {
+      expect(connection.invoke).toHaveBeenCalledWith('JoinLobby', 'ABCD', 'p1', 'Player 1');
+    });
   });
 
   it('restarts and rejoins a stopped connection before sending player actions', async () => {
@@ -116,6 +124,27 @@ describe('SignalrService', () => {
     await service.toggleReady();
 
     expect(connection.start).toHaveBeenCalledTimes(1);
+    expect(connection.invoke).toHaveBeenNthCalledWith(1, 'JoinLobby', 'ABCD', 'p1', 'Player 1');
+    expect(connection.invoke).toHaveBeenNthCalledWith(2, 'ToggleReady');
+  });
+
+  it('waits for reconnect and session restore before sending player actions', async () => {
+    await joinAndReceiveState();
+
+    connection.invoke.mockClear();
+    connection.state = signalR.HubConnectionState.Reconnecting;
+    onReconnecting?.();
+
+    const action = service.toggleReady();
+    await Promise.resolve();
+
+    expect(connection.invoke).not.toHaveBeenCalledWith('ToggleReady');
+
+    connection.state = signalR.HubConnectionState.Connected;
+    onReconnected?.('new-connection-id');
+
+    await action;
+
     expect(connection.invoke).toHaveBeenNthCalledWith(1, 'JoinLobby', 'ABCD', 'p1', 'Player 1');
     expect(connection.invoke).toHaveBeenNthCalledWith(2, 'ToggleReady');
   });

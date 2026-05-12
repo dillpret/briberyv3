@@ -41,7 +41,7 @@
       {{ isCurrentPlayerReady() ? 'I need a moment' : 'I am ready' }}
     </button>
 
-    @if (playerId === hostPlayerId()) {
+    @if (isHost()) {
       <button
         (click)="startGame()"
         class="primary-button">

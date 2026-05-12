@@ -22,7 +22,7 @@ export class Submission {
   advanceWithoutOfflinePlayersBlockedReason;
   drafts = signal<Record<string, string>>({});
   mediaDrafts = signal<Record<string, MediaDraft>>({});
-  playerId = localStorage.getItem('playerId') ?? '';
+  currentPlayerId;
   gameId = localStorage.getItem('gameId') ?? '';
   readonly maxMediaBytes = 8 * 1024 * 1024;
   readonly mediaAccept = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,.gif';
@@ -40,6 +40,7 @@ export class Submission {
     this.canHostAdvanceWithoutOfflinePlayers = this.gameState.canHostAdvanceWithoutOfflinePlayers;
     this.offlineBlockingPlayerNames = this.gameState.offlineBlockingPlayerNames;
     this.advanceWithoutOfflinePlayersBlockedReason = this.gameState.advanceWithoutOfflinePlayersBlockedReason;
+    this.currentPlayerId = this.gameState.currentPlayerId;
   }
 
   hasSubmitted(targetPlayerId: string): boolean {
@@ -71,7 +72,7 @@ export class Submission {
 
       try {
         const processedFile = await this.prepareMediaFile(mediaDraft.file);
-        const media = await this.signalr.uploadBribeMedia(this.gameId, this.playerId, processedFile);
+        const media = await this.signalr.uploadBribeMedia(this.gameId, this.currentPlayerId(), processedFile);
         await this.signalr.submitBribe({
           targetPlayerId: target.playerId,
           media,
@@ -177,7 +178,7 @@ export class Submission {
   }
 
   isHost(): boolean {
-    return this.playerId === this.hostPlayerId();
+    return this.currentPlayerId() === this.hostPlayerId();
   }
 
   offlineBlockerText(): string {

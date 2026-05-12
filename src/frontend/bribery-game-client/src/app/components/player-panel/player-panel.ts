@@ -11,20 +11,25 @@ import { GameStateService, Player } from '../../state/game-state.service';
 export class PlayerPanel {
   players;
   hostPlayerId;
-  playerId = localStorage.getItem('playerId') ?? '';
+  currentPlayerId;
   isOpen = signal(false);
 
   constructor(private gameState: GameStateService) {
     this.players = this.gameState.players;
     this.hostPlayerId = this.gameState.hostPlayerId;
+    this.currentPlayerId = this.gameState.currentPlayerId;
   }
 
   sortedPlayers(): Player[] {
     return [...this.players()].sort((a, b) => {
-      if (a.id === this.playerId) return -1;
-      if (b.id === this.playerId) return 1;
+      if (a.id === this.currentPlayerId()) return -1;
+      if (b.id === this.currentPlayerId()) return 1;
       return a.name.localeCompare(b.name);
     });
+  }
+
+  isCurrentPlayer(player: Player): boolean {
+    return player.id === this.currentPlayerId();
   }
 
   statusClasses(player: Player): string {
