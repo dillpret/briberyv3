@@ -28,6 +28,13 @@
   textarea {
     @apply text-base;
   }
+
+  .svg-effects {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
 }
 
 @layer components {
@@ -103,6 +110,7 @@
     z-index: 0;
     border: 2px solid rgb(14 165 233 / 0.18);
     border-radius: inherit;
+    filter: url("#bribery-line-boil");
     pointer-events: none;
     animation: boiling-border 2.8s steps(2, end) infinite;
   }
@@ -202,6 +210,11 @@
   .soft-card::after,
   .progress-fill {
     animation: none;
+  }
+
+  .soft-panel::after,
+  .soft-card::after {
+    filter: none;
   }
 
   .primary-button,

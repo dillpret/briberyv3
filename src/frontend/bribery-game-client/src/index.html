@@ -8,6 +8,48 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
+  <svg class="svg-effects" aria-hidden="true" focusable="false">
+    <defs>
+      <filter
+        id="bribery-line-boil"
+        x="-12%"
+        y="-12%"
+        width="124%"
+        height="124%"
+        color-interpolation-filters="sRGB">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.022 0.034"
+          numOctaves="2"
+          seed="2"
+          result="boil-noise">
+          <animate
+            attributeName="baseFrequency"
+            dur="520ms"
+            values="0.022 0.034; 0.029 0.026; 0.018 0.031; 0.027 0.038; 0.022 0.034"
+            repeatCount="indefinite" />
+          <animate
+            attributeName="seed"
+            dur="520ms"
+            values="2; 7; 4; 9; 2"
+            calcMode="discrete"
+            repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="boil-noise"
+          scale="2.4"
+          xChannelSelector="R"
+          yChannelSelector="G">
+          <animate
+            attributeName="scale"
+            dur="520ms"
+            values="1.6; 2.6; 1.9; 2.9; 1.6"
+            repeatCount="indefinite" />
+        </feDisplacementMap>
+      </filter>
+    </defs>
+  </svg>
   <app-root></app-root>
 </body>
 </html>
