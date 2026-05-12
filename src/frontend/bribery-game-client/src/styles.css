@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: "Fredoka";
+  src: url("/fonts/fredoka/Fredoka-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
 @layer base {
   html {
     @apply min-h-full bg-slate-50 text-slate-800;
@@ -7,7 +15,7 @@
 
   body {
     @apply min-h-screen bg-[radial-gradient(circle_at_top,_#eef6ff_0,_#f4f1ff_42%,_#f8fbff_100%)] antialiased;
-    font-family: ui-rounded, "Nunito", "Avenir Next Rounded Std", "Segoe UI", system-ui, sans-serif;
+    font-family: "Fredoka", ui-rounded, "Nunito", "Avenir Next Rounded Std", "Segoe UI", system-ui, sans-serif;
   }
 
   button,
