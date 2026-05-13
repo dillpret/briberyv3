@@ -70,23 +70,8 @@
       @if (hasSubmitted(target.playerId)) {
           <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely. {{ waitingText() }}</p>
       } @else {
-          <textarea
-            [ngModel]="draftFor(target.playerId)"
-            (ngModelChange)="setDraft(target.playerId, $event)"
-            (beforeinput)="handleBeforeInput(target.playerId, $event)"
-            (paste)="handlePaste(target.playerId, $event)"
-            [disabled]="!!mediaDraftFor(target.playerId)"
-            maxlength="500"
-            rows="4"
-            class="soft-input resize-none"
-            placeholder="Write a response they will want to choose"></textarea>
-
-          <p class="text-sm leading-6 text-ink/70">
-            Your bribe stays anonymous until results. Only {{ target.name }} will vote on this prompt.
-          </p>
-
           <div
-            class="rounded-xl border border-dashed border-plum/35 bg-plum/8 p-3"
+            class="space-y-3 rounded-xl border border-dashed border-plum/35 bg-plum/8 p-3"
             tabindex="0"
             (dragover)="$event.preventDefault()"
             (paste)="handlePaste(target.playerId, $event)"
@@ -111,26 +96,31 @@
                 }
               </div>
             } @else {
-              <div class="grid gap-2 sm:grid-cols-2">
-                <label class="secondary-button cursor-pointer text-center">
-                  Add image or GIF
-                  <input
-                    type="file"
-                    class="sr-only"
-                    [accept]="mediaAccept"
-                    (change)="chooseFile(target.playerId, $event)" />
-                </label>
-                <label class="secondary-button cursor-pointer text-center">
-                  Take photo
-                  <input
-                    type="file"
-                    class="sr-only"
-                    accept="image/*"
-                    capture="environment"
-                    (change)="chooseFile(target.playerId, $event)" />
-                </label>
+              <div class="relative">
+                @if (!draftFor(target.playerId)) {
+                  <p class="pointer-events-none absolute left-4 top-3 text-base text-ink/40">
+                    Write a response, paste a GIF, or add an image
+                  </p>
+                }
+                <div
+                  role="textbox"
+                  aria-multiline="true"
+                  contenteditable="true"
+                  class="soft-input min-h-28 whitespace-pre-wrap break-words"
+                  (input)="handleComposerInput(target.playerId, $event)"
+                  (beforeinput)="handleBeforeInput(target.playerId, $event)"
+                  (paste)="handlePaste(target.playerId, $event)"></div>
               </div>
             }
+
+            <label class="secondary-button cursor-pointer text-center">
+              Add image or photo
+              <input
+                type="file"
+                class="sr-only"
+                [accept]="mediaAccept"
+                (change)="chooseFile(target.playerId, $event)" />
+            </label>
           </div>
 
           <div class="flex items-center justify-between text-xs text-ink/60">

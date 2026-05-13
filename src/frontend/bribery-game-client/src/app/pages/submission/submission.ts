@@ -131,11 +131,34 @@ export class Submission {
     input.value = '';
   }
 
+  handleComposerInput(targetPlayerId: string, event: Event) {
+    if (this.mediaDraftFor(targetPlayerId)) return;
+
+    const element = event.currentTarget as HTMLElement;
+    const embeddedFile = this.extractEmbeddedImageFile(element);
+    if (embeddedFile) {
+      element.textContent = '';
+      this.selectMedia(targetPlayerId, embeddedFile);
+      return;
+    }
+
+    const text = this.normalizeComposerText(element.innerText);
+    const nextText = text.slice(0, 500);
+
+    if (text !== nextText) {
+      element.innerText = nextText;
+      this.moveCaretToEnd(element);
+    }
+
+    this.setDraft(targetPlayerId, nextText);
+  }
+
   handlePaste(targetPlayerId: string, event: ClipboardEvent) {
     const file = this.extractImageFile(event.clipboardData);
 
     if (file) {
       event.preventDefault();
+      event.stopPropagation();
       this.selectMedia(targetPlayerId, file);
     }
   }
@@ -146,12 +169,14 @@ export class Submission {
 
     if (file) {
       event.preventDefault();
+      event.stopPropagation();
       this.selectMedia(targetPlayerId, file);
     }
   }
 
   handleDrop(targetPlayerId: string, event: DragEvent) {
     event.preventDefault();
+    event.stopPropagation();
     const file = this.extractImageFile(event.dataTransfer);
 
     if (file) this.selectMedia(targetPlayerId, file);
@@ -244,12 +269,57 @@ export class Submission {
 
     if (itemFile) return itemFile;
 
+    const html = typeof dataTransfer?.getData === 'function' ? dataTransfer.getData('text/html') : '';
+    const htmlFile = this.extractImageFileFromHtml(html);
+    if (htmlFile) return htmlFile;
+
     return Array.from(dataTransfer?.files ?? [])
       .find((file) => this.isImageFile(file)) ?? null;
   }
 
   private isImageFile(file: File): boolean {
     return file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(file.name);
+  }
+
+  private normalizeComposerText(text: string): string {
+    return text.replace(/\r/g, '').replace(/\u00a0/g, ' ');
+  }
+
+  private extractEmbeddedImageFile(element: HTMLElement): File | null {
+    const image = element.querySelector('img');
+    return image?.src ? this.fileFromDataUrl(image.src) : null;
+  }
+
+  private extractImageFileFromHtml(html: string): File | null {
+    const dataUrl = html.match(/data:image\/(?:png|jpe?g|gif|webp|bmp);base64,[^"'\s<>]+/i)?.[0];
+    return dataUrl ? this.fileFromDataUrl(dataUrl) : null;
+  }
+
+  private fileFromDataUrl(dataUrl: string): File | null {
+    const match = dataUrl.match(/^data:(image\/(?:png|jpeg|jpg|gif|webp|bmp));base64,(.+)$/i);
+    if (!match) return null;
+
+    const contentType = match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
+    const extension = contentType === 'image/jpeg' ? 'jpg' : contentType.replace('image/', '');
+    const binary = atob(match[2]);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return new File([bytes], `inserted-image.${extension}`, { type: contentType });
+  }
+
+  private moveCaretToEnd(element: HTMLElement) {
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   private async prepareMediaFile(file: File): Promise<File> {

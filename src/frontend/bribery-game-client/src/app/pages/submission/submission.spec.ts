@@ -79,6 +79,15 @@ describe('Submission', () => {
     });
   });
 
+  it('captures typed text from the unified composer', () => {
+    const composer = composerBox();
+    composer.innerText = 'A keyboard-friendly bribe';
+
+    composer.dispatchEvent(new Event('input', { bubbles: true }));
+
+    expect(component.draftFor('p2')).toBe('A keyboard-friendly bribe');
+  });
+
   it('selects pasted image media and clears existing text', () => {
     component.setDraft('p2', 'Replace me');
     const file = new File(['image'], 'pasted.gif', { type: 'image/gif' });
@@ -86,6 +95,7 @@ describe('Submission', () => {
 
     component.handlePaste('p2', {
       preventDefault,
+      stopPropagation: vi.fn(),
       clipboardData: { files: [file] },
     } as unknown as ClipboardEvent);
 
@@ -94,12 +104,24 @@ describe('Submission', () => {
     expect(component.mediaDraftFor('p2')?.file).toBe(file);
   });
 
+  it('hides the text composer after media is staged', () => {
+    const file = new File(['image'], 'bribe.png', { type: 'image/png' });
+
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[contenteditable="true"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('bribe.png');
+  });
+
   it('selects pasted image media from clipboard items when clipboard files is empty', () => {
     const file = new File(['image'], 'keyboard.gif', { type: 'image/gif' });
     const preventDefault = vi.fn();
 
     component.handlePaste('p2', {
       preventDefault,
+      stopPropagation: vi.fn(),
       clipboardData: {
         files: [],
         items: [fileItem(file)],
@@ -116,6 +138,7 @@ describe('Submission', () => {
 
     component.handleBeforeInput('p2', {
       preventDefault,
+      stopPropagation: vi.fn(),
       dataTransfer: {
         files: [],
         items: [fileItem(file)],
@@ -143,6 +166,7 @@ describe('Submission', () => {
 
     component.handlePaste('p2', {
       preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
       clipboardData: { files: [file] },
     } as unknown as ClipboardEvent);
 
@@ -155,11 +179,40 @@ describe('Submission', () => {
     expect(uploadedFile.type).toBe('image/gif');
   });
 
+  it('selects GIF media from inserted html data URLs', () => {
+    const preventDefault = vi.fn();
+    const gifDataUrl = `data:image/gif;base64,${btoa('gif')}`;
+
+    component.handleBeforeInput('p2', {
+      preventDefault,
+      stopPropagation: vi.fn(),
+      dataTransfer: {
+        files: [],
+        items: [],
+        getData: (type: string) => type === 'text/html' ? `<img src="${gifDataUrl}">` : '',
+      },
+    } as unknown as InputEvent);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(component.mediaDraftFor('p2')?.file.type).toBe('image/gif');
+  });
+
+  it('selects GIF media that was inserted into the composer as an image element', () => {
+    const composer = composerBox();
+    composer.innerHTML = `<img src="data:image/gif;base64,${btoa('gif')}">`;
+
+    composer.dispatchEvent(new Event('input', { bubbles: true }));
+
+    expect(component.draftFor('p2')).toBe('');
+    expect(component.mediaDraftFor('p2')?.file.type).toBe('image/gif');
+  });
+
   it('selects dropped image media', () => {
     const file = new File(['image'], 'dropped.gif', { type: 'image/gif' });
 
     component.handleDrop('p2', {
       preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
       dataTransfer: { files: [file] },
     } as unknown as DragEvent);
 
@@ -212,12 +265,14 @@ describe('Submission', () => {
     expect(signalr.submitBribe).not.toHaveBeenCalled();
   });
 
-  it('renders file and camera inputs with mobile-friendly attributes', () => {
+  it('renders one media picker without splitting upload and camera into separate buttons', () => {
     const inputs = Array.from(fixture.nativeElement.querySelectorAll('input[type="file"]')) as HTMLInputElement[];
 
+    expect(inputs).toHaveLength(1);
     expect(inputs[0].accept).toContain('image/gif');
-    expect(inputs[1].accept).toBe('image/*');
-    expect(inputs[1].getAttribute('capture')).toBe('environment');
+    expect(inputs[0].hasAttribute('capture')).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Add image or photo');
+    expect(fixture.nativeElement.textContent).not.toContain('Take photo');
   });
 
   it('explains anonymous bribes and recipient voting', () => {
@@ -225,13 +280,16 @@ describe('Submission', () => {
 
     expect(element.textContent).toContain("Each card is another player's prompt");
     expect(element.textContent).toContain('anonymous text, image, or GIF bribe');
-    expect(element.textContent).toContain('Only Player 2 will vote on this prompt');
     expect(element.textContent).toContain('Send a bribe to');
   });
 
   function submitBribeButton(): HTMLButtonElement {
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     return buttons.find((button) => button.textContent?.includes('Submit bribe'))!;
+  }
+
+  function composerBox(): HTMLElement {
+    return fixture.nativeElement.querySelector('[contenteditable="true"]') as HTMLElement;
   }
 
   function fileItem(file: File): DataTransferItem {
