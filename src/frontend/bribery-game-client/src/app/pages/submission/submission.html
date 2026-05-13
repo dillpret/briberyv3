@@ -1,15 +1,15 @@
 <main class="phase-shell">
   <section class="soft-panel space-y-4">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Submission</p>
-      <h1 class="text-2xl font-bold text-slate-900">Send your bribes</h1>
-      <p class="mt-1 text-sm leading-6 text-slate-600">
+      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Submission</p>
+      <h1 class="text-2xl font-bold text-ink">Send your bribes</h1>
+      <p class="mt-1 text-sm leading-6 text-ink/70">
         Each card is another player's prompt. Send an anonymous text, image, or GIF bribe that you think they will pick.
       </p>
     </div>
 
     <div class="space-y-2">
-      <div class="flex justify-between text-sm text-slate-600">
+      <div class="flex justify-between text-sm text-ink/70">
         <span>{{ bribeSubmittedCount() }} of {{ bribeRequiredCount() }} bribes sent</span>
         <span>{{ bribeProgressPercent() }}%</span>
       </div>
@@ -20,12 +20,12 @@
   </section>
 
   @if (offlineBlockingPlayerNames().length > 0) {
-    <section class="soft-panel space-y-3 border-amber-200 bg-amber-50/80">
+    <section class="soft-panel space-y-3 border-sun bg-sun/20">
       <div class="space-y-1">
-        <h2 class="text-lg font-semibold text-slate-900">Offline player blocking progress</h2>
-        <p class="text-sm leading-6 text-slate-600">{{ offlineBlockerText() }}</p>
+        <h2 class="text-lg font-semibold text-ink">Offline player blocking progress</h2>
+        <p class="text-sm leading-6 text-ink/70">{{ offlineBlockerText() }}</p>
         @if (advanceWithoutOfflinePlayersBlockedReason()) {
-          <p class="text-sm font-semibold text-amber-700">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
+          <p class="text-sm font-semibold text-ink">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
         }
       </div>
       @if (isHost()) {
@@ -41,8 +41,8 @@
 
   @if (!isCurrentPlayerActive()) {
     <section class="soft-panel space-y-2 text-center">
-      <h2 class="text-lg font-semibold text-slate-900">You are waiting for the next round</h2>
-      <p class="text-sm leading-6 text-slate-600">
+      <h2 class="text-lg font-semibold text-ink">You are waiting for the next round</h2>
+      <p class="text-sm leading-6 text-ink/70">
         This round already has its bribe assignments. You will be included when the host starts the next round.
       </p>
     </section>
@@ -53,22 +53,22 @@
         [class.opacity-80]="hasSubmitted(target.playerId)">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Send a bribe to</p>
-            <h2 class="text-xl font-bold text-slate-900">{{ target.name }}</h2>
+            <p class="text-sm font-semibold uppercase tracking-wide text-ink/60">Send a bribe to</p>
+            <h2 class="text-xl font-bold text-ink">{{ target.name }}</h2>
           </div>
           @if (hasSubmitted(target.playerId)) {
-            <span class="status-pill border-teal-200 bg-teal-50 text-teal-700">Sent</span>
+            <span class="status-pill border-pine/30 bg-pine/10 text-pine">Sent</span>
           } @else {
-            <span class="status-pill border-sky-200 bg-sky-50 text-sky-700">Pending</span>
+            <span class="status-pill border-sun bg-sun/20 text-ink">Pending</span>
           }
         </div>
 
-        <blockquote class="rounded-xl bg-sky-50/80 p-3 text-sm leading-6 text-slate-700">
+        <blockquote class="rounded-xl bg-mint/20 p-3 text-sm leading-6 text-ink/80">
           {{ target.prompt }}
         </blockquote>
 
       @if (hasSubmitted(target.playerId)) {
-          <p class="text-sm font-semibold text-teal-700">Your bribe is tucked away safely. {{ waitingText() }}</p>
+          <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely. {{ waitingText() }}</p>
       } @else {
           <textarea
             [ngModel]="draftFor(target.playerId)"
@@ -81,12 +81,12 @@
             class="soft-input resize-none"
             placeholder="Write a response they will want to choose"></textarea>
 
-          <p class="text-sm leading-6 text-slate-600">
+          <p class="text-sm leading-6 text-ink/70">
             Your bribe stays anonymous until results. Only {{ target.name }} will vote on this prompt.
           </p>
 
           <div
-            class="rounded-xl border border-dashed border-sky-200 bg-sky-50/50 p-3"
+            class="rounded-xl border border-dashed border-plum/35 bg-plum/8 p-3"
             tabindex="0"
             (dragover)="$event.preventDefault()"
             (paste)="handlePaste(target.playerId, $event)"
@@ -99,15 +99,15 @@
                     alt="Selected bribe preview"
                     class="max-h-64 w-full rounded-lg object-contain" />
                 }
-                <div class="flex items-center justify-between gap-3 text-xs text-slate-600">
+                <div class="flex items-center justify-between gap-3 text-xs text-ink/70">
                   <span class="min-w-0 truncate">{{ mediaDraft.file.name }} - {{ formatBytes(mediaDraft.file.size) }}</span>
-                  <button type="button" class="font-semibold text-sky-700" (click)="clearMedia(target.playerId)">Remove</button>
+                  <button type="button" class="font-semibold text-plum" (click)="clearMedia(target.playerId)">Remove</button>
                 </div>
                 @if (mediaDraft.error) {
-                  <p class="text-sm font-semibold text-rose-700">{{ mediaDraft.error }}</p>
+                  <p class="text-sm font-semibold text-error">{{ mediaDraft.error }}</p>
                 }
                 @if (mediaDraft.uploading) {
-                  <p class="text-sm font-semibold text-sky-700">Uploading media...</p>
+                  <p class="text-sm font-semibold text-pine">Uploading media...</p>
                 }
               </div>
             } @else {
@@ -133,7 +133,7 @@
             }
           </div>
 
-          <div class="flex items-center justify-between text-xs text-slate-500">
+          <div class="flex items-center justify-between text-xs text-ink/60">
             <span>{{ waitingText() }}</span>
             <span>{{ remainingCharacters(target.playerId) }} left</span>
           </div>

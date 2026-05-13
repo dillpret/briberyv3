@@ -33,18 +33,18 @@ export class PlayerPanel {
   }
 
   statusClasses(player: Player): string {
-    if (!player.connected) return 'border-slate-200 bg-slate-50 text-slate-500';
+    if (!player.connected) return 'border-ink/20 bg-ink/5 text-ink/60';
 
     switch (player.phaseStatus) {
       case 'Ready':
       case 'Done':
-        return 'border-teal-200 bg-teal-50 text-teal-700';
+        return 'border-pine/30 bg-pine/10 text-pine';
       case 'Pending':
-        return 'border-sky-200 bg-sky-50 text-sky-700';
+        return 'border-sun bg-sun/20 text-ink';
       case 'Waiting':
-        return 'border-violet-200 bg-violet-50 text-violet-700';
+        return 'border-plum/30 bg-plum/10 text-plum';
       default:
-        return 'border-slate-200 bg-white text-slate-500';
+        return 'border-ink/20 bg-surface text-ink/60';
     }
   }
 }

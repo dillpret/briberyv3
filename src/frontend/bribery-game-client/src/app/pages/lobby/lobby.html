@@ -1,9 +1,9 @@
 <main class="phase-shell">
   <section class="soft-panel space-y-5 text-center">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Room code</p>
-      <div class="mt-2 rounded-3xl border border-sky-100 bg-sky-50/80 px-4 py-6 shadow-inner shadow-sky-100">
-        <p class="select-all text-5xl font-black tracking-[0.18em] text-slate-900 sm:text-6xl">
+      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Room code</p>
+      <div class="mt-2 rounded-3xl border border-ink/15 bg-sun/25 px-4 py-6 shadow-inner shadow-sun/30">
+        <p class="select-all text-5xl font-black tracking-[0.18em] text-ink sm:text-6xl">
           {{ normalizedGameId() }}
         </p>
       </div>
@@ -16,21 +16,21 @@
         </button>
       </div>
       @if (copyMessage) {
-        <p class="mt-3 text-sm font-semibold text-sky-700">{{ copyMessage }}</p>
+        <p class="mt-3 text-sm font-semibold text-pine">{{ copyMessage }}</p>
       } @else {
-        <p class="mt-3 text-sm text-slate-500">Share this code with everyone joining.</p>
+        <p class="mt-3 text-sm text-ink/60">Share this code with everyone joining.</p>
       }
     </div>
 
     <div class="space-y-2">
-      <div class="flex items-center justify-between text-sm text-slate-600">
+      <div class="flex items-center justify-between text-sm text-ink/70">
         <span>{{ readyCount() }} of {{ connectedCount() }} ready</span>
         <span>{{ readyPercent() }}%</span>
       </div>
       <div class="progress-track">
         <div class="progress-fill" [style.width.%]="readyPercent()"></div>
       </div>
-      <p class="text-sm text-slate-600">{{ canStartHint() }}</p>
+      <p class="text-sm text-ink/70">{{ canStartHint() }}</p>
     </div>
   </section>
 
@@ -48,7 +48,7 @@
         Start game
       </button>
     } @else {
-      <p class="text-center text-sm text-slate-500">The host will start once everyone is ready.</p>
+      <p class="text-center text-sm text-ink/60">The host will start once everyone is ready.</p>
     }
   </section>
 

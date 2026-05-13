@@ -46,10 +46,10 @@ describe('PlayerPanel', () => {
   });
 
   it('maps player status classes', () => {
-    expect(component.statusClasses(player({ connected: false }))).toContain('text-slate-500');
-    expect(component.statusClasses(player({ phaseStatus: 'Done' }))).toContain('text-teal-700');
-    expect(component.statusClasses(player({ phaseStatus: 'Pending' }))).toContain('text-sky-700');
-    expect(component.statusClasses(player({ phaseStatus: 'Waiting' }))).toContain('text-violet-700');
+    expect(component.statusClasses(player({ connected: false }))).toContain('text-ink/60');
+    expect(component.statusClasses(player({ phaseStatus: 'Done' }))).toContain('text-pine');
+    expect(component.statusClasses(player({ phaseStatus: 'Pending' }))).toContain('text-ink');
+    expect(component.statusClasses(player({ phaseStatus: 'Waiting' }))).toContain('text-plum');
   });
 
   it('opens and closes the mobile panel state', () => {

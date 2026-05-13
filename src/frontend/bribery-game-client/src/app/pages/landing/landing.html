@@ -1,17 +1,17 @@
 <main class="phase-shell justify-center">
   <section class="text-center">
-    <h1 class="text-6xl font-black tracking-tight text-slate-900 sm:text-7xl">Bribery</h1>
+    <h1 class="text-6xl font-black tracking-tight text-ink sm:text-7xl">Bribery</h1>
   </section>
 
   @if (errorMessage) {
-    <section class="soft-panel border-sky-200 bg-sky-50/80 text-center text-sm font-semibold text-sky-800">
+    <section class="soft-panel border-sun bg-sun/20 text-center text-sm font-semibold text-ink">
       {{ errorMessage }}
     </section>
   }
 
   <section class="soft-panel space-y-4">
     <label class="block space-y-2">
-        <span class="text-sm font-semibold text-slate-700">Your name</span>
+        <span class="text-sm font-semibold text-ink/80">Your name</span>
       <input
         [(ngModel)]="name"
         class="soft-input"
@@ -29,7 +29,7 @@
 
   <section class="soft-panel space-y-4">
     <label class="block space-y-2">
-      <span class="text-sm font-semibold text-slate-700">Game code</span>
+      <span class="text-sm font-semibold text-ink/80">Game code</span>
       <input
         [(ngModel)]="gameId"
         (ngModelChange)="gameId = normalizeGameId($event)"
@@ -46,7 +46,7 @@
     </button>
   </section>
 
-  <p class="text-center text-[0.65rem] font-medium text-slate-400">
+  <p class="text-center text-[0.65rem] font-medium text-ink/45">
     {{ deploymentLabel }}
   </p>
 </main>

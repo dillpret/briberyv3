@@ -1,5 +1,15 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-ink: #2e1b03;
+  --color-sun: #eeb902;
+  --color-mint: #8daa91;
+  --color-pine: #285943;
+  --color-plum: #795889;
+  --color-surface: #fff9ec;
+  --color-error: #9f243d;
+}
+
 @font-face {
   font-family: "Fredoka";
   src: url("/fonts/fredoka/Fredoka-Variable.ttf") format("truetype");
@@ -10,15 +20,15 @@
 
 @layer base {
   html {
-    @apply min-h-full bg-[#f8fbff] text-slate-800;
+    @apply min-h-full bg-mint text-ink;
   }
 
   body {
     @apply min-h-screen antialiased;
     background:
-      radial-gradient(circle at 18px 18px, rgb(125 211 252 / 0.22) 1.5px, transparent 1.6px),
-      radial-gradient(circle at 54px 48px, rgb(253 186 116 / 0.18) 1.5px, transparent 1.6px),
-      linear-gradient(135deg, #eef8ff 0%, #fff7ed 46%, #f5f3ff 100%);
+      radial-gradient(circle at 18px 18px, rgb(238 185 2 / 0.24) 1.5px, transparent 1.6px),
+      radial-gradient(circle at 54px 48px, rgb(121 88 137 / 0.15) 1.5px, transparent 1.6px),
+      linear-gradient(135deg, rgb(141 170 145 / 0.95) 0%, rgb(255 249 236 / 0.78) 52%, rgb(141 170 145 / 0.88) 100%);
     background-size: 72px 72px, 96px 96px, auto;
     font-family: "Fredoka", ui-rounded, "Nunito", "Avenir Next Rounded Std", "Segoe UI", system-ui, sans-serif;
   }
@@ -44,25 +54,25 @@
   }
 
   .soft-panel {
-    @apply relative overflow-hidden rounded-3xl border-2 border-white/90 bg-white/80 p-4 shadow-[0_12px_28px_rgb(14_165_233_/_0.12)] backdrop-blur sm:p-5;
+    @apply relative overflow-hidden rounded-3xl border-2 border-ink/20 bg-surface/88 p-4 text-ink shadow-[0_12px_28px_rgb(40_89_67_/_0.16)] backdrop-blur sm:p-5;
     transform: translateZ(0);
   }
 
   .soft-card {
-    @apply relative overflow-hidden rounded-3xl border-2 border-sky-100 bg-white/85 p-4 shadow-[0_10px_22px_rgb(14_165_233_/_0.10)] transition duration-200;
+    @apply relative overflow-hidden rounded-3xl border-2 border-ink/15 bg-surface/90 p-4 text-ink shadow-[0_10px_22px_rgb(40_89_67_/_0.12)] transition duration-200;
     transform: translateZ(0);
   }
 
   .soft-input {
-    @apply w-full rounded-2xl border-2 border-sky-100 bg-white/95 px-4 py-3 text-slate-800 shadow-inner shadow-sky-50 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100;
+    @apply w-full rounded-2xl border-2 border-ink/20 bg-surface/95 px-4 py-3 text-ink shadow-inner shadow-mint/30 outline-none transition placeholder:text-ink/40 focus:border-sun focus:ring-4 focus:ring-sun/30;
   }
 
   .primary-button {
-    @apply relative w-full overflow-hidden rounded-2xl bg-sky-500 px-4 py-3 font-bold text-white shadow-[0_8px_0_rgb(3_105_161),0_14px_26px_rgb(14_165_233_/_0.22)] transition duration-200 hover:-translate-y-0.5 hover:bg-sky-600 hover:shadow-[0_10px_0_rgb(3_105_161),0_18px_30px_rgb(14_165_233_/_0.26)] active:translate-y-1 active:scale-[0.99] active:shadow-[0_4px_0_rgb(3_105_161),0_10px_18px_rgb(14_165_233_/_0.18)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none;
+    @apply relative w-full overflow-hidden rounded-2xl bg-pine px-4 py-3 font-bold text-surface shadow-[0_8px_0_rgb(46_27_3),0_14px_26px_rgb(40_89_67_/_0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-pine/90 hover:shadow-[0_10px_0_rgb(46_27_3),0_18px_30px_rgb(40_89_67_/_0.28)] active:translate-y-1 active:scale-[0.99] active:shadow-[0_4px_0_rgb(46_27_3),0_10px_18px_rgb(40_89_67_/_0.18)];
   }
 
   .secondary-button {
-    @apply relative w-full overflow-hidden rounded-2xl border-2 border-sky-200 bg-white/90 px-4 py-3 font-bold text-sky-700 shadow-[0_6px_0_rgb(186_230_253),0_12px_20px_rgb(14_165_233_/_0.12)] transition duration-200 hover:-translate-y-0.5 hover:bg-sky-50 hover:text-sky-800 active:translate-y-1 active:scale-[0.99] active:shadow-[0_2px_0_rgb(186_230_253),0_8px_16px_rgb(14_165_233_/_0.10)] disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:shadow-none;
+    @apply relative w-full overflow-hidden rounded-2xl border-2 border-plum/35 bg-surface/90 px-4 py-3 font-bold text-plum shadow-[0_6px_0_rgb(121_88_137_/_0.28),0_12px_20px_rgb(46_27_3_/_0.10)] transition duration-200 hover:-translate-y-0.5 hover:bg-sun/20 hover:text-ink active:translate-y-1 active:scale-[0.99] active:shadow-[0_2px_0_rgb(121_88_137_/_0.28),0_8px_16px_rgb(46_27_3_/_0.10)];
   }
 
   .status-pill {
@@ -70,22 +80,22 @@
   }
 
   .progress-track {
-    @apply h-3 overflow-hidden rounded-full border border-sky-100 bg-white/70 shadow-inner shadow-sky-100;
+    @apply h-3 overflow-hidden rounded-full border border-ink/15 bg-surface/70 shadow-inner shadow-mint/40;
   }
 
   .progress-fill {
-    @apply h-full rounded-full bg-sky-400 transition-all duration-300;
+    @apply h-full rounded-full bg-pine transition-all duration-300;
     background-image: repeating-linear-gradient(
       135deg,
-      rgb(56 189 248) 0 10px,
-      rgb(34 211 238) 10px 20px
+      #285943 0 10px,
+      #eeb902 10px 20px
     );
     background-size: 28px 28px;
     animation: candy-stripes 900ms linear infinite;
   }
 
   .media-bribe {
-    @apply mt-3 flex w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-sky-100 bg-slate-950/5;
+    @apply mt-3 flex w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-ink/15 bg-ink/5;
     max-height: 45vh;
   }
 
@@ -95,7 +105,7 @@
   }
 
   .media-bribe-fallback {
-    @apply mt-3 rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-700;
+    @apply mt-3 rounded-2xl border-2 border-sun bg-sun/20 p-3 text-sm font-bold text-ink;
   }
 
   .game-layout {
@@ -108,7 +118,7 @@
     position: absolute;
     inset: 3px;
     z-index: 0;
-    border: 2px solid rgb(14 165 233 / 0.18);
+    border: 2px solid rgb(46 27 3 / 0.22);
     border-radius: inherit;
     filter: url("#bribery-line-boil");
     pointer-events: none;
@@ -122,7 +132,11 @@
   }
 
   .soft-card:hover {
-    @apply border-sky-200 bg-white/95 shadow-[0_14px_26px_rgb(14_165_233_/_0.14)];
+    @apply border-pine/35 bg-surface/95 shadow-[0_14px_26px_rgb(40_89_67_/_0.18)];
+  }
+
+  .soft-card.is-selected {
+    @apply border-sun bg-sun/20;
   }
 
   .primary-button::before,
@@ -131,7 +145,7 @@
     position: absolute;
     inset: 0;
     z-index: 0;
-    background: linear-gradient(110deg, transparent 0 20%, rgb(255 255 255 / 0.24) 45%, transparent 70% 100%);
+    background: linear-gradient(110deg, transparent 0 20%, rgb(238 185 2 / 0.28) 45%, transparent 70% 100%);
     transform: translateX(-120%);
     transition: transform 450ms ease;
   }
@@ -143,7 +157,16 @@
 
   .primary-button:disabled,
   .secondary-button:disabled {
+    @apply cursor-not-allowed shadow-none;
     transform: none;
+  }
+
+  .primary-button:disabled {
+    @apply bg-ink/25 text-ink/55;
+  }
+
+  .secondary-button:disabled {
+    @apply border-ink/15 text-ink/40;
   }
 
   .primary-button:disabled::before,

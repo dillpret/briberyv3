@@ -1,15 +1,15 @@
 <main class="phase-shell">
   <section class="soft-panel space-y-4">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Voting</p>
-      <h1 class="text-2xl font-bold text-slate-900">Pick your favourite</h1>
-      <p class="mt-1 text-sm leading-6 text-slate-600">
+      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Voting</p>
+      <h1 class="text-2xl font-bold text-ink">Pick your favourite</h1>
+      <p class="mt-1 text-sm leading-6 text-ink/70">
         These are the anonymous bribes sent to your prompt. Pick the response you like best; the player who sent it gets 1 point.
       </p>
     </div>
 
     <div class="space-y-2">
-      <div class="flex justify-between text-sm text-slate-600">
+      <div class="flex justify-between text-sm text-ink/70">
         <span>{{ voteSubmittedCount() }} of {{ voteRequiredCount() }} votes in</span>
         <span>{{ voteProgressPercent() }}%</span>
       </div>
@@ -20,12 +20,12 @@
   </section>
 
   @if (offlineBlockingPlayerNames().length > 0) {
-    <section class="soft-panel space-y-3 border-amber-200 bg-amber-50/80">
+    <section class="soft-panel space-y-3 border-sun bg-sun/20">
       <div class="space-y-1">
-        <h2 class="text-lg font-semibold text-slate-900">Offline player blocking progress</h2>
-        <p class="text-sm leading-6 text-slate-600">{{ offlineBlockerText() }}</p>
+        <h2 class="text-lg font-semibold text-ink">Offline player blocking progress</h2>
+        <p class="text-sm leading-6 text-ink/70">{{ offlineBlockerText() }}</p>
         @if (advanceWithoutOfflinePlayersBlockedReason()) {
-          <p class="text-sm font-semibold text-amber-700">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
+          <p class="text-sm font-semibold text-ink">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
         }
       </div>
       @if (isHost()) {
@@ -41,23 +41,23 @@
 
   @if (!isCurrentPlayerActive()) {
     <section class="soft-panel space-y-2 text-center">
-      <h2 class="text-lg font-semibold text-slate-900">You are waiting for the next round</h2>
-      <p class="text-sm leading-6 text-slate-600">
+      <h2 class="text-lg font-semibold text-ink">You are waiting for the next round</h2>
+      <p class="text-sm leading-6 text-ink/70">
         Voting is only for players who received bribes this round.
       </p>
     </section>
   } @else if (voting()?.selectedBribeId) {
     <section class="soft-panel space-y-2 text-center">
-      <span class="status-pill mx-auto border-teal-200 bg-teal-50 text-teal-700">Vote submitted</span>
-      <h2 class="text-lg font-semibold text-slate-900">Decision made.</h2>
-      <p class="text-sm leading-6 text-slate-600">
+      <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine">Vote submitted</span>
+      <h2 class="text-lg font-semibold text-ink">Decision made.</h2>
+      <p class="text-sm leading-6 text-ink/70">
         {{ waitingText() }}
       </p>
     </section>
   } @else {
     <section class="soft-panel space-y-1">
-      <h2 class="text-lg font-semibold text-slate-900">Choose the winning bribe</h2>
-      <p class="text-sm leading-6 text-slate-600">
+      <h2 class="text-lg font-semibold text-ink">Choose the winning bribe</h2>
+      <p class="text-sm leading-6 text-ink/70">
         Vote for the response that best answers your prompt or wins you over.
       </p>
     </section>
@@ -65,15 +65,14 @@
     @for (bribe of voting()?.bribes ?? []; track bribe.bribeId) {
       <label
         class="soft-card block cursor-pointer"
-        [class.border-sky-300]="currentSelection() === bribe.bribeId"
-        [class.bg-sky-50]="currentSelection() === bribe.bribeId">
+        [class.is-selected]="currentSelection() === bribe.bribeId">
         <input
           class="sr-only"
           type="radio"
           name="bribe"
           [checked]="currentSelection() === bribe.bribeId"
           (change)="selectedBribeId.set(bribe.bribeId)" />
-        <span class="block text-sm font-semibold uppercase tracking-wide text-slate-500">Bribe option</span>
+        <span class="block text-sm font-semibold uppercase tracking-wide text-ink/60">Bribe option</span>
         <app-bribe-display
           [kind]="bribe.kind"
           [text]="bribe.text"

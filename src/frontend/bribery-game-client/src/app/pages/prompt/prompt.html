@@ -2,19 +2,19 @@
   <section class="soft-panel space-y-4">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-wide text-sky-600">Prompt</p>
-        <h1 class="text-2xl font-bold text-slate-900">Write your prompt</h1>
-        <p class="mt-1 text-sm leading-6 text-slate-600">
+        <p class="text-sm font-semibold uppercase tracking-wide text-pine">Prompt</p>
+        <h1 class="text-2xl font-bold text-ink">Write your prompt</h1>
+        <p class="mt-1 text-sm leading-6 text-ink/70">
           Write the thing other players will bribe you for. Later, you will pick your favourite response.
         </p>
       </div>
-      <span class="status-pill border-violet-200 bg-violet-50 text-violet-700">
+      <span class="status-pill border-plum/30 bg-plum/10 text-plum">
         Round {{ currentRound() }}
       </span>
     </div>
 
     <div class="space-y-2">
-      <div class="flex justify-between text-sm text-slate-600">
+      <div class="flex justify-between text-sm text-ink/70">
         <span>{{ promptSubmittedCount() }} of {{ promptRequiredCount() }} prompts in</span>
         <span>{{ promptProgressPercent() }}%</span>
       </div>
@@ -25,12 +25,12 @@
   </section>
 
   @if (offlineBlockingPlayerNames().length > 0) {
-    <section class="soft-panel space-y-3 border-amber-200 bg-amber-50/80">
+    <section class="soft-panel space-y-3 border-sun bg-sun/20">
       <div class="space-y-1">
-        <h2 class="text-lg font-semibold text-slate-900">Offline player blocking progress</h2>
-        <p class="text-sm leading-6 text-slate-600">{{ offlineBlockerText() }}</p>
+        <h2 class="text-lg font-semibold text-ink">Offline player blocking progress</h2>
+        <p class="text-sm leading-6 text-ink/70">{{ offlineBlockerText() }}</p>
         @if (advanceWithoutOfflinePlayersBlockedReason()) {
-          <p class="text-sm font-semibold text-amber-700">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
+          <p class="text-sm font-semibold text-ink">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
         }
       </div>
       @if (isHost()) {
@@ -46,16 +46,16 @@
 
   @if (!isCurrentPlayerActive()) {
     <section class="soft-panel space-y-2 text-center">
-      <h2 class="text-lg font-semibold text-slate-900">You are waiting for the next round</h2>
-      <p class="text-sm leading-6 text-slate-600">
+      <h2 class="text-lg font-semibold text-ink">You are waiting for the next round</h2>
+      <p class="text-sm leading-6 text-ink/70">
         You joined after this round began, so you can watch the room settle and jump in next round.
       </p>
     </section>
   } @else if (hasSubmittedPrompt()) {
     <section class="soft-panel space-y-2 text-center">
-      <span class="status-pill mx-auto border-teal-200 bg-teal-50 text-teal-700">Prompt submitted</span>
-      <h2 class="text-lg font-semibold text-slate-900">You are all set.</h2>
-      <p class="text-sm leading-6 text-slate-600">
+      <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine">Prompt submitted</span>
+      <h2 class="text-lg font-semibold text-ink">You are all set.</h2>
+      <p class="text-sm leading-6 text-ink/70">
         {{ waitingText() }}
       </p>
     </section>
@@ -63,13 +63,13 @@
     <section class="soft-panel space-y-3">
       <label class="block space-y-2">
         <span class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span class="text-sm font-semibold text-slate-700">Your prompt</span>
+          <span class="text-sm font-semibold text-ink/80">Your prompt</span>
           <button
             type="button"
             (click)="giveMeAnIdea()"
             aria-label="Use a random prompt idea"
             title="Use a random prompt idea"
-            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-sky-200 bg-white text-lg font-black text-sky-700 shadow-sm shadow-sky-100 transition duration-200 hover:bg-sky-50 active:scale-[0.97]">
+            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-plum/35 bg-surface text-lg font-black text-plum shadow-sm shadow-plum/15 transition duration-200 hover:bg-sun/20 active:scale-[0.97]">
             ?
           </button>
         </span>
@@ -81,7 +81,7 @@
           placeholder="What would convince you to pick someone's bribe?"></textarea>
       </label>
 
-      <div class="flex items-center justify-between text-xs text-slate-500">
+      <div class="flex items-center justify-between text-xs text-ink/60">
         <span>Keep it playful and specific. The idea button replaces your draft.</span>
         <span>{{ remainingCharacters() }} left</span>
       </div>
