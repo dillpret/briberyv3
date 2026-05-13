@@ -160,7 +160,10 @@ export class Submission {
       event.preventDefault();
       event.stopPropagation();
       this.selectMedia(targetPlayerId, file);
+      return;
     }
+
+    void this.selectAsyncInsertedMedia(targetPlayerId, event.clipboardData, event.currentTarget);
   }
 
   handleBeforeInput(targetPlayerId: string, event: Event) {
@@ -171,7 +174,10 @@ export class Submission {
       event.preventDefault();
       event.stopPropagation();
       this.selectMedia(targetPlayerId, file);
+      return;
     }
+
+    void this.selectAsyncInsertedMedia(targetPlayerId, inputEvent.dataTransfer, event.currentTarget);
   }
 
   handleDrop(targetPlayerId: string, event: DragEvent) {
@@ -277,6 +283,78 @@ export class Submission {
       .find((file) => this.isImageFile(file)) ?? null;
   }
 
+  private async selectAsyncInsertedMedia(
+    targetPlayerId: string,
+    dataTransfer: DataTransfer | null | undefined,
+    eventTarget: EventTarget | null,
+  ) {
+    const file =
+      await this.extractImageFileFromStringItems(dataTransfer) ??
+      (this.shouldReadClipboardFallback(dataTransfer) ? await this.extractImageFileFromClipboard() : null);
+
+    if (!file || this.mediaDraftFor(targetPlayerId)) return;
+
+    if (eventTarget instanceof HTMLElement) {
+      eventTarget.textContent = '';
+    }
+
+    this.selectMedia(targetPlayerId, file);
+  }
+
+  private async extractImageFileFromStringItems(dataTransfer: DataTransfer | null | undefined): Promise<File | null> {
+    for (const item of Array.from(dataTransfer?.items ?? [])) {
+      if (item.kind !== 'string') continue;
+      if (item.type !== 'text/html' && item.type !== 'text/uri-list' && item.type !== 'text/plain') continue;
+
+      const value = await new Promise<string>((resolve) => item.getAsString(resolve));
+      const file = item.type === 'text/html'
+        ? this.extractImageFileFromHtml(value)
+        : this.fileFromImageUrl(value.trim());
+
+      if (file) return file;
+    }
+
+    return null;
+  }
+
+  private shouldReadClipboardFallback(dataTransfer: DataTransfer | null | undefined): boolean {
+    if (!dataTransfer) return true;
+
+    const types = Array.from(dataTransfer.types ?? []);
+    if (types.length === 0) return true;
+    if (types.some((type) => type === 'Files' || type.startsWith('image/'))) return true;
+
+    return false;
+  }
+
+  private async extractImageFileFromClipboard(): Promise<File | null> {
+    if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') return null;
+
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type);
+            return new File([blob], `clipboard-image.${this.extensionForContentType(blob.type || type)}`, {
+              type: blob.type || type,
+            });
+          }
+
+          if (type === 'text/html') {
+            const html = await (await clipboardItem.getType(type)).text();
+            const file = this.extractImageFileFromHtml(html);
+            if (file) return file;
+          }
+        }
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
   private isImageFile(file: File): boolean {
     return file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(file.name);
   }
@@ -287,12 +365,20 @@ export class Submission {
 
   private extractEmbeddedImageFile(element: HTMLElement): File | null {
     const image = element.querySelector('img');
-    return image?.src ? this.fileFromDataUrl(image.src) : null;
+    return image?.src ? this.fileFromImageUrl(image.src) : null;
   }
 
   private extractImageFileFromHtml(html: string): File | null {
     const dataUrl = html.match(/data:image\/(?:png|jpe?g|gif|webp|bmp);base64,[^"'\s<>]+/i)?.[0];
-    return dataUrl ? this.fileFromDataUrl(dataUrl) : null;
+    if (dataUrl) return this.fileFromDataUrl(dataUrl);
+
+    const src = html.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1];
+    return src ? this.fileFromImageUrl(src) : null;
+  }
+
+  private fileFromImageUrl(url: string): File | null {
+    if (url.startsWith('data:')) return this.fileFromDataUrl(url);
+    return null;
   }
 
   private fileFromDataUrl(dataUrl: string): File | null {
@@ -309,6 +395,24 @@ export class Submission {
     }
 
     return new File([bytes], `inserted-image.${extension}`, { type: contentType });
+  }
+
+  private extensionForContentType(contentType: string): string {
+    switch (contentType.toLowerCase()) {
+      case 'image/png':
+        return 'png';
+      case 'image/jpeg':
+      case 'image/jpg':
+        return 'jpg';
+      case 'image/gif':
+        return 'gif';
+      case 'image/webp':
+        return 'webp';
+      case 'image/bmp':
+        return 'bmp';
+      default:
+        return 'bin';
+    }
   }
 
   private moveCaretToEnd(element: HTMLElement) {

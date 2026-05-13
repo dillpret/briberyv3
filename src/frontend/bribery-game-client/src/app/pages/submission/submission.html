@@ -111,16 +111,16 @@
                   (beforeinput)="handleBeforeInput(target.playerId, $event)"
                   (paste)="handlePaste(target.playerId, $event)"></div>
               </div>
-            }
 
-            <label class="secondary-button cursor-pointer text-center">
-              Add image or photo
-              <input
-                type="file"
-                class="sr-only"
-                [accept]="mediaAccept"
-                (change)="chooseFile(target.playerId, $event)" />
-            </label>
+              <label class="secondary-button cursor-pointer text-center">
+                Add image or photo
+                <input
+                  type="file"
+                  class="sr-only"
+                  [accept]="mediaAccept"
+                  (change)="chooseFile(target.playerId, $event)" />
+              </label>
+            }
           </div>
 
           <div class="flex items-center justify-between text-xs text-ink/60">

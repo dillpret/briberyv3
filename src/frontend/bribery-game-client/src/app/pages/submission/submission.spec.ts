@@ -104,7 +104,7 @@ describe('Submission', () => {
     expect(component.mediaDraftFor('p2')?.file).toBe(file);
   });
 
-  it('hides the text composer after media is staged', () => {
+  it('hides the text composer and media picker after media is staged', () => {
     const file = new File(['image'], 'bribe.png', { type: 'image/png' });
 
     component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
@@ -112,7 +112,9 @@ describe('Submission', () => {
 
     expect(fixture.nativeElement.querySelector('[contenteditable="true"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('input[type="file"]')).toHaveLength(0);
     expect(fixture.nativeElement.textContent).toContain('bribe.png');
+    expect(fixture.nativeElement.textContent).not.toContain('Add image or photo');
   });
 
   it('selects pasted image media from clipboard items when clipboard files is empty', () => {
@@ -195,6 +197,83 @@ describe('Submission', () => {
 
     expect(preventDefault).toHaveBeenCalled();
     expect(component.mediaDraftFor('p2')?.file.type).toBe('image/gif');
+  });
+
+  it('selects GIF media from async clipboard string items', async () => {
+    const gifDataUrl = `data:image/gif;base64,${btoa('gif')}`;
+
+    component.handlePaste('p2', {
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      clipboardData: {
+        files: [],
+        items: [stringItem('text/html', `<img src="${gifDataUrl}">`)],
+      },
+    } as unknown as ClipboardEvent);
+
+    await settleAsyncMediaSelection();
+
+    expect(component.mediaDraftFor('p2')?.file.type).toBe('image/gif');
+  });
+
+  it('selects image media from async clipboard read fallback', async () => {
+    const blob = new Blob(['image'], { type: 'image/png' });
+    const originalClipboard = navigator.clipboard;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        read: vi.fn().mockResolvedValue([
+          {
+            types: ['image/png'],
+            getType: vi.fn().mockResolvedValue(blob),
+          },
+        ]),
+      },
+    });
+
+    component.handlePaste('p2', {
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      clipboardData: { files: [], items: [] },
+    } as unknown as ClipboardEvent);
+
+    await settleAsyncMediaSelection();
+
+    expect(component.mediaDraftFor('p2')?.file.type).toBe('image/png');
+
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: originalClipboard,
+    });
+  });
+
+  it('does not request async clipboard access for plain text paste', async () => {
+    const read = vi.fn();
+    const originalClipboard = navigator.clipboard;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { read },
+    });
+
+    component.handlePaste('p2', {
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      clipboardData: {
+        files: [],
+        items: [stringItem('text/plain', 'just text')],
+        types: ['text/plain'],
+      },
+    } as unknown as ClipboardEvent);
+
+    await settleAsyncMediaSelection();
+
+    expect(read).not.toHaveBeenCalled();
+    expect(component.mediaDraftFor('p2')).toBeNull();
+
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: originalClipboard,
+    });
   });
 
   it('selects GIF media that was inserted into the composer as an image element', () => {
@@ -298,5 +377,19 @@ describe('Submission', () => {
       type: file.type,
       getAsFile: () => file,
     } as DataTransferItem;
+  }
+
+  function stringItem(type: string, value: string): DataTransferItem {
+    return {
+      kind: 'string',
+      type,
+      getAsString: (callback: FunctionStringCallback | null) => callback?.(value),
+    } as DataTransferItem;
+  }
+
+  async function settleAsyncMediaSelection() {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 });
