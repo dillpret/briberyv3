@@ -136,7 +136,9 @@
   }
 
   .mascot-waiting {
-    @apply block h-auto w-full max-w-[10rem] shrink-0 object-contain drop-shadow-[0_12px_18px_rgb(46_27_3_/_0.18)] sm:max-w-[12rem];
+    @apply block h-auto w-full max-w-[10rem] shrink-0 origin-center object-contain drop-shadow-[0_12px_18px_rgb(46_27_3_/_0.18)] sm:max-w-[12rem];
+    animation: logo-lilt 5.8s ease-in-out infinite;
+    filter: url("#bribery-line-boil") drop-shadow(0 12px 18px rgb(46 27 3 / 0.18));
   }
 
   .waiting-mascot-layout {
@@ -280,6 +282,7 @@
 @media (prefers-reduced-motion: reduce) {
   .phase-shell,
   .brand-logo,
+  .mascot-waiting,
   .soft-panel::after,
   .soft-card::after,
   .progress-fill {
@@ -287,6 +290,7 @@
   }
 
   .brand-logo,
+  .mascot-waiting,
   .soft-panel::after,
   .soft-card::after {
     filter: none;
