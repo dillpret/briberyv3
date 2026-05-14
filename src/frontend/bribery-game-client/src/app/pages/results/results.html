@@ -58,9 +58,16 @@
         Start next round
       </button>
     } @else {
-      <p class="text-sm leading-6 text-ink/70">
-        Waiting for the host to start the next round.
-      </p>
+      <div class="waiting-mascot-layout text-center sm:text-left">
+        <p class="text-sm leading-6 text-ink/70">
+          Waiting for the host to start the next round.
+        </p>
+        <img
+          src="/brand/bribery-mascot.png"
+          alt=""
+          aria-hidden="true"
+          class="mascot-waiting" />
+      </div>
   }
   </section>
 </main>

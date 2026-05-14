@@ -108,6 +108,20 @@
     @apply mt-3 rounded-2xl border-2 border-sun bg-sun/20 p-3 text-sm font-bold text-ink;
   }
 
+  .brand-logo {
+    @apply block h-auto w-full max-w-[26rem] origin-center sm:max-w-[34rem];
+    animation: logo-lilt 5.8s ease-in-out infinite;
+    filter: url("#bribery-line-boil");
+  }
+
+  .mascot-waiting {
+    @apply block h-auto w-full max-w-[10rem] shrink-0 object-contain drop-shadow-[0_12px_18px_rgb(46_27_3_/_0.18)] sm:max-w-[12rem];
+  }
+
+  .waiting-mascot-layout {
+    @apply flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between;
+  }
+
   .game-layout {
     @apply mx-auto grid min-h-screen w-full max-w-7xl gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6 xl:gap-6;
   }
@@ -221,6 +235,19 @@
   }
 }
 
+@keyframes logo-lilt {
+  0%,
+  100% {
+    transform: rotate(-0.8deg) scale(1);
+  }
+  35% {
+    transform: rotate(0.7deg) scale(1.025);
+  }
+  70% {
+    transform: rotate(-0.35deg) scale(0.992);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .soft-card:hover {
     transform: translateY(-2px);
@@ -229,12 +256,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .phase-shell,
+  .brand-logo,
   .soft-panel::after,
   .soft-card::after,
   .progress-fill {
     animation: none;
   }
 
+  .brand-logo,
   .soft-panel::after,
   .soft-card::after {
     filter: none;

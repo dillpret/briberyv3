@@ -40,19 +40,37 @@
   }
 
   @if (!isCurrentPlayerActive()) {
-    <section class="soft-panel space-y-2 text-center">
-      <h2 class="text-lg font-semibold text-ink">You are waiting for the next round</h2>
-      <p class="text-sm leading-6 text-ink/70">
-        Voting is only for players who received bribes this round.
-      </p>
+    <section class="soft-panel">
+      <div class="waiting-mascot-layout text-center sm:text-left">
+        <div class="space-y-2">
+          <h2 class="text-lg font-semibold text-ink">You are waiting for the next round</h2>
+          <p class="text-sm leading-6 text-ink/70">
+            Voting is only for players who received bribes this round.
+          </p>
+        </div>
+        <img
+          src="/brand/bribery-mascot.png"
+          alt=""
+          aria-hidden="true"
+          class="mascot-waiting" />
+      </div>
     </section>
   } @else if (voting()?.selectedBribeId) {
-    <section class="soft-panel space-y-2 text-center">
-      <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine">Vote submitted</span>
-      <h2 class="text-lg font-semibold text-ink">Decision made.</h2>
-      <p class="text-sm leading-6 text-ink/70">
-        {{ waitingText() }}
-      </p>
+    <section class="soft-panel">
+      <div class="waiting-mascot-layout text-center sm:text-left">
+        <div class="space-y-2">
+          <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine sm:mx-0">Vote submitted</span>
+          <h2 class="text-lg font-semibold text-ink">Decision made.</h2>
+          <p class="text-sm leading-6 text-ink/70">
+            {{ waitingText() }}
+          </p>
+        </div>
+        <img
+          src="/brand/bribery-mascot.png"
+          alt=""
+          aria-hidden="true"
+          class="mascot-waiting" />
+      </div>
     </section>
   } @else {
     <section class="soft-panel space-y-1">
