@@ -30,6 +30,25 @@ public class VotingAndResultsTests
     }
 
     [Fact]
+    public void VotingProjectionIncludesCurrentPlayersPrompt()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(3);
+
+        var promptResult = harness.Game.SubmitPrompt("c1", "Secret prompt text");
+        Assert.True(promptResult.Success, promptResult.Error);
+        Assert.True(harness.Game.SubmitPrompt("c2", "Prompt for player 2").Success);
+        Assert.True(harness.Game.SubmitPrompt("c3", "Prompt for player 3").Success);
+
+        harness.SubmitAllAssignedBribes();
+
+        var state = harness.GetPlayerState("p1");
+
+        Assert.NotNull(state.Voting);
+        Assert.Equal("Secret prompt text", state.Voting.PromptText);
+    }
+
+    [Fact]
     public void VotingProjectionDoesNotExposeSubmitterIdentity()
     {
         var harness = new GameTestHarness();

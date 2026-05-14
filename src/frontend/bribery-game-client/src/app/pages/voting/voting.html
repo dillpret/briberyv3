@@ -4,7 +4,7 @@
       <p class="text-sm font-semibold uppercase tracking-wide text-pine">Voting</p>
       <h1 class="text-2xl font-bold text-ink">Pick your favourite</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        These are the anonymous bribes sent to your prompt. Pick the response you like best; the player who sent it gets 1 point.
+        These anonymous bribes were sent to win over your prompt. Choose the one that makes the best case; the player who sent it gets 1 point.
       </p>
     </div>
 
@@ -73,16 +73,19 @@
       </div>
     </section>
   } @else {
-    <section class="soft-panel space-y-1">
-      <h2 class="text-lg font-semibold text-ink">Choose the winning bribe</h2>
+    <section class="prompt-card space-y-2">
+      <p class="text-sm font-semibold uppercase tracking-wide text-ink/60">Your prompt</p>
+      <blockquote class="text-xl font-bold leading-8 text-ink">
+        {{ voting()?.promptText }}
+      </blockquote>
       <p class="text-sm leading-6 text-ink/70">
-        Vote for the response that best answers your prompt or wins you over.
+        A bribe is another player's anonymous attempt to answer this prompt. Pick the one you like most.
       </p>
     </section>
 
     @for (bribe of voting()?.bribes ?? []; track bribe.bribeId) {
       <label
-        class="soft-card block cursor-pointer"
+        class="soft-card block cursor-pointer space-y-3"
         [class.is-selected]="currentSelection() === bribe.bribeId">
         <input
           class="sr-only"
@@ -90,12 +93,19 @@
           name="bribe"
           [checked]="currentSelection() === bribe.bribeId"
           (change)="selectedBribeId.set(bribe.bribeId)" />
-        <span class="block text-sm font-semibold uppercase tracking-wide text-ink/60">Bribe option</span>
+        <span class="flex items-center justify-between gap-3">
+          <span class="text-sm font-semibold uppercase tracking-wide text-ink/60">Anonymous bribe</span>
+          @if (currentSelection() === bribe.bribeId) {
+            <span class="status-pill border-pine/30 bg-pine/10 text-pine">Picked</span>
+          } @else {
+            <span class="status-pill border-plum/30 bg-plum/10 text-plum">Tap to pick</span>
+          }
+        </span>
         <app-bribe-display
           [kind]="bribe.kind"
           [text]="bribe.text"
           [media]="bribe.media"
-          label="Bribe option" />
+          label="Anonymous bribe" />
       </label>
     }
 

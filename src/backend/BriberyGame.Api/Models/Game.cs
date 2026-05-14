@@ -617,6 +617,9 @@ public class Game
 
         return new VotingPhaseDto
         {
+            PromptText = State.Prompts.TryGetValue(playerId, out var prompt)
+                ? prompt.Text
+                : "",
             Bribes = State.Bribes.Values
                 .Where(b => b.ToPlayerId == playerId)
                 .Select(b => new VotingBribeDto

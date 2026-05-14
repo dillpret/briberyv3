@@ -27,6 +27,7 @@ describe('Voting', () => {
       voteSubmittedCount: 0,
       voteRequiredCount: 1,
       voting: {
+        promptText: 'Convince me to pick your bribe',
         selectedBribeId: null,
         bribes: [
           { bribeId: 'b1', kind: 'Text', text: 'A text bribe', media: null },
@@ -70,8 +71,16 @@ describe('Voting', () => {
   it('explains that voting picks the favourite bribe sent to your prompt', () => {
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.textContent).toContain('anonymous bribes sent to your prompt');
-    expect(element.textContent).toContain('Pick the response you like best');
+    expect(element.textContent).toContain('anonymous bribes were sent to win over your prompt');
+    expect(element.textContent).toContain('Choose the one that makes the best case');
     expect(element.textContent).toContain('the player who sent it gets 1 point');
+  });
+
+  it('shows the current player prompt while choosing a bribe', () => {
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('Your prompt');
+    expect(element.textContent).toContain('Convince me to pick your bribe');
+    expect(element.textContent).toContain("another player's anonymous attempt to answer this prompt");
   });
 });

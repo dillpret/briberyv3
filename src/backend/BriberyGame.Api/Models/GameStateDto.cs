@@ -56,6 +56,7 @@ public class SubmissionTargetDto
 
 public class VotingPhaseDto
 {
+    public string PromptText { get; set; } = "";
     public List<VotingBribeDto> Bribes { get; set; } = new();
     public string? SelectedBribeId { get; set; }
 }

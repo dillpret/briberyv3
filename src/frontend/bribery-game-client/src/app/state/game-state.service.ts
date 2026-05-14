@@ -44,6 +44,7 @@ export interface VotingBribe {
 }
 
 export interface VotingPhaseState {
+  promptText: string;
   bribes: VotingBribe[];
   selectedBribeId: string | null;
 }

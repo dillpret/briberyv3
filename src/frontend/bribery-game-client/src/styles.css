@@ -63,6 +63,11 @@
     transform: translateZ(0);
   }
 
+  .prompt-card {
+    @apply relative overflow-hidden rounded-3xl border-2 border-sun bg-sun/20 p-4 text-ink shadow-[0_14px_28px_rgb(46_27_3_/_0.12)] sm:p-5;
+    transform: translateZ(0);
+  }
+
   .soft-input {
     @apply w-full rounded-2xl border-2 border-ink/20 bg-surface/95 px-4 py-3 text-ink shadow-inner shadow-mint/30 outline-none transition placeholder:text-ink/40 focus:border-sun focus:ring-4 focus:ring-sun/30;
   }
@@ -127,7 +132,8 @@
   }
 
   .soft-panel::after,
-  .soft-card::after {
+  .soft-card::after,
+  .prompt-card::after {
     content: "";
     position: absolute;
     inset: 3px;
@@ -140,7 +146,8 @@
   }
 
   .soft-panel > *,
-  .soft-card > * {
+  .soft-card > *,
+  .prompt-card > * {
     position: relative;
     z-index: 1;
   }
