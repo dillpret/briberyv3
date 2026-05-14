@@ -81,7 +81,7 @@
   }
 
   .idea-button {
-    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-plum/35 bg-surface text-lg font-black text-plum shadow-sm shadow-plum/15 transition duration-200 hover:border-sun hover:text-ink active:scale-[0.97];
+    @apply inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-plum/35 bg-surface px-4 py-2 text-sm font-black text-plum shadow-sm shadow-plum/15 transition duration-200 hover:border-sun hover:text-ink active:scale-[0.97];
   }
 
   .soft-input {

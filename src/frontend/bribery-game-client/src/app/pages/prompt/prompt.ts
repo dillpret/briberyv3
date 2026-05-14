@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
@@ -29,6 +29,7 @@ export class Prompt {
   constructor(
     private signalr: SignalrService,
     private gameState: GameStateService,
+    private changeDetector: ChangeDetectorRef,
   ) {
     this.currentRound = this.gameState.currentRound;
     this.totalRounds = this.gameState.totalRounds;
@@ -54,6 +55,7 @@ export class Prompt {
 
     const randomIndex = Math.floor(Math.random() * ideas.length);
     this.promptText = ideas[randomIndex];
+    this.changeDetector.detectChanges();
   }
 
   async advanceWithoutOfflinePlayers() {
