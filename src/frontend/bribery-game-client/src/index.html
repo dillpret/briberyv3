@@ -46,6 +46,44 @@
             attributeName="scale"
             dur="520ms"
             values="1.6; 2.6; 1.9; 2.9; 1.6"
+          repeatCount="indefinite" />
+        </feDisplacementMap>
+      </filter>
+      <filter
+        id="bribery-mascot-boil"
+        x="-12%"
+        y="-12%"
+        width="124%"
+        height="124%"
+        color-interpolation-filters="sRGB">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.016 0.022"
+          numOctaves="1"
+          seed="3"
+          result="mascot-boil-noise">
+          <animate
+            attributeName="baseFrequency"
+            dur="680ms"
+            values="0.016 0.022; 0.019 0.019; 0.014 0.021; 0.018 0.024; 0.016 0.022"
+            repeatCount="indefinite" />
+          <animate
+            attributeName="seed"
+            dur="680ms"
+            values="3; 5; 4; 6; 3"
+            calcMode="discrete"
+            repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="mascot-boil-noise"
+          scale="0.6"
+          xChannelSelector="R"
+          yChannelSelector="G">
+          <animate
+            attributeName="scale"
+            dur="680ms"
+            values="0.35; 0.7; 0.45; 0.8; 0.35"
             repeatCount="indefinite" />
         </feDisplacementMap>
       </filter>
