@@ -12,41 +12,59 @@
     </section>
   }
 
-  <section class="soft-panel space-y-4">
+  <section class="soft-panel space-y-5">
     <label class="block space-y-2">
-        <span class="text-sm font-semibold text-ink/80">Your name</span>
+      <span class="text-sm font-black uppercase tracking-wide text-ink/70">Your name</span>
       <input
         [(ngModel)]="name"
-        class="soft-input"
+        class="soft-input text-lg font-bold"
         autocomplete="nickname"
-        placeholder="Your name" />
+        placeholder="Enter your name" />
     </label>
 
-    <button
-      (click)="createGame()"
-      [disabled]="!name.trim()"
-      class="primary-button">
-      Create a new room
-    </button>
-  </section>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <section class="space-y-3 rounded-3xl border-2 border-pine/25 bg-surface/65 p-4 shadow-inner shadow-mint/30">
+        <div class="space-y-1">
+          <h2 class="text-lg font-black text-ink">Create a new game</h2>
+          <p class="text-sm font-semibold leading-snug text-ink/65">
+            Start a room and share the code with friends.
+          </p>
+        </div>
 
-  <section class="soft-panel space-y-4">
-    <label class="block space-y-2">
-      <span class="text-sm font-semibold text-ink/80">Game code</span>
-      <input
-        [(ngModel)]="gameId"
-        (ngModelChange)="gameId = normalizeGameId($event)"
-        class="soft-input uppercase"
-        autocomplete="off"
-        placeholder="AB12" />
-    </label>
+        <button
+          (click)="createGame()"
+          [disabled]="!name.trim()"
+          class="primary-button">
+          Create game
+        </button>
+      </section>
 
-    <button
-      (click)="join()"
-      [disabled]="!name.trim() || !gameId.trim()"
-      class="secondary-button">
-      Join room
-    </button>
+      <section class="space-y-3 rounded-3xl border-2 border-plum/25 bg-surface/65 p-4 shadow-inner shadow-plum/10">
+        <div class="space-y-1">
+          <h2 class="text-lg font-black text-ink">Join existing game</h2>
+          <p class="text-sm font-semibold leading-snug text-ink/65">
+            Enter the room code someone shared with you.
+          </p>
+        </div>
+
+        <label class="block space-y-2">
+          <span class="text-sm font-semibold text-ink/80">Game code</span>
+          <input
+            [(ngModel)]="gameId"
+            (ngModelChange)="gameId = normalizeGameId($event)"
+            class="soft-input uppercase"
+            autocomplete="off"
+            placeholder="AB12" />
+        </label>
+
+        <button
+          (click)="join()"
+          [disabled]="!name.trim() || !gameId.trim()"
+          class="secondary-button">
+          Join game
+        </button>
+      </section>
+    </div>
   </section>
 
   <p class="text-center text-[0.65rem] font-medium text-ink/45">
