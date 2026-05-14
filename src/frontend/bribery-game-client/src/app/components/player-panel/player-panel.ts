@@ -40,7 +40,7 @@ export class PlayerPanel {
       case 'Done':
         return 'border-pine/30 bg-pine/10 text-pine';
       case 'Pending':
-        return 'border-sun bg-sun/20 text-ink';
+        return 'pending-pill text-ink';
       case 'Waiting':
         return 'border-plum/30 bg-plum/10 text-plum';
       default:

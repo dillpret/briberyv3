@@ -20,7 +20,7 @@
   </section>
 
   @if (offlineBlockingPlayerNames().length > 0) {
-    <section class="soft-panel space-y-3 border-sun bg-sun/20">
+    <section class="soft-panel notice-panel space-y-3">
       <div class="space-y-1">
         <h2 class="text-lg font-semibold text-ink">Offline player blocking progress</h2>
         <p class="text-sm leading-6 text-ink/70">{{ offlineBlockerText() }}</p>
@@ -68,7 +68,7 @@
           @if (hasSubmitted(target.playerId)) {
             <span class="status-pill border-pine/30 bg-pine/10 text-pine">Sent</span>
           } @else {
-            <span class="status-pill border-sun bg-sun/20 text-ink">Pending</span>
+            <span class="status-pill pending-pill">Pending</span>
           }
         </div>
 

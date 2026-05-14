@@ -64,8 +64,24 @@
   }
 
   .prompt-card {
-    @apply relative overflow-hidden rounded-3xl border-2 border-sun bg-sun/20 p-4 text-ink shadow-[0_14px_28px_rgb(46_27_3_/_0.12)] sm:p-5;
+    @apply relative overflow-hidden rounded-3xl border-2 border-plum/35 bg-surface/95 p-4 text-ink shadow-[0_12px_28px_rgb(40_89_67_/_0.14)] sm:p-5;
     transform: translateZ(0);
+  }
+
+  .notice-panel {
+    @apply border-sun bg-surface ring-4 ring-sun/25;
+  }
+
+  .room-code-card {
+    @apply mt-2 rounded-3xl border-2 border-sun bg-surface px-4 py-6 shadow-inner shadow-sun/30;
+  }
+
+  .pending-pill {
+    @apply border-sun bg-surface text-ink;
+  }
+
+  .idea-button {
+    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-plum/35 bg-surface text-lg font-black text-plum shadow-sm shadow-plum/15 transition duration-200 hover:border-sun hover:text-ink active:scale-[0.97];
   }
 
   .soft-input {
@@ -77,7 +93,7 @@
   }
 
   .secondary-button {
-    @apply relative w-full overflow-hidden rounded-2xl border-2 border-plum/35 bg-surface/90 px-4 py-3 font-bold text-plum shadow-[0_6px_0_rgb(121_88_137_/_0.28),0_12px_20px_rgb(46_27_3_/_0.10)] transition duration-200 hover:-translate-y-0.5 hover:bg-sun/20 hover:text-ink active:translate-y-1 active:scale-[0.99] active:shadow-[0_2px_0_rgb(121_88_137_/_0.28),0_8px_16px_rgb(46_27_3_/_0.10)];
+    @apply relative w-full overflow-hidden rounded-2xl border-2 border-plum/35 bg-surface/90 px-4 py-3 font-bold text-plum shadow-[0_6px_0_rgb(121_88_137_/_0.28),0_12px_20px_rgb(46_27_3_/_0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-sun hover:bg-surface hover:text-ink active:translate-y-1 active:scale-[0.99] active:shadow-[0_2px_0_rgb(121_88_137_/_0.28),0_8px_16px_rgb(46_27_3_/_0.10)];
   }
 
   .status-pill {
@@ -110,7 +126,7 @@
   }
 
   .media-bribe-fallback {
-    @apply mt-3 rounded-2xl border-2 border-sun bg-sun/20 p-3 text-sm font-bold text-ink;
+    @apply mt-3 rounded-2xl border-2 border-sun bg-surface p-3 text-sm font-bold text-ink;
   }
 
   .brand-logo {
@@ -157,7 +173,7 @@
   }
 
   .soft-card.is-selected {
-    @apply border-sun bg-sun/20;
+    @apply border-pine bg-surface ring-4 ring-pine/25 shadow-[0_14px_26px_rgb(40_89_67_/_0.18)];
   }
 
   .primary-button::before,
