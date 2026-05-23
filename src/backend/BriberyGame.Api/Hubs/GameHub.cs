@@ -130,6 +130,42 @@ public class GameHub : Hub
         await SendGameStateUpdates(gameId);
     }
 
+    public async Task ToggleAppreciationCoin(string bribeId)
+    {
+        var (gameId, result) =
+            _gameService.ToggleAppreciationCoin(Context.ConnectionId, bribeId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await Clients.Caller
+                .SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
+    }
+
+    public async Task SubmitAppreciationDone()
+    {
+        var (gameId, result) =
+            _gameService.SubmitAppreciationDone(Context.ConnectionId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await Clients.Caller
+                .SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
+    }
+
     public async Task StartNextRound()
     {
         var (gameId, result) =

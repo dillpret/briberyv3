@@ -83,7 +83,7 @@ public class OfflinePlayerAdvanceTests
     }
 
     [Fact]
-    public void HostCanAdvanceVotingAndScoreOnlyRemainingValidVotes()
+    public void HostCanAdvanceVotingAndBuildResultsOnlyForRemainingValidVotes()
     {
         var harness = new GameTestHarness();
         harness.StartPromptPhaseWithPlayers(4);
@@ -98,9 +98,9 @@ public class OfflinePlayerAdvanceTests
         var result = harness.Game.AdvancePhaseWithoutOfflinePlayers("c1");
 
         Assert.True(result.Success, result.Error);
-        Assert.Equal(GamePhase.Results, result.Data!.Phase);
-        Assert.Equal(3, result.Data.Results!.RoundResults.Count);
-        Assert.Equal(3, result.Data.Players.Sum(p => p.Score));
+        Assert.Equal(GamePhase.Appreciation, result.Data!.Phase);
+        Assert.Equal(3, result.Data.Appreciation!.RoundResults.Count);
+        Assert.Equal(0, result.Data.Players.Sum(p => p.Score));
         Assert.Equal(0, result.Data.Players.Single(p => p.Id == "p4").Score);
     }
 
@@ -123,6 +123,7 @@ public class OfflinePlayerAdvanceTests
 
         harness.SubmitAllAssignedBribes();
         harness.SubmitAllVotes();
+        harness.SubmitAllAppreciationDone();
         var nextRound = harness.Game.StartNextRound("c1");
 
         Assert.True(nextRound.Success, nextRound.Error);
@@ -152,7 +153,26 @@ public class OfflinePlayerAdvanceTests
         var result = harness.Game.StartNextRound("c1");
 
         Assert.False(result.Success);
-        Assert.Equal(GamePhase.Results, harness.Game.State.Phase);
+        Assert.Equal(GamePhase.Scoreboard, harness.Game.State.Phase);
+    }
+
+    [Fact]
+    public void HostCanAdvanceAppreciationWithoutOfflineBlockingPlayer()
+    {
+        var harness = new GameTestHarness();
+        harness.CompleteRoundToAppreciation(4);
+
+        harness.Game.SubmitAppreciationDone("c1");
+        harness.Game.SubmitAppreciationDone("c2");
+        harness.Game.SubmitAppreciationDone("c3");
+        harness.Game.Disconnect("c4");
+
+        var result = harness.Game.AdvancePhaseWithoutOfflinePlayers("c1");
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(GamePhase.Scoreboard, result.Data!.Phase);
+        Assert.False(result.Data.Players.Single(p => p.Id == "p4").IsActive);
+        Assert.Equal(15, result.Data.Players.Sum(p => p.Score));
     }
 
     private static void SubmitBribesExceptTargets(GameTestHarness harness, string excludedTargetPlayerId)

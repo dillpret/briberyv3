@@ -1,0 +1,130 @@
+<main class="phase-shell">
+  <section class="soft-panel space-y-4">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Appreciation</p>
+      <h1 class="text-2xl font-bold text-ink">Round {{ currentRound() }} winners</h1>
+      <p class="mt-1 text-sm leading-6 text-ink/70">
+        The winning bribes are on the table. Toss a coin to the ones that deserve a little extra applause.
+      </p>
+    </div>
+
+    <div class="space-y-2">
+      <div class="flex justify-between text-sm text-ink/70">
+        <span>{{ appreciation()?.doneCount ?? 0 }} of {{ appreciation()?.requiredCount ?? 0 }} players done</span>
+        <span>{{ doneProgressPercent() }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="doneProgressPercent()"></div>
+      </div>
+    </div>
+  </section>
+
+  @if (isWaitingOnlyForOfflinePlayers()) {
+    <section class="soft-panel notice-panel space-y-3">
+      <div class="space-y-1">
+        <h2 class="text-lg font-semibold text-ink">Offline player blocking progress</h2>
+        <p class="text-sm leading-6 text-ink/70">{{ offlineBlockerText() }}</p>
+        @if (advanceWithoutOfflinePlayersBlockedReason()) {
+          <p class="text-sm font-semibold text-ink">{{ advanceWithoutOfflinePlayersBlockedReason() }}</p>
+        }
+      </div>
+      @if (isHost()) {
+        <button
+          (click)="advanceWithoutOfflinePlayers()"
+          [disabled]="!canHostAdvanceWithoutOfflinePlayers()"
+          class="secondary-button">
+          Advance without offline players
+        </button>
+      }
+    </section>
+  }
+
+  @if (!isCurrentPlayerActive()) {
+    <section class="soft-panel">
+      <div class="waiting-mascot-layout text-center sm:text-left">
+        <div class="space-y-2">
+          <h2 class="text-lg font-semibold text-ink">You are waiting for the next round</h2>
+          <p class="text-sm leading-6 text-ink/70">
+            You can browse the winning bribes, but coins are only for active players this round.
+          </p>
+        </div>
+        <img
+          src="/brand/bribery-mascot.png"
+          alt=""
+          aria-hidden="true"
+          class="mascot-waiting" />
+      </div>
+    </section>
+  }
+
+  <section class="space-y-3">
+    @for (result of appreciation()?.roundResults ?? []; track result.promptOwnerPlayerId) {
+      <article class="soft-card space-y-3" [ngClass]="cardClasses(result)">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="min-w-0 space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-ink">{{ result.promptOwnerName }}</span>
+              <span class="text-sm text-ink/60">picked</span>
+              <span class="status-pill border-pine/30 bg-pine/10 text-pine">{{ result.winningPlayerName }}'s bribe</span>
+            </div>
+            <p class="text-sm font-semibold text-ink/70">{{ resultNote(result) }}</p>
+          </div>
+
+          <button
+            type="button"
+            (click)="toggleCoin(result)"
+            [disabled]="!result.canCurrentPlayerAwardCoin || appreciation()?.hasCurrentPlayerDone"
+            class="secondary-button !w-auto min-w-20 px-3 py-2"
+            [ngClass]="{ 'border-sun bg-sun text-ink': result.hasCurrentPlayerAwardedCoin }"
+            [attr.aria-pressed]="result.hasCurrentPlayerAwardedCoin">
+            {{ coinButtonLabel(result) }}
+          </button>
+        </div>
+
+        <p class="nested-surface">{{ result.promptText }}</p>
+
+        <app-bribe-display
+          [kind]="result.winningBribeKind"
+          [text]="result.winningBribeText"
+          [media]="result.winningBribeMedia"
+          [label]="result.winningPlayerName + ' winning bribe'" />
+
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-ink/65">
+          <span>{{ result.coinCount }} bonus coin(s)</span>
+          @if (!result.canCurrentPlayerAwardCoin) {
+            <span class="font-semibold">{{ result.coinDisabledReason }}</span>
+          } @else if (appreciation()?.hasCurrentPlayerDone) {
+            <span class="font-semibold">Coins locked in</span>
+          }
+        </div>
+      </article>
+    }
+  </section>
+
+  <section class="soft-panel space-y-3 text-center">
+    @if (appreciation()?.hasCurrentPlayerDone) {
+      <div class="waiting-mascot-layout text-center sm:text-left">
+        <div class="space-y-2">
+          <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine sm:mx-0">Appreciation done</span>
+          <h2 class="text-lg font-semibold text-ink">Coins tucked into the ledger.</h2>
+          <p class="text-sm leading-6 text-ink/70">{{ waitingText() }}</p>
+        </div>
+        <img
+          src="/brand/bribery-mascot.png"
+          alt=""
+          aria-hidden="true"
+          class="mascot-waiting" />
+      </div>
+    } @else {
+      <p class="text-sm leading-6 text-ink/70">
+        Browse at your own pace, then lock in your appreciation.
+      </p>
+      <button
+        (click)="submitDone()"
+        [disabled]="!isCurrentPlayerActive()"
+        class="primary-button">
+        Done appreciating winning bribes
+      </button>
+    }
+  </section>
+</main>

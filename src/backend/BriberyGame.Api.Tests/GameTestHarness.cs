@@ -101,13 +101,34 @@ internal sealed class GameTestHarness
         }
     }
 
-    public void CompleteRoundToResults(int playerCount = 3)
+    public void SubmitAllAppreciationDone()
+    {
+        foreach (var player in ActivePlayers())
+        {
+            var result = Game.SubmitAppreciationDone(player.ConnectionId);
+            Assert.True(result.Success, result.Error);
+        }
+    }
+
+    public void CompleteRoundToAppreciation(int playerCount = 3)
     {
         StartPromptPhaseWithPlayers(playerCount);
         SubmitPromptsForActivePlayers();
         SubmitAllAssignedBribes();
         SubmitAllVotes();
-        Assert.Equal(GamePhase.Results, Game.State.Phase);
+        Assert.Equal(GamePhase.Appreciation, Game.State.Phase);
+    }
+
+    public void CompleteRoundToScoreboard(int playerCount = 3)
+    {
+        CompleteRoundToAppreciation(playerCount);
+        SubmitAllAppreciationDone();
+        Assert.Equal(GamePhase.Scoreboard, Game.State.Phase);
+    }
+
+    public void CompleteRoundToResults(int playerCount = 3)
+    {
+        CompleteRoundToScoreboard(playerCount);
     }
 
     public GameStateDto GetPlayerState(string playerId)

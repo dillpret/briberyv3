@@ -75,7 +75,7 @@ describe('Voting', () => {
 
     expect(element.textContent).toContain('anonymous bribes were sent to win over your prompt');
     expect(element.textContent).toContain('Choose the one that makes the best case');
-    expect(element.textContent).toContain('the player who sent it gets 1 point');
+    expect(element.textContent).toContain('the player who sent it gets the big round payout');
   });
 
   it('shows the current player prompt while choosing a bribe', () => {

@@ -21,7 +21,8 @@ public class GameStateDto
     public PromptPhaseDto? Prompt { get; set; }
     public SubmissionPhaseDto? Submission { get; set; }
     public VotingPhaseDto? Voting { get; set; }
-    public ResultsPhaseDto? Results { get; set; }
+    public AppreciationPhaseDto? Appreciation { get; set; }
+    public ScoreboardPhaseDto? Scoreboard { get; set; }
 }
 
 public class PlayerDto
@@ -69,9 +70,19 @@ public class VotingBribeDto
     public BribeMedia? Media { get; set; }
 }
 
-public class ResultsPhaseDto
+public class AppreciationPhaseDto
 {
     public List<RoundResultDto> RoundResults { get; set; } = new();
+    public List<string> DonePlayerIds { get; set; } = new();
+    public int DoneCount { get; set; }
+    public int RequiredCount { get; set; }
+    public bool HasCurrentPlayerDone { get; set; }
+}
+
+public class ScoreboardPhaseDto
+{
+    public List<RoundScoreDto> RoundScores { get; set; } = new();
+    public List<RoundScoreDto> OverallScores { get; set; } = new();
 }
 
 public class RoundResultDto
@@ -84,4 +95,23 @@ public class RoundResultDto
     public BribeMedia? WinningBribeMedia { get; set; }
     public string WinningPlayerId { get; set; } = "";
     public string WinningPlayerName { get; set; } = "";
+    public string WinningBribeId { get; set; } = "";
+    public bool IsCurrentPlayersPrompt { get; set; }
+    public bool CurrentPlayerSubmittedBribe { get; set; }
+    public bool CurrentPlayerSubmittedWinningBribe { get; set; }
+    public bool CanCurrentPlayerAwardCoin { get; set; }
+    public bool HasCurrentPlayerAwardedCoin { get; set; }
+    public int CoinCount { get; set; }
+    public string? CoinDisabledReason { get; set; }
+}
+
+public class RoundScoreDto
+{
+    public string PlayerId { get; set; } = "";
+    public string PlayerName { get; set; } = "";
+    public int ChosenBribeCount { get; set; }
+    public int ChosenBribePoints { get; set; }
+    public int BonusCoinPoints { get; set; }
+    public int TotalRoundPoints { get; set; }
+    public double CumulativeScore { get; set; }
 }

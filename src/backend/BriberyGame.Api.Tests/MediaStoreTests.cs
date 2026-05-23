@@ -100,6 +100,12 @@ public class MediaStoreTests
             Assert.True(result.result!.Success, result.result.Error);
         }
 
+        for (var i = 1; i <= 3; i++)
+        {
+            var result = service.SubmitAppreciationDone($"c{i}");
+            Assert.True(result.result!.Success, result.result.Error);
+        }
+
         Assert.NotNull(service.GetMedia(media.MediaId));
         Assert.True(service.StartNextRound("c1").result!.Success);
         Assert.Null(service.GetMedia(media.MediaId));

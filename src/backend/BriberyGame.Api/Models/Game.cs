@@ -14,15 +14,17 @@ public class Game
             [GamePhase.Lobby] = [GamePhase.Prompt],
             [GamePhase.Prompt] = [GamePhase.Submission],
             [GamePhase.Submission] = [GamePhase.Voting],
-            [GamePhase.Voting] = [GamePhase.Results],
-            [GamePhase.Results] = [GamePhase.Prompt],
+            [GamePhase.Voting] = [GamePhase.Appreciation],
+            [GamePhase.Appreciation] = [GamePhase.Scoreboard],
+            [GamePhase.Scoreboard] = [GamePhase.Prompt],
         };
 
     private static readonly GamePhase[] OfflineAdvancePhases =
     [
         GamePhase.Prompt,
         GamePhase.Submission,
-        GamePhase.Voting
+        GamePhase.Voting,
+        GamePhase.Appreciation
     ];
 
     public GameState State { get; }
@@ -329,9 +331,67 @@ public class Game
 
         if (AllActivePlayersVoted())
         {
-            ScoreRound();
+            BuildRoundResults();
 
-            var transitionResult = TransitionTo(GamePhase.Results);
+            var transitionResult = TransitionTo(GamePhase.Appreciation);
+            if (!transitionResult.Success)
+                return Result<GameStateDto>.Fail(transitionResult.Error!);
+        }
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> ToggleAppreciationCoin(string connectionId, string bribeId)
+    {
+        var phaseResult = RequirePhase(GamePhase.Appreciation, "Cannot award coins outside appreciation phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot award coins");
+
+        if (State.AppreciationDonePlayerIds.Contains(player.Id))
+            return Result<GameStateDto>.Fail("Cannot change coins after finishing appreciation");
+
+        if (!CanPlayerAwardCoin(player.Id, bribeId, out var error))
+            return Result<GameStateDto>.Fail(error!);
+
+        if (!State.AppreciationCoins.TryGetValue(bribeId, out var playerIds))
+        {
+            playerIds = new HashSet<string>();
+            State.AppreciationCoins[bribeId] = playerIds;
+        }
+
+        if (!playerIds.Add(player.Id))
+            playerIds.Remove(player.Id);
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> SubmitAppreciationDone(string connectionId)
+    {
+        var phaseResult = RequirePhase(GamePhase.Appreciation, "Cannot finish appreciation outside appreciation phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot finish appreciation");
+
+        State.AppreciationDonePlayerIds.Add(player.Id);
+
+        if (AllActivePlayersDoneAppreciating())
+        {
+            ApplyRoundScores();
+
+            var transitionResult = TransitionTo(GamePhase.Scoreboard);
             if (!transitionResult.Success)
                 return Result<GameStateDto>.Fail(transitionResult.Error!);
         }
@@ -341,7 +401,7 @@ public class Game
 
     public Result<GameStateDto> StartNextRound(string connectionId)
     {
-        var phaseResult = RequirePhase(GamePhase.Results, "Cannot start next round outside results phase");
+        var phaseResult = RequirePhase(GamePhase.Scoreboard, "Cannot start next round outside scoreboard phase");
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
@@ -437,7 +497,10 @@ public class Game
         State.TargetAssignments.Clear();
         State.Bribes.Clear();
         State.Votes.Clear();
+        State.AppreciationCoins.Clear();
+        State.AppreciationDonePlayerIds.Clear();
         State.RoundResults.Clear();
+        State.RoundScores.Clear();
     }
 
     private void GenerateTargetAssignments()
@@ -482,6 +545,14 @@ public class Game
                activePlayerIds.All(State.Votes.ContainsKey);
     }
 
+    private bool AllActivePlayersDoneAppreciating()
+    {
+        var activePlayerIds = GetActivePlayerIds();
+
+        return activePlayerIds.Count > 0 &&
+               activePlayerIds.All(State.AppreciationDonePlayerIds.Contains);
+    }
+
     private HashSet<string> GetActivePlayerIds()
     {
         return State.Players
@@ -490,9 +561,68 @@ public class Game
             .ToHashSet();
     }
 
-    private void ScoreRound()
+    private List<RoundResult> OrderRoundResultsForPlayer(string playerId)
+    {
+        var submittedPromptOwnerIds = State.Bribes.Values
+            .Where(bribe => bribe.FromPlayerId == playerId)
+            .OrderBy(bribe => bribe.SubmittedAt)
+            .Select(bribe => bribe.ToPlayerId)
+            .Distinct()
+            .ToList();
+
+        var targetedResults = submittedPromptOwnerIds
+            .Select(targetId => State.RoundResults.FirstOrDefault(result => result.PromptOwnerPlayerId == targetId))
+            .Where(result => result != null)
+            .Cast<RoundResult>()
+            .ToList();
+
+        var ownPromptResult = State.RoundResults.FirstOrDefault(result => result.PromptOwnerPlayerId == playerId);
+        var alreadyIncludedPromptIds = targetedResults.Select(result => result.PromptOwnerPlayerId).ToHashSet();
+        if (ownPromptResult != null)
+            alreadyIncludedPromptIds.Add(ownPromptResult.PromptOwnerPlayerId);
+
+        var middleResults = State.RoundResults
+            .Where(result => !alreadyIncludedPromptIds.Contains(result.PromptOwnerPlayerId))
+            .ToList();
+
+        if (ownPromptResult == null)
+            return [.. targetedResults, .. middleResults];
+
+        return [.. targetedResults, .. middleResults, ownPromptResult];
+    }
+
+    private bool CanPlayerAwardCoin(string playerId, string bribeId, out string? error)
+    {
+        error = null;
+
+        var result = State.RoundResults.FirstOrDefault(r => r.WinningBribeId == bribeId);
+        if (result == null)
+        {
+            error = "Cannot award a coin to a bribe that did not win";
+            return false;
+        }
+
+        if (result.WinningPlayerId == playerId)
+        {
+            error = "You cannot award a coin to your own bribe";
+            return false;
+        }
+
+        if (result.PromptOwnerPlayerId == playerId)
+        {
+            error = "You already chose this winning bribe";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void BuildRoundResults()
     {
         State.RoundResults.Clear();
+        State.AppreciationCoins.Clear();
+        State.AppreciationDonePlayerIds.Clear();
+        State.RoundScores.Clear();
 
         var activePlayerIds = GetActivePlayerIds();
 
@@ -502,10 +632,7 @@ public class Game
             if (!activePlayerIds.Contains(bribe.FromPlayerId) || !activePlayerIds.Contains(bribe.ToPlayerId))
                 continue;
 
-            var winner = State.Players.First(p => p.Id == bribe.FromPlayerId);
             var prompt = State.Prompts[bribe.ToPlayerId];
-
-            winner.Score += 1;
 
             State.RoundResults.Add(new RoundResult
             {
@@ -518,6 +645,41 @@ public class Game
                 WinningPlayerId = bribe.FromPlayerId
             });
         }
+    }
+
+    private void ApplyRoundScores()
+    {
+        State.RoundScores.Clear();
+
+        var activePlayerIds = GetActivePlayerIds();
+        var chosenPointValue = RoundChosenBribePointValue(activePlayerIds.Count);
+
+        foreach (var player in State.Players.Where(p => activePlayerIds.Contains(p.Id)).OrderBy(p => p.Id))
+        {
+            var chosenBribeCount = State.RoundResults.Count(result => result.WinningPlayerId == player.Id);
+            var chosenBribePoints = chosenBribeCount * chosenPointValue;
+            var bonusCoinPoints = State.RoundResults
+                .Where(result => result.WinningPlayerId == player.Id)
+                .Sum(result => State.AppreciationCoins.TryGetValue(result.WinningBribeId, out var coins) ? coins.Count : 0);
+            var totalRoundPoints = chosenBribePoints + bonusCoinPoints;
+
+            player.Score += totalRoundPoints;
+
+            State.RoundScores.Add(new RoundScore
+            {
+                PlayerId = player.Id,
+                ChosenBribeCount = chosenBribeCount,
+                ChosenBribePoints = chosenBribePoints,
+                BonusCoinPoints = bonusCoinPoints,
+                TotalRoundPoints = totalRoundPoints,
+                CumulativeScore = player.Score
+            });
+        }
+    }
+
+    private static int RoundChosenBribePointValue(int activePlayerCount)
+    {
+        return (int)Math.Ceiling(activePlayerCount / 5.0) * 5;
     }
 
     private GameStateDto BuildStateForPlayer(string playerId)
@@ -564,7 +726,8 @@ public class Game
         state.Prompt = BuildPromptPhaseForPlayer(playerId);
         state.Submission = BuildSubmissionPhaseForPlayer(playerId);
         state.Voting = BuildVotingPhaseForPlayer(playerId);
-        state.Results = BuildResultsPhase();
+        state.Appreciation = BuildAppreciationPhaseForPlayer(playerId);
+        state.Scoreboard = BuildScoreboardPhase();
 
         return state;
     }
@@ -636,17 +799,26 @@ public class Game
         };
     }
 
-    private ResultsPhaseDto? BuildResultsPhase()
+    private AppreciationPhaseDto? BuildAppreciationPhaseForPlayer(string playerId)
     {
-        if (State.Phase != GamePhase.Results)
+        if (State.Phase != GamePhase.Appreciation)
             return null;
 
-        return new ResultsPhaseDto
+        var activePlayerIds = GetActivePlayerIds();
+        var orderedResults = OrderRoundResultsForPlayer(playerId);
+
+        return new AppreciationPhaseDto
         {
-            RoundResults = State.RoundResults.Select(r =>
+            RoundResults = orderedResults.Select(r =>
             {
                 var promptOwner = State.Players.First(p => p.Id == r.PromptOwnerPlayerId);
                 var winner = State.Players.First(p => p.Id == r.WinningPlayerId);
+                var submittedByCurrentPlayer = State.Bribes.Values.Any(b =>
+                    b.ToPlayerId == r.PromptOwnerPlayerId && b.FromPlayerId == playerId);
+                var coinCount = State.AppreciationCoins.TryGetValue(r.WinningBribeId, out var coins)
+                    ? coins.Count
+                    : 0;
+                var canAward = CanPlayerAwardCoin(playerId, r.WinningBribeId, out var disabledReason);
 
                 return new RoundResultDto
                 {
@@ -657,9 +829,65 @@ public class Game
                     WinningBribeText = r.WinningBribeText,
                     WinningBribeMedia = r.WinningBribeMedia,
                     WinningPlayerId = r.WinningPlayerId,
-                    WinningPlayerName = winner.Name
+                    WinningPlayerName = winner.Name,
+                    WinningBribeId = r.WinningBribeId,
+                    IsCurrentPlayersPrompt = r.PromptOwnerPlayerId == playerId,
+                    CurrentPlayerSubmittedBribe = submittedByCurrentPlayer,
+                    CurrentPlayerSubmittedWinningBribe = r.WinningPlayerId == playerId,
+                    CanCurrentPlayerAwardCoin = canAward,
+                    HasCurrentPlayerAwardedCoin = State.AppreciationCoins.TryGetValue(r.WinningBribeId, out var playerIds) &&
+                                                   playerIds.Contains(playerId),
+                    CoinCount = coinCount,
+                    CoinDisabledReason = disabledReason
                 };
-            }).ToList()
+            }).ToList(),
+            DonePlayerIds = State.AppreciationDonePlayerIds.ToList(),
+            DoneCount = State.AppreciationDonePlayerIds.Count(activePlayerIds.Contains),
+            RequiredCount = activePlayerIds.Count,
+            HasCurrentPlayerDone = State.AppreciationDonePlayerIds.Contains(playerId)
+        };
+    }
+
+    private ScoreboardPhaseDto? BuildScoreboardPhase()
+    {
+        if (State.Phase != GamePhase.Scoreboard)
+            return null;
+
+        return new ScoreboardPhaseDto
+        {
+            RoundScores = State.RoundScores.Select(BuildRoundScoreDto).ToList(),
+            OverallScores = State.Players
+                .Where(p => p.IsActive)
+                .Select(player =>
+                {
+                    var roundScore = State.RoundScores.FirstOrDefault(score => score.PlayerId == player.Id);
+                    return new RoundScoreDto
+                    {
+                        PlayerId = player.Id,
+                        PlayerName = player.Name,
+                        ChosenBribeCount = roundScore?.ChosenBribeCount ?? 0,
+                        ChosenBribePoints = roundScore?.ChosenBribePoints ?? 0,
+                        BonusCoinPoints = roundScore?.BonusCoinPoints ?? 0,
+                        TotalRoundPoints = roundScore?.TotalRoundPoints ?? 0,
+                        CumulativeScore = player.Score
+                    };
+                })
+                .ToList()
+        };
+    }
+
+    private RoundScoreDto BuildRoundScoreDto(RoundScore score)
+    {
+        var player = State.Players.First(p => p.Id == score.PlayerId);
+        return new RoundScoreDto
+        {
+            PlayerId = score.PlayerId,
+            PlayerName = player.Name,
+            ChosenBribeCount = score.ChosenBribeCount,
+            ChosenBribePoints = score.ChosenBribePoints,
+            BonusCoinPoints = score.BonusCoinPoints,
+            TotalRoundPoints = score.TotalRoundPoints,
+            CumulativeScore = score.CumulativeScore
         };
     }
 
@@ -683,7 +911,10 @@ public class Game
             GamePhase.Voting => State.Votes.ContainsKey(player.Id)
                 ? PlayerPhaseStatus.Done
                 : PlayerPhaseStatus.Pending,
-            GamePhase.Results => PlayerPhaseStatus.Done,
+            GamePhase.Appreciation => State.AppreciationDonePlayerIds.Contains(player.Id)
+                ? PlayerPhaseStatus.Done
+                : PlayerPhaseStatus.Pending,
+            GamePhase.Scoreboard => PlayerPhaseStatus.Done,
             _ => PlayerPhaseStatus.None
         };
     }
@@ -702,7 +933,8 @@ public class Game
             GamePhase.Prompt => State.Prompts.ContainsKey(player.Id) ? "Submitted" : "Needs prompt",
             GamePhase.Submission => HasSubmittedAllAssignedBribes(player) ? "Submitted" : "Needs bribes",
             GamePhase.Voting => State.Votes.ContainsKey(player.Id) ? "Voted" : "Needs vote",
-            GamePhase.Results => "Done",
+            GamePhase.Appreciation => State.AppreciationDonePlayerIds.Contains(player.Id) ? "Done" : "Browsing",
+            GamePhase.Scoreboard => "Done",
             _ => ""
         };
     }
@@ -740,8 +972,15 @@ public class Game
 
         if (State.Phase == GamePhase.Voting && AllActivePlayersVoted())
         {
-            ScoreRound();
-            TransitionTo(GamePhase.Results);
+            BuildRoundResults();
+            TransitionTo(GamePhase.Appreciation);
+            return;
+        }
+
+        if (State.Phase == GamePhase.Appreciation && AllActivePlayersDoneAppreciating())
+        {
+            ApplyRoundScores();
+            TransitionTo(GamePhase.Scoreboard);
         }
     }
 
@@ -763,6 +1002,7 @@ public class Game
             GamePhase.Prompt => !State.Prompts.ContainsKey(player.Id),
             GamePhase.Submission => !HasSubmittedAllAssignedBribes(player),
             GamePhase.Voting => !State.Votes.ContainsKey(player.Id),
+            GamePhase.Appreciation => !State.AppreciationDonePlayerIds.Contains(player.Id),
             _ => false
         };
     }
@@ -774,6 +1014,7 @@ public class Game
             State.Prompts.Remove(playerId);
             State.TargetAssignments.Remove(playerId);
             State.Votes.Remove(playerId);
+            State.AppreciationDonePlayerIds.Remove(playerId);
         }
 
         foreach (var playerId in State.Votes
@@ -791,6 +1032,23 @@ public class Game
                      .ToList())
         {
             State.Bribes.Remove(bribeId);
+            State.AppreciationCoins.Remove(bribeId);
+        }
+
+        foreach (var coinEntry in State.AppreciationCoins.ToList())
+        {
+            coinEntry.Value.RemoveWhere(playerIds.Contains);
+            if (coinEntry.Value.Count == 0)
+                State.AppreciationCoins.Remove(coinEntry.Key);
+        }
+
+        foreach (var roundResult in State.RoundResults
+                     .Where(result => playerIds.Contains(result.PromptOwnerPlayerId) ||
+                                      playerIds.Contains(result.WinningPlayerId))
+                     .ToList())
+        {
+            State.RoundResults.Remove(roundResult);
+            State.AppreciationCoins.Remove(roundResult.WinningBribeId);
         }
 
         foreach (var assignment in State.TargetAssignments.ToList())

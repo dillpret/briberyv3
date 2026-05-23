@@ -12,5 +12,8 @@ public class GameState
     public Dictionary<string, List<string>> TargetAssignments { get; set; } = new();
     public Dictionary<string, BribeSubmission> Bribes { get; set; } = new();
     public Dictionary<string, VoteSubmission> Votes { get; set; } = new();
+    public Dictionary<string, HashSet<string>> AppreciationCoins { get; set; } = new();
+    public HashSet<string> AppreciationDonePlayerIds { get; set; } = new();
     public List<RoundResult> RoundResults { get; set; } = new();
+    public List<RoundScore> RoundScores { get; set; } = new();
 }

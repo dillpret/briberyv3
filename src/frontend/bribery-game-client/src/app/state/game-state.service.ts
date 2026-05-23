@@ -58,10 +58,37 @@ export interface RoundResult {
   winningBribeMedia: BribeMedia | null;
   winningPlayerId: string;
   winningPlayerName: string;
+  winningBribeId: string;
+  isCurrentPlayersPrompt: boolean;
+  currentPlayerSubmittedBribe: boolean;
+  currentPlayerSubmittedWinningBribe: boolean;
+  canCurrentPlayerAwardCoin: boolean;
+  hasCurrentPlayerAwardedCoin: boolean;
+  coinCount: number;
+  coinDisabledReason: string | null;
 }
 
-export interface ResultsPhaseState {
+export interface AppreciationPhaseState {
   roundResults: RoundResult[];
+  donePlayerIds: string[];
+  doneCount: number;
+  requiredCount: number;
+  hasCurrentPlayerDone: boolean;
+}
+
+export interface RoundScore {
+  playerId: string;
+  playerName: string;
+  chosenBribeCount: number;
+  chosenBribePoints: number;
+  bonusCoinPoints: number;
+  totalRoundPoints: number;
+  cumulativeScore: number;
+}
+
+export interface ScoreboardPhaseState {
+  roundScores: RoundScore[];
+  overallScores: RoundScore[];
 }
 
 @Injectable({
@@ -87,7 +114,8 @@ export class GameStateService {
   prompt = signal<PromptPhaseState | null>(null);
   submission = signal<SubmissionPhaseState | null>(null);
   voting = signal<VotingPhaseState | null>(null);
-  results = signal<ResultsPhaseState | null>(null);
+  appreciation = signal<AppreciationPhaseState | null>(null);
+  scoreboard = signal<ScoreboardPhaseState | null>(null);
 
   setGameState(state: any) {
     this.players.set(state.players ?? []);
@@ -109,6 +137,7 @@ export class GameStateService {
     this.prompt.set(state.prompt ?? null);
     this.submission.set(state.submission ?? null);
     this.voting.set(state.voting ?? null);
-    this.results.set(state.results ?? null);
+    this.appreciation.set(state.appreciation ?? null);
+    this.scoreboard.set(state.scoreboard ?? null);
   }
 }

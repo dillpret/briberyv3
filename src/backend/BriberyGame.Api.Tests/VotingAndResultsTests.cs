@@ -134,7 +134,7 @@ public class VotingAndResultsTests
     }
 
     [Fact]
-    public void VotingTransitionsToResultsOnlyAfterEveryActivePlayerVotes()
+    public void VotingTransitionsToAppreciationOnlyAfterEveryActivePlayerVotes()
     {
         var harness = new GameTestHarness();
         harness.StartPromptPhaseWithPlayers(3);
@@ -148,32 +148,32 @@ public class VotingAndResultsTests
 
         harness.Game.SubmitVote("c3", harness.GetPlayerState("p3").Voting!.Bribes[0].BribeId);
 
-        Assert.Equal(GamePhase.Results, harness.Game.State.Phase);
+        Assert.Equal(GamePhase.Appreciation, harness.Game.State.Phase);
     }
 
     [Fact]
-    public void ResultsRevealWinnerIdentityAndAwardOnePointPerVote()
+    public void AppreciationRevealsWinnerIdentityWithoutScoringYet()
     {
         var harness = new GameTestHarness();
 
-        harness.CompleteRoundToResults();
+        harness.CompleteRoundToAppreciation();
 
         var state = harness.GetPlayerState("p1");
 
-        Assert.NotNull(state.Results);
-        Assert.Equal(3, state.Results.RoundResults.Count);
-        Assert.All(state.Results.RoundResults, result =>
+        Assert.NotNull(state.Appreciation);
+        Assert.Equal(3, state.Appreciation.RoundResults.Count);
+        Assert.All(state.Appreciation.RoundResults, result =>
         {
             Assert.False(string.IsNullOrWhiteSpace(result.PromptOwnerName));
             Assert.False(string.IsNullOrWhiteSpace(result.PromptText));
             Assert.False(string.IsNullOrWhiteSpace(result.WinningBribeText));
             Assert.False(string.IsNullOrWhiteSpace(result.WinningPlayerName));
         });
-        Assert.Equal(3, state.Players.Sum(player => player.Score));
+        Assert.Equal(0, state.Players.Sum(player => player.Score));
     }
 
     [Fact]
-    public void ResultsPreserveWinningMediaMetadata()
+    public void AppreciationPreservesWinningMediaMetadata()
     {
         var harness = new GameTestHarness();
         harness.StartPromptPhaseWithPlayers(3);
@@ -208,10 +208,101 @@ public class VotingAndResultsTests
             Assert.True(result.Success, result.Error);
         }
 
-        var winningMedia = harness.GetPlayerState("p1").Results!.RoundResults
+        var winningMedia = harness.GetPlayerState("p1").Appreciation!.RoundResults
             .Single(result => result.WinningBribeMedia?.MediaId == "media-1");
 
         Assert.Equal(BribeContentKind.Media, winningMedia.WinningBribeKind);
         Assert.Equal("image/gif", winningMedia.WinningBribeMedia!.ContentType);
+    }
+
+    [Fact]
+    public void AppreciationRejectsCoinsForOwnBribeAndOwnPrompt()
+    {
+        var harness = new GameTestHarness();
+        harness.CompleteRoundToAppreciation();
+
+        var p1State = harness.GetPlayerState("p1");
+        var ownWinningBribe = p1State.Appreciation!.RoundResults.FirstOrDefault(r => r.WinningPlayerId == "p1");
+        var ownPromptWinner = p1State.Appreciation.RoundResults.Single(r => r.PromptOwnerPlayerId == "p1");
+
+        if (ownWinningBribe != null)
+        {
+            var ownBribeResult = harness.Game.ToggleAppreciationCoin("c1", ownWinningBribe.WinningBribeId);
+            Assert.False(ownBribeResult.Success);
+        }
+
+        var ownPromptResult = harness.Game.ToggleAppreciationCoin("c1", ownPromptWinner.WinningBribeId);
+        Assert.False(ownPromptResult.Success);
+    }
+
+    [Fact]
+    public void AppreciationAllowsCoinForBribeThatBeatCurrentPlayersBribe()
+    {
+        var harness = new GameTestHarness();
+        harness.CompleteRoundToAppreciation();
+
+        var beatenPrompt = harness.GetPlayerState("p2").Appreciation!.RoundResults
+            .First(result => result.CurrentPlayerSubmittedBribe && !result.CurrentPlayerSubmittedWinningBribe);
+
+        var result = harness.Game.ToggleAppreciationCoin("c2", beatenPrompt.WinningBribeId);
+
+        Assert.True(result.Success, result.Error);
+        Assert.True(result.Data!.Appreciation!.RoundResults
+            .Single(r => r.WinningBribeId == beatenPrompt.WinningBribeId)
+            .HasCurrentPlayerAwardedCoin);
+    }
+
+    [Fact]
+    public void AppreciationCoinTogglesWithoutDoubleCounting()
+    {
+        var harness = new GameTestHarness();
+        harness.CompleteRoundToAppreciation();
+
+        var coinable = harness.GetPlayerState("p2").Appreciation!.RoundResults
+            .First(result => result.CanCurrentPlayerAwardCoin);
+
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId).Success);
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId).Success);
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId).Success);
+
+        var state = harness.GetPlayerState("p2");
+
+        Assert.Equal(1, state.Appreciation!.RoundResults.Single(r => r.WinningBribeId == coinable.WinningBribeId).CoinCount);
+    }
+
+    [Fact]
+    public void AppreciationWaitsForAllActivePlayersBeforeScoreboard()
+    {
+        var harness = new GameTestHarness();
+        harness.CompleteRoundToAppreciation();
+
+        harness.Game.SubmitAppreciationDone("c1");
+        harness.Game.SubmitAppreciationDone("c2");
+
+        Assert.Equal(GamePhase.Appreciation, harness.Game.State.Phase);
+
+        harness.Game.SubmitAppreciationDone("c3");
+
+        Assert.Equal(GamePhase.Scoreboard, harness.Game.State.Phase);
+    }
+
+    [Fact]
+    public void ScoreboardUsesRoundedChunkAndBonusCoins()
+    {
+        var harness = new GameTestHarness();
+        harness.CompleteRoundToAppreciation();
+
+        var p1Coinable = harness.GetPlayerState("p2").Appreciation!.RoundResults
+            .First(result => result.CanCurrentPlayerAwardCoin);
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", p1Coinable.WinningBribeId).Success);
+        harness.SubmitAllAppreciationDone();
+
+        var scoreboard = harness.GetPlayerState("p1").Scoreboard!;
+        var bonusWinner = scoreboard.RoundScores.Single(score => score.PlayerId == p1Coinable.WinningPlayerId);
+
+        Assert.Equal(16, scoreboard.RoundScores.Sum(score => score.TotalRoundPoints));
+        Assert.Equal(1, bonusWinner.BonusCoinPoints);
+        Assert.All(scoreboard.RoundScores, score => Assert.Equal(score.ChosenBribeCount * 5, score.ChosenBribePoints));
+        Assert.Equal(scoreboard.RoundScores.Sum(score => score.TotalRoundPoints), scoreboard.OverallScores.Sum(score => score.CumulativeScore));
     }
 }

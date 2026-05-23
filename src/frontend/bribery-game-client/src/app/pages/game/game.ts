@@ -9,13 +9,14 @@ import { Lobby } from '../lobby/lobby';
 import { Prompt } from '../prompt/prompt';
 import { Submission } from '../submission/submission';
 import { Voting } from '../voting/voting';
-import { Results } from '../results/results';
+import { Appreciation } from '../appreciation/appreciation';
+import { Scoreboard } from '../scoreboard/scoreboard';
 import { PlayerPanel } from '../../components/player-panel/player-panel';
 
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [CommonModule, FormsModule, Lobby, Prompt, Submission, Voting, Results, PlayerPanel],
+  imports: [CommonModule, FormsModule, Lobby, Prompt, Submission, Voting, Appreciation, Scoreboard, PlayerPanel],
   templateUrl: './game.html',
 })
 export class Game implements OnInit {

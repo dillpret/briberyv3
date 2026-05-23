@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { Game } from './game';
 import { SignalrService } from '../../core/signalr.service';
+import { GameStateService } from '../../state/game-state.service';
 
 describe('Game', () => {
   let fixture: ComponentFixture<Game>;
@@ -69,5 +70,39 @@ describe('Game', () => {
         message: 'That room no longer exists.',
       },
     });
+  });
+
+  it('routes appreciation and scoreboard phases to their screens', async () => {
+    vi.mocked(signalr.joinLobby).mockResolvedValue(undefined);
+
+    fixture = TestBed.createComponent(Game);
+    component = fixture.componentInstance;
+    await component.ngOnInit();
+
+    const gameState = TestBed.inject(GameStateService);
+    gameState.setGameState({
+      phase: 'Appreciation',
+      currentRound: 1,
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      players: [],
+      appreciation: { roundResults: [], donePlayerIds: [], doneCount: 0, requiredCount: 0, hasCurrentPlayerDone: false },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-appreciation')).toBeTruthy();
+
+    gameState.setGameState({
+      phase: 'Scoreboard',
+      currentRound: 1,
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      players: [],
+      scoreboard: { roundScores: [], overallScores: [] },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-scoreboard')).toBeTruthy();
   });
 });

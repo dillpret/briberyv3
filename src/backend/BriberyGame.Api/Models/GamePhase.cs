@@ -7,5 +7,6 @@ public enum GamePhase
     Prompt = 2,
     Submission = 3,
     Voting = 4,
-    Results = 5
+    Appreciation = 5,
+    Scoreboard = 6
 }

@@ -8,7 +8,8 @@ public class LateJoinAndWaitingTests
     [InlineData(GamePhase.Prompt)]
     [InlineData(GamePhase.Submission)]
     [InlineData(GamePhase.Voting)]
-    [InlineData(GamePhase.Results)]
+    [InlineData(GamePhase.Appreciation)]
+    [InlineData(GamePhase.Scoreboard)]
     public void PlayerJoiningAfterLobbyIsInactiveForCurrentRound(GamePhase joinPhase)
     {
         var harness = new GameTestHarness();
@@ -77,5 +78,10 @@ public class LateJoinAndWaitingTests
             return;
 
         harness.SubmitAllVotes();
+
+        if (phase == GamePhase.Appreciation)
+            return;
+
+        harness.SubmitAllAppreciationDone();
     }
 }

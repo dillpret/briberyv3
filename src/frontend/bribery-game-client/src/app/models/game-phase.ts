@@ -1,1 +1,1 @@
-export type GamePhase = 'NotSet' | 'Lobby' | 'Prompt' | 'Submission' | 'Voting' | 'Results';
+export type GamePhase = 'NotSet' | 'Lobby' | 'Prompt' | 'Submission' | 'Voting' | 'Appreciation' | 'Scoreboard';

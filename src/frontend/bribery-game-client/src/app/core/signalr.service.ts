@@ -216,6 +216,16 @@ export class SignalrService {
     await this.connection!.invoke('SubmitVote', bribeId);
   }
 
+  async toggleAppreciationCoin(bribeId: string): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('ToggleAppreciationCoin', bribeId);
+  }
+
+  async submitAppreciationDone(): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('SubmitAppreciationDone');
+  }
+
   async startNextRound(): Promise<void> {
     await this.ensureReadyForAction();
     await this.connection!.invoke('StartNextRound');

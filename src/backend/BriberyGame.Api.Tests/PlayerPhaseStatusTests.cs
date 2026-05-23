@@ -102,10 +102,27 @@ public class PlayerPhaseStatusTests
     }
 
     [Fact]
-    public void ResultsStatusIsDoneForActivePlayers()
+    public void AppreciationStatusChangesFromPendingToDone()
     {
         var harness = new GameTestHarness();
-        harness.CompleteRoundToResults();
+        harness.CompleteRoundToAppreciation();
+
+        var before = harness.GetPlayerState("p1");
+        Assert.Equal(PlayerPhaseStatus.Pending, before.Players.Single(p => p.Id == "p1").PhaseStatus);
+        Assert.Equal("Browsing", before.Players.Single(p => p.Id == "p1").PhaseStatusLabel);
+
+        harness.Game.SubmitAppreciationDone("c1");
+        var after = harness.GetPlayerState("p1");
+
+        Assert.Equal(PlayerPhaseStatus.Done, after.Players.Single(p => p.Id == "p1").PhaseStatus);
+        Assert.Equal("Done", after.Players.Single(p => p.Id == "p1").PhaseStatusLabel);
+    }
+
+    [Fact]
+    public void ScoreboardStatusIsDoneForActivePlayers()
+    {
+        var harness = new GameTestHarness();
+        harness.CompleteRoundToScoreboard();
 
         var state = harness.GetPlayerState("p1");
 

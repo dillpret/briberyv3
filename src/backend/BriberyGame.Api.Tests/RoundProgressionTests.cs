@@ -5,7 +5,7 @@ using BriberyGame.Api.Models;
 public class RoundProgressionTests
 {
     [Fact]
-    public void OnlyHostCanStartNextRoundFromResults()
+    public void OnlyHostCanStartNextRoundFromScoreboard()
     {
         var harness = new GameTestHarness();
         harness.CompleteRoundToResults();
@@ -54,11 +54,12 @@ public class RoundProgressionTests
         harness.SubmitPromptsForActivePlayers();
         harness.SubmitAllAssignedBribes();
         harness.SubmitAllVotes();
+        harness.SubmitAllAppreciationDone();
 
         var secondRoundTotal = harness.GetPlayerState("p1").Players.Sum(player => player.Score);
 
-        Assert.Equal(3, firstRoundTotal);
-        Assert.Equal(6, secondRoundTotal);
+        Assert.Equal(15, firstRoundTotal);
+        Assert.Equal(30, secondRoundTotal);
     }
 
     [Fact]
@@ -70,6 +71,7 @@ public class RoundProgressionTests
         harness.SubmitPromptsForActivePlayers();
         harness.SubmitAllAssignedBribes();
         harness.SubmitAllVotes();
+        harness.SubmitAllAppreciationDone();
 
         Assert.False(harness.Game.State.Players.Single(p => p.Id == "p4").IsActive);
 

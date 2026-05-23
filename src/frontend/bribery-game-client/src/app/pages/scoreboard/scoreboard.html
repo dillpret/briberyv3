@@ -1,0 +1,83 @@
+<main class="phase-shell">
+  <section class="soft-panel space-y-2 text-center">
+    <p class="text-sm font-semibold uppercase tracking-wide text-pine">Scoreboard</p>
+    <h1 class="text-2xl font-bold text-ink">Round {{ currentRound() }} counted</h1>
+    <p class="text-sm leading-6 text-ink/70">
+      Chosen bribes brought the big money. Bonus coins added the sparkle.
+    </p>
+  </section>
+
+  <section class="soft-panel space-y-3">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-ink/60">This round</h2>
+    @for (score of sortedRoundScores(); track score.playerId; let rank = $index) {
+      <div class="nested-panel !space-y-2 border-2" [ngClass]="rankClasses(rank)">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="flex h-9 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-surface/80 text-xs font-black text-ink">
+              {{ rankLabel(rank) }}
+            </span>
+            <div class="min-w-0">
+              <p class="truncate font-semibold text-ink">
+                {{ score.playerName }}
+                @if (isCurrentPlayer(score)) {
+                  <span class="text-ink/45">(you)</span>
+                }
+              </p>
+              <p class="text-sm text-ink/65">{{ breakdown(score) }}</p>
+            </div>
+          </div>
+          <span class="text-xl font-black text-ink">{{ score.totalRoundPoints }}</span>
+        </div>
+        <div class="grid gap-2 text-sm text-ink/70 sm:grid-cols-2">
+          <span>{{ score.chosenBribePoints }} from chosen bribes</span>
+          <span>{{ score.bonusCoinPoints }} from bonus coins</span>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (currentRound() >= 2) {
+    <section class="soft-panel space-y-3">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-ink/60">Overall</h2>
+      @for (score of sortedOverallScores(); track score.playerId; let rank = $index) {
+        <div class="nested-panel !space-y-0 flex items-center justify-between gap-3 border-2" [ngClass]="rankClasses(rank)">
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="flex h-9 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-surface/80 text-xs font-black text-ink">
+              {{ rankLabel(rank) }}
+            </span>
+            <p class="truncate font-semibold text-ink">
+              {{ score.playerName }}
+              @if (isCurrentPlayer(score)) {
+                <span class="text-ink/45">(you)</span>
+              }
+            </p>
+          </div>
+          <span class="text-xl font-black text-ink">{{ score.cumulativeScore }}</span>
+        </div>
+      }
+    </section>
+  }
+
+  <section class="soft-panel space-y-3 text-center">
+    @if (isHost()) {
+      <p class="text-sm text-ink/70">{{ nextRoundHint() }}</p>
+      <button
+        (click)="startNextRound()"
+        [disabled]="!canStartNextRound()"
+        class="primary-button">
+        Start next round
+      </button>
+    } @else {
+      <div class="waiting-mascot-layout text-center sm:text-left">
+        <p class="text-sm leading-6 text-ink/70">
+          Waiting for the host to start the next round.
+        </p>
+        <img
+          src="/brand/bribery-mascot.png"
+          alt=""
+          aria-hidden="true"
+          class="mascot-waiting" />
+      </div>
+    }
+  </section>
+</main>
