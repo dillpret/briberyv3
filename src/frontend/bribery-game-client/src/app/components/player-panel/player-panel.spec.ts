@@ -32,6 +32,10 @@ describe('PlayerPanel', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('sorts the current player first and then other players by name', () => {
     expect(component.sortedPlayers().map((candidate) => candidate.id)).toEqual(['p2', 'p1', 'p3', 'p4']);
   });
@@ -53,6 +57,9 @@ describe('PlayerPanel', () => {
   });
 
   it('opens and closes the mobile panel state', () => {
+    const pushState = vi.spyOn(window.history, 'pushState');
+    const back = vi.spyOn(window.history, 'back');
+
     expect(component.isOpen()).toBe(false);
 
     let buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
@@ -60,12 +67,30 @@ describe('PlayerPanel', () => {
     fixture.detectChanges();
 
     expect(component.isOpen()).toBe(true);
+    expect(pushState).toHaveBeenCalled();
 
     buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     buttons.find((button) => button.textContent?.includes('Close'))?.click();
     fixture.detectChanges();
 
     expect(component.isOpen()).toBe(false);
+    expect(back).toHaveBeenCalled();
+  });
+
+  it('closes the mobile panel when browser back is pressed', () => {
+    vi.spyOn(window.history, 'pushState');
+    const back = vi.spyOn(window.history, 'back');
+
+    component.openMobilePanel();
+    fixture.detectChanges();
+
+    expect(component.isOpen()).toBe(true);
+
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    fixture.detectChanges();
+
+    expect(component.isOpen()).toBe(false);
+    expect(back).not.toHaveBeenCalled();
   });
 
   function player(overrides: Partial<Player>): Player {

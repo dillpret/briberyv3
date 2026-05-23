@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 import { GameStateService, Player } from '../../state/game-state.service';
 
 @Component({
@@ -13,11 +13,39 @@ export class PlayerPanel {
   hostPlayerId;
   currentPlayerId;
   isOpen = signal(false);
+  private hasMobileHistoryEntry = false;
 
   constructor(private gameState: GameStateService) {
     this.players = this.gameState.players;
     this.hostPlayerId = this.gameState.hostPlayerId;
     this.currentPlayerId = this.gameState.currentPlayerId;
+  }
+
+  @HostListener('window:popstate')
+  handleBrowserBack(): void {
+    if (!this.isOpen()) return;
+
+    this.hasMobileHistoryEntry = false;
+    this.isOpen.set(false);
+  }
+
+  openMobilePanel(): void {
+    if (this.isOpen()) return;
+
+    this.isOpen.set(true);
+    window.history.pushState({ ...window.history.state, playerPanelOpen: true }, '', window.location.href);
+    this.hasMobileHistoryEntry = true;
+  }
+
+  closeMobilePanel(): void {
+    if (!this.isOpen()) return;
+
+    this.isOpen.set(false);
+
+    if (!this.hasMobileHistoryEntry) return;
+
+    this.hasMobileHistoryEntry = false;
+    window.history.back();
   }
 
   sortedPlayers(): Player[] {

@@ -1,12 +1,12 @@
 <button
   type="button"
-  (click)="isOpen.set(true)"
+  (click)="openMobilePanel()"
   class="fixed bottom-4 right-4 z-30 rounded-full bg-pine px-4 py-3 text-sm font-bold text-surface shadow-lg shadow-pine/30 transition active:scale-95 lg:hidden">
   Players
 </button>
 
 @if (isOpen()) {
-  <div class="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm lg:hidden" (click)="isOpen.set(false)"></div>
+  <div class="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm lg:hidden" (click)="closeMobilePanel()"></div>
 }
 
 <aside
@@ -20,7 +20,7 @@
     </div>
     <button
       type="button"
-      (click)="isOpen.set(false)"
+      (click)="closeMobilePanel()"
       class="rounded-full border border-plum/30 px-3 py-1 text-sm font-semibold text-plum lg:hidden">
       Close
     </button>
