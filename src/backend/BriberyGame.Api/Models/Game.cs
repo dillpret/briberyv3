@@ -71,13 +71,13 @@ public class Game
             Connected = true,
             ConnectionId = connectionId,
             IsReady = false,
-            IsActive = State.Phase == GamePhase.Lobby
+            IsActive = State.Phase == GamePhase.Lobby,
+            JoinOrder = State.NextJoinOrder++
         };
 
         State.Players.Add(player);
 
-        if (State.HostPlayerId == null)
-            State.HostPlayerId = player.Id;
+        ReassignHost();
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
     }
@@ -90,11 +90,7 @@ public class Game
         {
             player.Connected = false;
 
-            if (player.Id == State.HostPlayerId)
-            {
-                var nextHost = State.Players.FirstOrDefault(p => p.Connected);
-                State.HostPlayerId = nextHost?.Id;
-            }
+            ReassignHost();
 
             AdvancePhaseIfComplete();
         }
@@ -456,7 +452,18 @@ public class Game
         if (State.Phase == GamePhase.Lobby)
             player.IsActive = true;
 
+        ReassignHost();
+
         return BuildStateForPlayer(player.Id);
+    }
+
+    private void ReassignHost()
+    {
+        State.HostPlayerId = State.Players
+            .Where(player => player.Connected)
+            .OrderBy(player => player.JoinOrder)
+            .Select(player => player.Id)
+            .FirstOrDefault();
     }
 
     private bool CanStart()
@@ -717,7 +724,6 @@ public class Game
             HostPlayerId = State.HostPlayerId,
             Phase = State.Phase,
             CurrentRound = State.CurrentRound,
-            TotalRounds = State.TotalRounds,
             IsCurrentPlayerActive = activePlayerIds.Contains(playerId),
             PromptSubmittedCount = State.Prompts.Keys.Count(activePlayerIds.Contains),
             PromptRequiredCount = activePlayerIds.Count,

@@ -4,12 +4,12 @@ This briefing outlines every observable behaviour, rule, and player-facing capab
 
 ## 1. Core Goals and Player Experience
 - Bribery is a casual multiplayer party game where players use creative "bribes" to win points from one another based on personalised prompts.
-- Sessions are hosted online and accessed through shareable four-character game codes or direct links.
+- Sessions are hosted online and accessed through shareable four-character game codes or direct `/game/<GAME_ID>` links.
 - The experience must be mobile-friendly, support quick join flows, and keep players informed about progress, timers, and connection health at all times.
 
 ## 2. Game Setup & Lobby Expectations
 - A host can create a new lobby by supplying a display name; the system allocates an unused four-character alphanumeric (A-Z, 0-9) game code and marks the creator as host.
-- Creation returns the host's persistent player identifier and a shareable link (`/bribery/<GAME_ID>`). The host must see the code, link, copy-to-clipboard control, and a shortcut to enter the lobby.
+- Creation returns the host's persistent player identifier and a shareable link (`/game/<GAME_ID>`). The host must see the code, link, copy-to-clipboard control, and a shortcut to enter the lobby.
 - Other players join by providing a name and the game code (case-insensitive). Joining responds with their persistent player identifier, host status, and the game's current phase so the UI can transition appropriately.
 - The lobby lists every player with connection status, identifies the host, and shows live player counts. It must surface the current game configuration (round count, timer settings, custom prompt status) to everyone.
 - Host-only controls in the lobby include:
@@ -82,7 +82,7 @@ Progression rules:
 ## 9. Game Completion & Post-Game Options
 - After the final round, the game enters `finished` and announces podium placements for the top three scores with celebratory visuals.
 - Final results remain visible until the host chooses to return to the lobby (preserving roster and settings) or restart (resetting scores, round counters, prompts, bribes, and votes). A shortcut to start an entirely new lobby is also presented.
-- Completed games schedule cleanup approximately 30 seconds later; inactive lobbies with zero connected players are also reclaimed automatically.
+- Rooms with zero connected players for 15 minutes are reclaimed automatically.
 
 ## 10. Player Status, Waiting, and Reconnection Handling
 - Connection status indicators stay visible during gameplay. Losing connection shows a reconnect overlay and status badge. The client attempts automatic reconnection, performs limited manual retries when the page regains focus/visibility, and suggests a full refresh if all attempts fail.
@@ -108,4 +108,4 @@ Progression rules:
 ## 14. Persistence & Cleanup Expectations
 - All per-round data (pairings, prompts, bribes, votes, scores) must be isolated so new rounds start cleanly while retaining cumulative totals.
 - Restarting or returning to the lobby clears temporary round data while preserving the player roster and game settings (for lobby) or resetting scores (for restarts).
-- Finished games without active players are eligible for cleanup to avoid stale sessions.
+- Rooms with zero connected players for 15 minutes are eligible for cleanup to avoid stale sessions.

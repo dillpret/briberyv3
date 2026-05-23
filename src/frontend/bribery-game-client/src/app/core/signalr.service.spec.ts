@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { SignalrService } from './signalr.service';
 import { GameStateService } from '../state/game-state.service';
 import * as signalR from '@microsoft/signalr';
+import { ErrorMessageService } from './error-message.service';
 
 type Handler = (...args: any[]) => void;
 
@@ -168,5 +169,16 @@ describe('SignalrService', () => {
     await vi.waitFor(() => {
       expect(connection.invoke).toHaveBeenCalledWith('JoinLobby', 'ABCD', 'p1', 'Player 1');
     });
+  });
+
+  it('routes hub action failures to the global error banner state', async () => {
+    await service.start();
+    const errors = TestBed.inject(ErrorMessageService);
+
+    handlers['ActionFailed']('No voting twice');
+    expect(errors.message()).toBe('No voting twice');
+
+    handlers['StartFailed']('Need more players');
+    expect(errors.message()).toBe('Need more players');
   });
 });

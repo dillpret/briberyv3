@@ -12,6 +12,7 @@ import { Voting } from '../voting/voting';
 import { Appreciation } from '../appreciation/appreciation';
 import { Scoreboard } from '../scoreboard/scoreboard';
 import { PlayerPanel } from '../../components/player-panel/player-panel';
+import { ErrorMessageService } from '../../core/error-message.service';
 
 @Component({
   selector: 'app-game',
@@ -32,6 +33,7 @@ export class Game implements OnInit {
     private router: Router,
     private signalr: SignalrService,
     private gameState: GameStateService,
+    private errors: ErrorMessageService,
   ) {
     this.phase = this.gameState.phase;
     localStorage.setItem('playerId', this.playerId);
@@ -80,6 +82,7 @@ export class Game implements OnInit {
       const message = err instanceof Error ? err.message : 'Unable to join this room.';
       if (message !== 'Game does not exist') {
         this.joinError.set(message);
+        this.errors.show(message);
         this.joinState.set('needs-name');
         return;
       }

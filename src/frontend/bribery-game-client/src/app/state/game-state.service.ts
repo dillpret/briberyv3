@@ -100,7 +100,6 @@ export class GameStateService {
   hostPlayerId = signal<string | null>(null);
   phase = signal<GamePhase>('Lobby');
   currentRound = signal(0);
-  totalRounds = signal(1);
   isCurrentPlayerActive = signal(false);
   promptSubmittedCount = signal(0);
   promptRequiredCount = signal(0);
@@ -123,7 +122,6 @@ export class GameStateService {
     this.hostPlayerId.set(state.hostPlayerId ?? null);
     this.phase.set(state.phase);
     this.currentRound.set(state.currentRound ?? 0);
-    this.totalRounds.set(state.totalRounds ?? 1);
     this.isCurrentPlayerActive.set(state.isCurrentPlayerActive ?? false);
     this.promptSubmittedCount.set(state.promptSubmittedCount ?? 0);
     this.promptRequiredCount.set(state.promptRequiredCount ?? 0);

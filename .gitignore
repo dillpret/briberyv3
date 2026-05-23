@@ -43,6 +43,7 @@ src/frontend/**/dist/
 bin/
 obj/
 out/
+src/backend/BriberyGame.Api/wwwroot/
 *.user
 *.rsuser
 *.suo

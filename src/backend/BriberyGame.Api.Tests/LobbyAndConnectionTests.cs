@@ -177,16 +177,58 @@ public class LobbyAndConnectionTests
     }
 
     [Fact]
-    public void HostDisconnectCurrentlyReassignsHost()
+    public void HostDisconnectReassignsHostToEarliestConnectedPlayer()
     {
         var harness = new GameTestHarness();
         harness.JoinPlayers(3);
 
         var state = harness.Game.Disconnect("c1");
 
-        // WIP vs briefing: the functional briefing says host privileges remain attached
-        // to the original host when they return. The current implementation reassigns
-        // host to the next connected player, so this test documents current behavior.
         Assert.Equal("p2", state.HostPlayerId);
+    }
+
+    [Fact]
+    public void ReconnectingOriginalHostRestoresHostByJoinOrder()
+    {
+        var harness = new GameTestHarness();
+        harness.JoinPlayers(3);
+        harness.Game.Disconnect("c1");
+
+        var state = harness.JoinPlayer("c1-reconnected", "p1", "Player 1");
+
+        Assert.Equal("p1", state.HostPlayerId);
+    }
+
+    [Fact]
+    public void ReconnectingEarliestPlayerAfterEveryoneDisconnectsRestoresHost()
+    {
+        var harness = new GameTestHarness();
+        harness.JoinPlayers(3);
+        harness.Game.Disconnect("c1");
+        harness.Game.Disconnect("c2");
+        harness.Game.Disconnect("c3");
+
+        var state = harness.JoinPlayer("c1-reconnected", "p1", "Player 1");
+
+        Assert.Equal("p1", state.HostPlayerId);
+    }
+
+    [Fact]
+    public void LaterReconnectBecomesHostUntilEarlierEligiblePlayerReconnects()
+    {
+        var harness = new GameTestHarness();
+        harness.JoinPlayers(3);
+        harness.Game.Disconnect("c1");
+        harness.Game.Disconnect("c2");
+        harness.Game.Disconnect("c3");
+
+        var p3State = harness.JoinPlayer("c3-reconnected", "p3", "Player 3");
+        Assert.Equal("p3", p3State.HostPlayerId);
+
+        var p2State = harness.JoinPlayer("c2-reconnected", "p2", "Player 2");
+        Assert.Equal("p2", p2State.HostPlayerId);
+
+        var p1State = harness.JoinPlayer("c1-reconnected", "p1", "Player 1");
+        Assert.Equal("p1", p1State.HostPlayerId);
     }
 }

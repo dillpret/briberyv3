@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { GameStateService } from '../state/game-state.service';
 import { BribeMedia } from '../state/game-state.service';
+import { ErrorMessageService } from './error-message.service';
 
 export interface SubmitBribeRequest {
   targetPlayerId: string;
@@ -31,7 +32,10 @@ export class SignalrService {
   private pendingJoinResolve?: () => void;
   private pendingJoinReject?: (reason?: unknown) => void;
 
-  constructor(private gameState: GameStateService) {
+  constructor(
+    private gameState: GameStateService,
+    private errors: ErrorMessageService,
+  ) {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         void this.restoreConnectionAndSession().catch((err) =>
@@ -111,7 +115,12 @@ export class SignalrService {
 
     this.connection.on('ActionFailed', (message: string) => {
       console.error('Action failed:', message);
-      alert(message); // TODO: Proper error handling
+      this.errors.show(message);
+    });
+
+    this.connection.on('StartFailed', (message: string) => {
+      console.error('Start failed:', message);
+      this.errors.show(message);
     });
 
     this.connection.onreconnecting(() => {
@@ -205,7 +214,9 @@ export class SignalrService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Media upload failed' }));
-      throw new Error(error.error ?? 'Media upload failed');
+      const message = error.error ?? 'Media upload failed';
+      this.errors.show(message);
+      throw new Error(message);
     }
 
     return await response.json();

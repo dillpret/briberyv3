@@ -111,6 +111,60 @@ public class MediaStoreTests
         Assert.Null(service.GetMedia(media.MediaId));
     }
 
+    [Fact]
+    public void InactiveRoomCleanupRemovesRoomAndAssociatedMediaAfterFifteenMinutes()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var mediaStore = new MediaStore();
+        var service = new GameService(mediaStore, () => now);
+        var gameId = service.CreateGame();
+
+        Assert.True(service.Join(gameId, "c1", "p1", "Player 1").result!.Success);
+        var media = service.StoreMedia(gameId, "p1", "image/png", 10, new byte[10]).Data!;
+
+        service.Disconnect("c1");
+        now = now.AddMinutes(15).AddTicks(1);
+
+        service.CreateGame();
+
+        Assert.Null(service.GetMedia(media.MediaId));
+        Assert.Null(service.Join(gameId, "c1-new", "p1", "Player 1").result);
+    }
+
+    [Fact]
+    public void InactiveRoomCleanupKeepsRoomBeforeFifteenMinutes()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var service = new GameService(new MediaStore(), () => now);
+        var gameId = service.CreateGame();
+
+        Assert.True(service.Join(gameId, "c1", "p1", "Player 1").result!.Success);
+        service.Disconnect("c1");
+        now = now.AddMinutes(14).AddSeconds(59);
+
+        service.CreateGame();
+        var rejoin = service.Join(gameId, "c1-new", "p1", "Player 1");
+
+        Assert.True(rejoin.result!.Success, rejoin.result.Error);
+    }
+
+    [Fact]
+    public void InactiveRoomCleanupKeepsConnectedRooms()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var service = new GameService(new MediaStore(), () => now);
+        var gameId = service.CreateGame();
+
+        Assert.True(service.Join(gameId, "c1", "p1", "Player 1").result!.Success);
+        now = now.AddHours(1);
+
+        service.CreateGame();
+        var state = service.GetConnectedPlayerStates(gameId);
+
+        Assert.Single(state);
+        Assert.Equal("p1", state[0].State.CurrentPlayerId);
+    }
+
     private static GameStateDto StateFor(GameService service, string gameId, string connectionId)
     {
         return service.GetConnectedPlayerStates(gameId)

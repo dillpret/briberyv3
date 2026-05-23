@@ -6,8 +6,10 @@ using BriberyGame.Api.Models;
 public class GameService
 {
     private readonly ConcurrentDictionary<string, string> _connectionToGame = new();
-    private readonly ConcurrentDictionary<string, Game> _games = new();
+    private readonly ConcurrentDictionary<string, GameSession> _games = new();
     private readonly MediaStore _mediaStore;
+    private readonly Func<DateTimeOffset> _now;
+    private static readonly TimeSpan InactiveRoomTtl = TimeSpan.FromMinutes(15);
     
     private static readonly char[] _chars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".ToCharArray();
@@ -20,12 +22,20 @@ public class GameService
     }
 
     public GameService(MediaStore mediaStore)
+        : this(mediaStore, () => DateTimeOffset.UtcNow)
+    {
+    }
+
+    public GameService(MediaStore mediaStore, Func<DateTimeOffset> now)
     {
         _mediaStore = mediaStore;
+        _now = now;
     }
     
     public string CreateGame()
     {
+        CleanupInactiveGames();
+
         string gameId;
         
         do
@@ -34,7 +44,10 @@ public class GameService
         }
         while (_games.ContainsKey(gameId));
         
-        _games[gameId] = new Game(gameId);
+        _games[gameId] = new GameSession(new Game(gameId))
+        {
+            EmptySince = _now()
+        };
         
         return gameId;
     }
@@ -45,6 +58,8 @@ public class GameService
         string playerId,
         string name)
     {
+        CleanupInactiveGames();
+
         var normalizedGameId = NormalizeGameId(gameId);
         var game = GetGame(normalizedGameId);
         if (game == null) return (null, null);
@@ -57,6 +72,7 @@ public class GameService
         }
 
         _connectionToGame[connectionId] = normalizedGameId;
+        MarkActivity(normalizedGameId, game);
         RemoveStaleConnectionMappings(normalizedGameId, game);
 
         return (normalizedGameId, result);
@@ -65,10 +81,12 @@ public class GameService
     public (string? gameId, GameStateDto? state) Disconnect(string connectionId)
     {
         var (gameId, game) = ResolveGame(connectionId);
-        if (game == null) return (null, null);
+        if (gameId == null || game == null) return (null, null);
 
         var state = game.Disconnect(connectionId);
         _connectionToGame.TryRemove(connectionId, out _);
+        MarkActivity(gameId, game);
+        CleanupInactiveGames();
 
         return (gameId, state);
     }
@@ -227,6 +245,8 @@ public class GameService
         long byteSize,
         byte[] bytes)
     {
+        CleanupInactiveGames();
+
         var normalizedGameId = NormalizeGameId(gameId);
         var game = GetGame(normalizedGameId);
         if (game == null)
@@ -240,6 +260,7 @@ public class GameService
 
     public StoredMedia? GetMedia(string mediaId)
     {
+        CleanupInactiveGames();
         return _mediaStore.Get(mediaId);
     }
     
@@ -257,8 +278,40 @@ public class GameService
     
     private Game? GetGame(string gameId)
     {
-        _games.TryGetValue(NormalizeGameId(gameId), out var game);
-        return game;
+        _games.TryGetValue(NormalizeGameId(gameId), out var session);
+        return session?.Game;
+    }
+
+    private void MarkActivity(string gameId, Game game)
+    {
+        if (!_games.TryGetValue(NormalizeGameId(gameId), out var session))
+            return;
+
+        session.EmptySince = game.State.Players.Any(player => player.Connected)
+            ? null
+            : _now();
+    }
+
+    private void CleanupInactiveGames()
+    {
+        var cutoff = _now() - InactiveRoomTtl;
+
+        foreach (var session in _games
+                     .Where(pair => pair.Value.EmptySince is { } emptySince && emptySince <= cutoff)
+                     .ToList())
+        {
+            if (!_games.TryRemove(session.Key, out _))
+                continue;
+
+            _mediaStore.RemoveGameMedia(session.Key);
+
+            foreach (var mapping in _connectionToGame
+                         .Where(mapping => mapping.Value == session.Key)
+                         .ToList())
+            {
+                _connectionToGame.TryRemove(mapping.Key, out _);
+            }
+        }
     }
 
     private void RemoveStaleConnectionMappings(string gameId, Game game)
@@ -305,5 +358,16 @@ public class GameService
             .Count();
 
         return Math.Max(requiredBribes, 1) * Game.MaxMediaBribeBytes;
+    }
+
+    private sealed class GameSession
+    {
+        public GameSession(Game game)
+        {
+            Game = game;
+        }
+
+        public Game Game { get; }
+        public DateTimeOffset? EmptySince { get; set; }
     }
 }

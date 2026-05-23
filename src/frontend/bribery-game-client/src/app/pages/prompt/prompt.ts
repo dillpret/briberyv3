@@ -12,7 +12,6 @@ import { GameStateService } from '../../state/game-state.service';
 })
 export class Prompt {
   currentRound;
-  totalRounds;
   promptSubmittedCount;
   promptRequiredCount;
   isCurrentPlayerActive;
@@ -32,7 +31,6 @@ export class Prompt {
     private changeDetector: ChangeDetectorRef,
   ) {
     this.currentRound = this.gameState.currentRound;
-    this.totalRounds = this.gameState.totalRounds;
     this.promptSubmittedCount = this.gameState.promptSubmittedCount;
     this.promptRequiredCount = this.gameState.promptRequiredCount;
     this.isCurrentPlayerActive = this.gameState.isCurrentPlayerActive;

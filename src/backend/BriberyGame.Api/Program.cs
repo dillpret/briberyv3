@@ -42,8 +42,16 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =
 
 var app = builder.Build();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+var webRootPath = app.Environment.WebRootPath
+    ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var spaIndexPath = Path.Combine(webRootPath, "index.html");
+var hasSpaAssets = File.Exists(spaIndexPath);
+
+if (hasSpaAssets)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 
 // app.UseCors();
 
@@ -99,6 +107,7 @@ app.MapGet("/api/media/{mediaId}", (string mediaId, GameService gameService) =>
 
 app.MapHub<GameHub>("/hub/game");
 
-app.MapFallbackToFile("index.html");
+if (hasSpaAssets)
+    app.MapFallbackToFile("index.html");
 
 app.Run();

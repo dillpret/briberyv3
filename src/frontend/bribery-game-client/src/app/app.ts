@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ErrorMessageService } from './core/error-message.service';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +8,6 @@ import { RouterOutlet } from '@angular/router';
   imports: [RouterOutlet],
   templateUrl: './app.html',
 })
-export class App {}
+export class App {
+  constructor(public errors: ErrorMessageService) {}
+}

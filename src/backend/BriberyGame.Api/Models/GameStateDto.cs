@@ -7,7 +7,6 @@ public class GameStateDto
     public string? HostPlayerId { get; set; }
     public GamePhase Phase { get; set; }
     public int CurrentRound { get; set; }
-    public int TotalRounds { get; set; }
     public bool IsCurrentPlayerActive { get; set; }
     public int PromptSubmittedCount { get; set; }
     public int PromptRequiredCount { get; set; }

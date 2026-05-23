@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { SignalrService } from '../../core/signalr.service';
 import { CommonModule } from '@angular/common';
 import { buildInfo } from '../../build-info.generated';
+import { ErrorMessageService } from '../../core/error-message.service';
 
 @Component({
   standalone: true,
@@ -20,6 +21,7 @@ export class Landing {
   constructor(
     private signalr: SignalrService,
     private router: Router,
+    private errors: ErrorMessageService,
   ) {
     localStorage.setItem('playerId', this.playerId);
   }
@@ -34,6 +36,7 @@ export class Landing {
       this.join();
     } catch (err) {
       console.error('CreateGame failed', err);
+      this.errors.show('Could not create a game. Please check your connection and try again.');
     }
   }
 

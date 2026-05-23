@@ -1,1 +1,16 @@
+@if (errors.message()) {
+  <section class="mx-auto mt-4 max-w-2xl px-4">
+    <div class="flex items-start justify-between gap-3 rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm font-semibold text-error">
+      <p>{{ errors.message() }}</p>
+      <button
+        type="button"
+        class="shrink-0 text-error/70 transition hover:text-error"
+        aria-label="Dismiss error"
+        (click)="errors.clear()">
+        Dismiss
+      </button>
+    </div>
+  </section>
+}
+
 <router-outlet />
