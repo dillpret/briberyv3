@@ -48,23 +48,35 @@
 }
 
 @layer components {
+  :root {
+    --radius-panel: 1.5rem;
+    --radius-panel-inner-border: calc(var(--radius-panel) - 3px);
+    --radius-nested: 1rem;
+    --radius-control: 0.95rem;
+    --radius-chip: 0.75rem;
+    --radius-tiny: 0.5rem;
+  }
+
   .phase-shell {
     @apply mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8 lg:px-0 lg:py-0;
     animation: cosy-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .soft-panel {
-    @apply relative overflow-hidden rounded-3xl border-2 border-ink/20 bg-surface/88 p-4 text-ink shadow-[0_12px_28px_rgb(40_89_67_/_0.16)] backdrop-blur sm:p-5;
+    @apply relative overflow-hidden border-2 border-ink/20 bg-surface/88 p-4 text-ink shadow-[0_12px_28px_rgb(40_89_67_/_0.16)] backdrop-blur sm:p-5;
+    border-radius: var(--radius-panel);
     transform: translateZ(0);
   }
 
   .soft-card {
-    @apply relative overflow-hidden rounded-3xl border-2 border-ink/15 bg-surface/90 p-4 text-ink shadow-[0_10px_22px_rgb(40_89_67_/_0.12)] transition duration-200;
+    @apply relative overflow-hidden border-2 border-ink/15 bg-surface/90 p-4 text-ink shadow-[0_10px_22px_rgb(40_89_67_/_0.12)] transition duration-200;
+    border-radius: var(--radius-panel);
     transform: translateZ(0);
   }
 
   .prompt-card {
-    @apply relative overflow-hidden rounded-3xl border-2 border-plum/35 bg-surface/95 p-4 text-ink shadow-[0_12px_28px_rgb(40_89_67_/_0.14)] sm:p-5;
+    @apply relative overflow-hidden border-2 border-plum/35 bg-surface/95 p-4 text-ink shadow-[0_12px_28px_rgb(40_89_67_/_0.14)] sm:p-5;
+    border-radius: var(--radius-panel);
     transform: translateZ(0);
   }
 
@@ -73,7 +85,32 @@
   }
 
   .room-code-card {
-    @apply mt-2 rounded-3xl border-2 border-sun bg-surface px-4 py-6 shadow-inner shadow-sun/30;
+    @apply mt-2 border-2 border-sun bg-surface px-4 py-6 shadow-inner shadow-sun/30;
+    border-radius: var(--radius-nested);
+  }
+
+  .nested-panel {
+    @apply space-y-3 border-2 bg-surface/65 p-4 shadow-inner;
+    border-radius: var(--radius-nested);
+  }
+
+  .nested-surface {
+    @apply bg-mint/20 p-3 text-sm leading-6 text-ink/80;
+    border-radius: var(--radius-control);
+  }
+
+  .nested-surface.is-dashed {
+    @apply border border-dashed border-plum/35 bg-plum/8;
+  }
+
+  .player-panel {
+    @apply fixed inset-x-3 bottom-3 z-50 max-h-[75vh] overflow-auto border border-ink/20 bg-surface/95 p-4 shadow-2xl shadow-pine/25 transition duration-200 lg:sticky lg:top-6 lg:z-auto lg:max-h-[calc(100vh-3rem)] lg:translate-y-0 lg:bg-surface/80 lg:shadow-sm;
+    border-radius: var(--radius-panel);
+  }
+
+  .player-list-item {
+    @apply bg-mint/20 p-3;
+    border-radius: var(--radius-nested);
   }
 
   .pending-pill {
@@ -85,27 +122,33 @@
   }
 
   .soft-input {
-    @apply w-full rounded-2xl border-2 border-ink/20 bg-surface/95 px-4 py-3 text-ink shadow-inner shadow-mint/30 outline-none transition placeholder:text-ink/40 focus:border-sun focus:ring-4 focus:ring-sun/30;
+    @apply w-full border-2 border-ink/20 bg-surface/95 px-4 py-3 text-ink shadow-inner shadow-mint/30 outline-none transition placeholder:text-ink/40 focus:border-sun focus:ring-4 focus:ring-sun/30;
+    border-radius: var(--radius-control);
   }
 
   .primary-button {
-    @apply relative w-full overflow-hidden rounded-2xl bg-pine px-4 py-3 font-bold text-surface shadow-[0_8px_0_rgb(46_27_3),0_14px_26px_rgb(40_89_67_/_0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-pine/90 hover:shadow-[0_10px_0_rgb(46_27_3),0_18px_30px_rgb(40_89_67_/_0.28)] active:translate-y-1 active:scale-[0.99] active:shadow-[0_4px_0_rgb(46_27_3),0_10px_18px_rgb(40_89_67_/_0.18)];
+    @apply relative w-full overflow-hidden bg-pine px-4 py-3 font-bold text-surface shadow-[0_8px_0_rgb(46_27_3),0_14px_26px_rgb(40_89_67_/_0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-pine/90 hover:shadow-[0_10px_0_rgb(46_27_3),0_18px_30px_rgb(40_89_67_/_0.28)] active:translate-y-1 active:scale-[0.99] active:shadow-[0_4px_0_rgb(46_27_3),0_10px_18px_rgb(40_89_67_/_0.18)];
+    border-radius: var(--radius-control);
   }
 
   .secondary-button {
-    @apply relative w-full overflow-hidden rounded-2xl border-2 border-plum/35 bg-surface/90 px-4 py-3 font-bold text-plum shadow-[0_6px_0_rgb(121_88_137_/_0.28),0_12px_20px_rgb(46_27_3_/_0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-sun hover:bg-surface hover:text-ink active:translate-y-1 active:scale-[0.99] active:shadow-[0_2px_0_rgb(121_88_137_/_0.28),0_8px_16px_rgb(46_27_3_/_0.10)];
+    @apply relative w-full overflow-hidden border-2 border-plum/35 bg-surface/90 px-4 py-3 font-bold text-plum shadow-[0_6px_0_rgb(121_88_137_/_0.28),0_12px_20px_rgb(46_27_3_/_0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-sun hover:bg-surface hover:text-ink active:translate-y-1 active:scale-[0.99] active:shadow-[0_2px_0_rgb(121_88_137_/_0.28),0_8px_16px_rgb(46_27_3_/_0.10)];
+    border-radius: var(--radius-control);
   }
 
   .status-pill {
-    @apply inline-flex items-center rounded-full border-2 px-2.5 py-1 text-xs font-bold shadow-sm;
+    @apply inline-flex items-center whitespace-nowrap border-2 px-2.5 py-1 text-xs font-bold leading-none shadow-sm;
+    border-radius: var(--radius-chip);
   }
 
   .progress-track {
-    @apply h-3 overflow-hidden rounded-full border border-ink/15 bg-surface/70 shadow-inner shadow-mint/40;
+    @apply h-3 overflow-hidden border border-ink/15 bg-surface/70 shadow-inner shadow-mint/40;
+    border-radius: var(--radius-chip);
   }
 
   .progress-fill {
-    @apply h-full rounded-full bg-pine transition-all duration-300;
+    @apply h-full bg-pine transition-all duration-300;
+    border-radius: inherit;
     background-image: repeating-linear-gradient(
       135deg,
       #285943 0 10px,
@@ -116,7 +159,8 @@
   }
 
   .media-bribe {
-    @apply mt-3 flex w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-ink/15 bg-ink/5;
+    @apply mt-3 flex w-full items-center justify-center overflow-hidden border-2 border-ink/15 bg-ink/5;
+    border-radius: var(--radius-control);
     max-height: 45vh;
   }
 
@@ -126,7 +170,8 @@
   }
 
   .media-bribe-fallback {
-    @apply mt-3 rounded-2xl border-2 border-sun bg-surface p-3 text-sm font-bold text-ink;
+    @apply mt-3 border-2 border-sun bg-surface p-3 text-sm font-bold text-ink;
+    border-radius: var(--radius-control);
   }
 
   .brand-logo {
@@ -158,7 +203,7 @@
     inset: 3px;
     z-index: 0;
     border: 2px solid rgb(46 27 3 / 0.22);
-    border-radius: inherit;
+    border-radius: var(--radius-panel-inner-border);
     filter: url("#bribery-line-boil");
     pointer-events: none;
     animation: boiling-border 2.8s steps(2, end) infinite;
@@ -243,15 +288,15 @@
   0%,
   100% {
     transform: translate(0, 0) rotate(0deg);
-    border-radius: 1.45rem 1.7rem 1.5rem 1.65rem;
+    border-radius: calc(var(--radius-panel-inner-border) - 1px) calc(var(--radius-panel-inner-border) + 1px) var(--radius-panel-inner-border) calc(var(--radius-panel-inner-border) + 1px);
   }
   33% {
     transform: translate(1px, -1px) rotate(0.25deg);
-    border-radius: 1.7rem 1.45rem 1.75rem 1.5rem;
+    border-radius: calc(var(--radius-panel-inner-border) + 1px) calc(var(--radius-panel-inner-border) - 1px) calc(var(--radius-panel-inner-border) + 2px) var(--radius-panel-inner-border);
   }
   66% {
     transform: translate(-1px, 1px) rotate(-0.25deg);
-    border-radius: 1.55rem 1.8rem 1.45rem 1.75rem;
+    border-radius: var(--radius-panel-inner-border) calc(var(--radius-panel-inner-border) + 2px) calc(var(--radius-panel-inner-border) - 1px) calc(var(--radius-panel-inner-border) + 1px);
   }
 }
 

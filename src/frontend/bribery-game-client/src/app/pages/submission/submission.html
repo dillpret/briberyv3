@@ -19,7 +19,7 @@
     </div>
 
     @if (shouldShowPhaseWaitingStatus()) {
-      <div class="rounded-2xl border border-pine/20 bg-pine/8 px-3 py-2">
+      <div class="nested-surface border border-pine/20 bg-pine/8 px-3 py-2">
         <p class="text-sm font-semibold text-pine">Your submitted bribes are tucked away safely.</p>
         <p class="text-sm leading-6 text-ink/70">{{ waitingText() }}</p>
       </div>
@@ -79,7 +79,7 @@
           }
         </div>
 
-        <blockquote class="rounded-xl bg-mint/20 p-3 text-sm leading-6 text-ink/80">
+        <blockquote class="nested-surface">
           {{ target.prompt }}
         </blockquote>
 
@@ -87,7 +87,7 @@
           <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely.</p>
         } @else {
           <div
-            class="space-y-3 rounded-xl border border-dashed border-plum/35 bg-plum/8 p-3"
+            class="nested-surface is-dashed space-y-3"
             tabindex="0"
             (dragover)="$event.preventDefault()"
             (paste)="handlePaste(target.playerId, $event)"
