@@ -247,6 +247,53 @@ describe('Submission', () => {
     expect(component.mediaDraftFor('p2')?.file.type).toBe('image/gif');
   });
 
+  it('selects GIF media from pasted hosted image URLs instead of leaving URL text', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(remoteImageResponse('image/gif'));
+    const preventDefault = vi.fn();
+    const gifUrl = 'https://media.tenor.com/example/tenor.gif';
+
+    component.handlePaste('p2', {
+      preventDefault,
+      stopPropagation: vi.fn(),
+      clipboardData: {
+        files: [],
+        items: [stringItem('text/plain', gifUrl)],
+        getData: (type: string) => type === 'text/plain' ? gifUrl : '',
+      },
+      currentTarget: composerBox(),
+    } as unknown as ClipboardEvent);
+
+    await settleAsyncMediaSelection();
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledWith(gifUrl);
+    expect(component.draftFor('p2')).toBe('');
+    expect(component.mediaDraftFor('p2')?.file.name).toBe('shared-image.gif');
+    expect(component.mediaDraftFor('p2')?.file.type).toBe('image/gif');
+  });
+
+  it('selects GIF media from pasted hosted image html', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(remoteImageResponse('image/gif'));
+    const preventDefault = vi.fn();
+    const html = '<img src="https://media.tenor.com/example/tenor.gif">';
+
+    component.handlePaste('p2', {
+      preventDefault,
+      stopPropagation: vi.fn(),
+      clipboardData: {
+        files: [],
+        items: [],
+        getData: (type: string) => type === 'text/html' ? html : '',
+      },
+      currentTarget: composerBox(),
+    } as unknown as ClipboardEvent);
+
+    await settleAsyncMediaSelection();
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(component.mediaDraftFor('p2')?.file.type).toBe('image/gif');
+  });
+
   it('selects image media from async clipboard read fallback', async () => {
     const blob = new Blob(['image'], { type: 'image/png' });
     const originalClipboard = navigator.clipboard;
@@ -481,6 +528,16 @@ describe('Submission', () => {
       type,
       getAsString: (callback: FunctionStringCallback | null) => callback?.(value),
     } as DataTransferItem;
+  }
+
+  function remoteImageResponse(contentType: string): Response {
+    return {
+      ok: true,
+      headers: {
+        get: (header: string) => header.toLowerCase() === 'content-type' ? contentType : null,
+      },
+      blob: async () => new Blob(['gif'], { type: contentType }),
+    } as Response;
   }
 
   async function settleAsyncMediaSelection() {

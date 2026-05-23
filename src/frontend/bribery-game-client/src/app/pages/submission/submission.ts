@@ -142,6 +142,13 @@ export class Submission {
       return;
     }
 
+    const embeddedImageUrl = this.extractEmbeddedImageUrl(element);
+    if (embeddedImageUrl) {
+      element.textContent = '';
+      void this.selectRemoteInsertedMedia(targetPlayerId, embeddedImageUrl);
+      return;
+    }
+
     const text = this.normalizeComposerText(element.innerText);
     const nextText = text.slice(0, 500);
 
@@ -163,6 +170,11 @@ export class Submission {
       return;
     }
 
+    if (this.hasRemoteImageReference(event.clipboardData)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     void this.selectAsyncInsertedMedia(targetPlayerId, event.clipboardData, event.currentTarget, {
       allowClipboardReadFallback: true,
     });
@@ -177,6 +189,11 @@ export class Submission {
       event.stopPropagation();
       this.selectMedia(targetPlayerId, file);
       return;
+    }
+
+    if (this.hasRemoteImageReference(inputEvent.dataTransfer)) {
+      event.preventDefault();
+      event.stopPropagation();
     }
 
     void this.selectAsyncInsertedMedia(targetPlayerId, inputEvent.dataTransfer, event.currentTarget, {
@@ -327,10 +344,24 @@ export class Submission {
 
       const value = await new Promise<string>((resolve) => item.getAsString(resolve));
       const file = item.type === 'text/html'
-        ? this.extractImageFileFromHtml(value)
-        : this.fileFromImageUrl(value.trim());
+        ? await this.extractImageFileFromHtmlAsync(value)
+        : await this.fileFromImageUrl(value.trim(), { requireImageLikeUrl: true });
 
       if (file) return file;
+    }
+
+    if (typeof dataTransfer?.getData === 'function') {
+      const htmlFile = await this.extractImageFileFromHtmlAsync(dataTransfer.getData('text/html'));
+      if (htmlFile) return htmlFile;
+
+      const uriFile = await this.fileFromImageUrl(dataTransfer.getData('text/uri-list').trim(), {
+        requireImageLikeUrl: true,
+      });
+      if (uriFile) return uriFile;
+
+      return await this.fileFromImageUrl(dataTransfer.getData('text/plain').trim(), {
+        requireImageLikeUrl: true,
+      });
     }
 
     return null;
@@ -362,7 +393,7 @@ export class Submission {
 
           if (type === 'text/html') {
             const html = await (await clipboardItem.getType(type)).text();
-            const file = this.extractImageFileFromHtml(html);
+            const file = await this.extractImageFileFromHtmlAsync(html);
             if (file) return file;
           }
         }
@@ -384,23 +415,86 @@ export class Submission {
 
   private extractEmbeddedImageFile(element: HTMLElement): File | null {
     const image = element.querySelector('img');
-    return image?.src ? this.fileFromImageUrl(image.src) : null;
+    return image?.src ? this.fileFromDataUrl(image.src) : null;
+  }
+
+  private extractEmbeddedImageUrl(element: HTMLElement): string | null {
+    const image = element.querySelector('img');
+    return image?.src && this.isRemoteUrl(image.src) ? image.src : null;
   }
 
   private extractImageFileFromHtml(html: string): File | null {
     const dataUrl = html.match(/data:image\/(?:png|jpe?g|gif|webp|bmp);base64,[^"'\s<>]+/i)?.[0];
     if (dataUrl) return this.fileFromDataUrl(dataUrl);
 
-    const src = html.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1];
-    return src ? this.fileFromImageUrl(src) : null;
-  }
-
-  private fileFromImageUrl(url: string): File | null {
-    if (url.startsWith('data:')) return this.fileFromDataUrl(url);
     return null;
   }
 
+  private async extractImageFileFromHtmlAsync(html: string): Promise<File | null> {
+    const inlineFile = this.extractImageFileFromHtml(html);
+    if (inlineFile) return inlineFile;
+
+    const src = html.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1];
+    return src ? await this.fileFromImageUrl(src, { requireImageLikeUrl: false }) : null;
+  }
+
+  private async selectRemoteInsertedMedia(targetPlayerId: string, url: string) {
+    const file = await this.fileFromImageUrl(url, { requireImageLikeUrl: false });
+    if (!file || this.mediaDraftFor(targetPlayerId)) return;
+
+    this.selectMedia(targetPlayerId, file);
+  }
+
+  private async fileFromImageUrl(url: string, options: { requireImageLikeUrl: boolean }): Promise<File | null> {
+    if (url.startsWith('data:')) return this.fileFromDataUrl(url);
+    if (!this.isRemoteUrl(url)) return null;
+    if (options.requireImageLikeUrl && !this.looksLikeSupportedImageUrl(url)) return null;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+
+      const blob = await response.blob();
+      const contentType = (blob.type || response.headers.get('content-type')?.split(';')[0] || '').toLowerCase();
+      if (!this.isSupportedMediaType(contentType)) return null;
+
+      return new File([blob], `shared-image.${this.extensionForContentType(contentType)}`, {
+        type: contentType,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  private hasRemoteImageReference(dataTransfer: DataTransfer | null | undefined): boolean {
+    const html = typeof dataTransfer?.getData === 'function' ? dataTransfer.getData('text/html') : '';
+    if (html && /<img\b[^>]*\bsrc=["']https?:\/\//i.test(html)) return true;
+
+    const uri = typeof dataTransfer?.getData === 'function' ? dataTransfer.getData('text/uri-list').trim() : '';
+    if (uri && this.looksLikeSupportedImageUrl(uri)) return true;
+
+    const text = typeof dataTransfer?.getData === 'function' ? dataTransfer.getData('text/plain').trim() : '';
+    return !!text && this.looksLikeSupportedImageUrl(text);
+  }
+
+  private isRemoteUrl(url: string): boolean {
+    return /^https?:\/\//i.test(url.trim());
+  }
+
+  private looksLikeSupportedImageUrl(url: string): boolean {
+    try {
+      const parsedUrl = new URL(url);
+      return /\.(png|jpe?g|gif|webp|bmp)$/i.test(parsedUrl.pathname);
+    } catch {
+      return false;
+    }
+  }
+
   private fileFromDataUrl(dataUrl: string): File | null {
+    if (!dataUrl.startsWith('data:')) {
+      return null;
+    }
+
     const match = dataUrl.match(/^data:(image\/(?:png|jpeg|jpg|gif|webp|bmp));base64,(.+)$/i);
     if (!match) return null;
 
