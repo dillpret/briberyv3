@@ -163,6 +163,36 @@ describe('Submission', () => {
     expect(component.mediaDraftFor('p2')).toBeNull();
   });
 
+  it('does not inspect the clipboard during normal beforeinput typing', async () => {
+    const blob = new Blob(['image'], { type: 'image/gif' });
+    const read = vi.fn().mockResolvedValue([
+      {
+        types: ['image/gif'],
+        getType: vi.fn().mockResolvedValue(blob),
+      },
+    ]);
+    const originalClipboard = navigator.clipboard;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { read },
+    });
+
+    component.handleBeforeInput('p2', {
+      preventDefault: vi.fn(),
+      dataTransfer: null,
+    } as unknown as InputEvent);
+
+    await settleAsyncMediaSelection();
+
+    expect(read).not.toHaveBeenCalled();
+    expect(component.mediaDraftFor('p2')).toBeNull();
+
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: originalClipboard,
+    });
+  });
+
   it('detects image files with missing mime types by filename', async () => {
     const file = new File(['image'], 'keyboard.GIF', { type: '' });
 

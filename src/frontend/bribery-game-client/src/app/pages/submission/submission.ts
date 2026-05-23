@@ -163,7 +163,9 @@ export class Submission {
       return;
     }
 
-    void this.selectAsyncInsertedMedia(targetPlayerId, event.clipboardData, event.currentTarget);
+    void this.selectAsyncInsertedMedia(targetPlayerId, event.clipboardData, event.currentTarget, {
+      allowClipboardReadFallback: true,
+    });
   }
 
   handleBeforeInput(targetPlayerId: string, event: Event) {
@@ -177,7 +179,9 @@ export class Submission {
       return;
     }
 
-    void this.selectAsyncInsertedMedia(targetPlayerId, inputEvent.dataTransfer, event.currentTarget);
+    void this.selectAsyncInsertedMedia(targetPlayerId, inputEvent.dataTransfer, event.currentTarget, {
+      allowClipboardReadFallback: false,
+    });
   }
 
   handleDrop(targetPlayerId: string, event: DragEvent) {
@@ -287,10 +291,13 @@ export class Submission {
     targetPlayerId: string,
     dataTransfer: DataTransfer | null | undefined,
     eventTarget: EventTarget | null,
+    options: { allowClipboardReadFallback: boolean },
   ) {
     const file =
       await this.extractImageFileFromStringItems(dataTransfer) ??
-      (this.shouldReadClipboardFallback(dataTransfer) ? await this.extractImageFileFromClipboard() : null);
+      (options.allowClipboardReadFallback && this.shouldReadClipboardFallback(dataTransfer)
+        ? await this.extractImageFileFromClipboard()
+        : null);
 
     if (!file || this.mediaDraftFor(targetPlayerId)) return;
 
