@@ -512,14 +512,28 @@ public class Game
             .OrderBy(p => p.Id)
             .ToList();
 
+        var targetOffsets = GetTargetOffsets(activePlayers.Count);
+
         for (var i = 0; i < activePlayers.Count; i++)
         {
-            State.TargetAssignments[activePlayers[i].Id] =
-            [
-                activePlayers[(i + 1) % activePlayers.Count].Id,
-                activePlayers[(i + 2) % activePlayers.Count].Id
-            ];
+            State.TargetAssignments[activePlayers[i].Id] = targetOffsets
+                .Select(offset => activePlayers[(i + offset) % activePlayers.Count].Id)
+                .ToList();
         }
+    }
+
+    private List<int> GetTargetOffsets(int activePlayerCount)
+    {
+        var availableTargetCount = activePlayerCount - 1;
+        if (availableTargetCount <= 0)
+            return [];
+
+        var targetCount = Math.Min(TargetsPerPlayer, availableTargetCount);
+        var firstOffset = ((State.CurrentRound - 1) * targetCount) % availableTargetCount;
+
+        return Enumerable.Range(0, targetCount)
+            .Select(index => ((firstOffset + index) % availableTargetCount) + 1)
+            .ToList();
     }
 
     private bool AllActivePlayersSubmittedPrompts()

@@ -21,9 +21,48 @@ public class SubmissionPhaseTests
             Assert.DoesNotContain(state.Submission.Targets, target => target.PlayerId == player.Id);
             Assert.All(state.Submission.Targets, target => Assert.False(string.IsNullOrWhiteSpace(target.Prompt)));
         }
+    }
 
-        // WIP vs briefing: target assignment is currently deterministic ring assignment.
-        // It does not yet implement historical matchup rotation or rebalancing.
+    [Fact]
+    public void TargetAssignmentsRotateAcrossRoundsWhenFreshTargetsAreAvailable()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(5);
+        harness.SubmitPromptsForActivePlayers();
+        var firstRoundAssignments = CopyAssignments(harness.Game.State.TargetAssignments);
+
+        harness.SubmitAllAssignedBribes();
+        harness.SubmitAllVotes();
+        harness.SubmitAllAppreciationDone();
+        harness.Game.StartNextRound("c1");
+        harness.SubmitPromptsForActivePlayers();
+
+        foreach (var assignment in harness.Game.State.TargetAssignments)
+        {
+            Assert.Empty(assignment.Value.Intersect(firstRoundAssignments[assignment.Key]));
+        }
+    }
+
+    [Fact]
+    public void TargetAssignmentsAvoidRepeatingTheSameTargetSetWhenSomeRepeatsAreUnavoidable()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(4);
+        harness.SubmitPromptsForActivePlayers();
+        var firstRoundAssignments = CopyAssignments(harness.Game.State.TargetAssignments);
+
+        harness.SubmitAllAssignedBribes();
+        harness.SubmitAllVotes();
+        harness.SubmitAllAppreciationDone();
+        harness.Game.StartNextRound("c1");
+        harness.SubmitPromptsForActivePlayers();
+
+        foreach (var assignment in harness.Game.State.TargetAssignments)
+        {
+            Assert.NotEqual(
+                firstRoundAssignments[assignment.Key].Order().ToList(),
+                assignment.Value.Order().ToList());
+        }
     }
 
     [Fact]
@@ -153,5 +192,12 @@ public class SubmissionPhaseTests
         harness.SubmitAllAssignedBribes();
 
         Assert.Equal(GamePhase.Voting, harness.Game.State.Phase);
+    }
+
+    private static Dictionary<string, List<string>> CopyAssignments(Dictionary<string, List<string>> assignments)
+    {
+        return assignments.ToDictionary(
+            assignment => assignment.Key,
+            assignment => assignment.Value.ToList());
     }
 }
