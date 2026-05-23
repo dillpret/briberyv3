@@ -81,11 +81,11 @@ export class Prompt {
 
   waitingText(): string {
     const offlineBlockers = this.offlineBlockingPlayerNames();
-    if (offlineBlockers.length === 1) return `Waiting on ${offlineBlockers[0]}, who is offline.`;
-    if (offlineBlockers.length === 2) return `Waiting on ${offlineBlockers[0]} and ${offlineBlockers[1]}, who are offline.`;
-    if (offlineBlockers.length > 2) return `Waiting on ${offlineBlockers.length} offline players.`;
+    const pendingPlayers = this.connectedPendingPlayers();
+    const totalWaiting = pendingPlayers.length + offlineBlockers.length;
 
-    const pendingPlayers = this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
+    if (this.isWaitingOnlyForOfflinePlayers()) return this.offlineBlockerText();
+    if (offlineBlockers.length > 0) return `Waiting for ${totalWaiting} players.`;
     if (pendingPlayers.length === 0) return 'Waiting for the next phase.';
     if (pendingPlayers.length === 1) return `Waiting for ${pendingPlayers[0].name}.`;
     if (pendingPlayers.length === 2) return `Waiting for ${pendingPlayers[0].name} and ${pendingPlayers[1].name}.`;
@@ -102,6 +102,14 @@ export class Prompt {
     if (names.length === 1) return `Waiting on offline player: ${names[0]}.`;
     if (names.length === 2) return `Waiting on offline players: ${names[0]} and ${names[1]}.`;
     return `Waiting on ${names.length} offline players.`;
+  }
+
+  isWaitingOnlyForOfflinePlayers(): boolean {
+    return this.offlineBlockingPlayerNames().length > 0 && this.connectedPendingPlayers().length === 0;
+  }
+
+  private connectedPendingPlayers() {
+    return this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
   }
 
   private async loadPromptIdeas(): Promise<string[]> {

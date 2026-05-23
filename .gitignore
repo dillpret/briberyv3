@@ -97,3 +97,4 @@ docker-compose.override.yml
 *.temp
 *.swp
 *.bak
+*.lscache

@@ -6,6 +6,7 @@ import { GameStateService } from '../../state/game-state.service';
 describe('Submission', () => {
   let fixture: ComponentFixture<Submission>;
   let component: Submission;
+  let gameState: GameStateService;
   let signalr: Pick<SignalrService, 'submitBribe' | 'uploadBribeMedia' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
@@ -32,7 +33,7 @@ describe('Submission', () => {
       providers: [{ provide: SignalrService, useValue: signalr }],
     }).compileComponents();
 
-    const gameState = TestBed.inject(GameStateService);
+    gameState = TestBed.inject(GameStateService);
     gameState.setGameState({
       phase: 'Submission',
       currentPlayerId: 'p1',
@@ -390,6 +391,71 @@ describe('Submission', () => {
     expect(element.textContent).toContain("Each card is another player's prompt");
     expect(element.textContent).toContain('anonymous text, image, or GIF bribe');
     expect(element.textContent).toContain('Send a bribe to');
+  });
+
+  it('shows one phase-level waiting status and does not repeat it inside bribe cards', () => {
+    gameState.setGameState({
+      phase: 'Submission',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      bribeSubmittedCount: 1,
+      bribeRequiredCount: 4,
+      players: [
+        { id: 'p1', name: 'Host', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Done', phaseStatusLabel: 'Submitted' },
+        { id: 'p2', name: 'Alex', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Pending', phaseStatusLabel: 'Needs bribes' },
+        { id: 'p3', name: 'Blair', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Pending', phaseStatusLabel: 'Needs bribes' },
+      ],
+      offlineBlockingPlayerNames: ['Casey'],
+      submission: {
+        targets: [
+          { playerId: 'p2', name: 'Alex', prompt: 'A useful prompt' },
+          { playerId: 'p3', name: 'Blair', prompt: 'Another useful prompt' },
+        ],
+        submittedTargetPlayerIds: ['p2'],
+      },
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const text = element.textContent ?? '';
+
+    expect(component.waitingText()).toBe('Waiting for 3 players.');
+    expect(text.match(/Waiting for 3 players\./g)).toHaveLength(1);
+    expect(text).toContain('Your submitted bribes are tucked away safely.');
+    expect(text).toContain('Your bribe is tucked away safely.');
+    expect(text).not.toContain('Offline player blocking progress');
+    expect(text).not.toContain('Advance without offline players');
+  });
+
+  it('shows the host offline advance panel only when offline players are the only blockers', () => {
+    gameState.setGameState({
+      phase: 'Submission',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      bribeSubmittedCount: 1,
+      bribeRequiredCount: 2,
+      canHostAdvanceWithoutOfflinePlayers: true,
+      players: [
+        { id: 'p1', name: 'Host', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Done', phaseStatusLabel: 'Submitted' },
+      ],
+      offlineBlockingPlayerNames: ['Casey'],
+      submission: {
+        targets: [{ playerId: 'p2', name: 'Alex', prompt: 'A useful prompt' }],
+        submittedTargetPlayerIds: ['p2'],
+      },
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(component.waitingText()).toBe('Waiting on offline player: Casey.');
+    expect(element.textContent).toContain('Offline player blocking progress');
+    expect(element.textContent).toContain('Waiting on offline player: Casey.');
+    expect(element.textContent).toContain('Advance without offline players');
   });
 
   function submitBribeButton(): HTMLButtonElement {

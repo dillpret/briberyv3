@@ -17,9 +17,16 @@
         <div class="progress-fill" [style.width.%]="bribeProgressPercent()"></div>
       </div>
     </div>
+
+    @if (shouldShowPhaseWaitingStatus()) {
+      <div class="rounded-2xl border border-pine/20 bg-pine/8 px-3 py-2">
+        <p class="text-sm font-semibold text-pine">Your submitted bribes are tucked away safely.</p>
+        <p class="text-sm leading-6 text-ink/70">{{ waitingText() }}</p>
+      </div>
+    }
   </section>
 
-  @if (offlineBlockingPlayerNames().length > 0) {
+  @if (isWaitingOnlyForOfflinePlayers()) {
     <section class="soft-panel notice-panel space-y-3">
       <div class="space-y-1">
         <h2 class="text-lg font-semibold text-ink">Offline player blocking progress</h2>
@@ -76,9 +83,9 @@
           {{ target.prompt }}
         </blockquote>
 
-      @if (hasSubmitted(target.playerId)) {
-          <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely. {{ waitingText() }}</p>
-      } @else {
+        @if (hasSubmitted(target.playerId)) {
+          <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely.</p>
+        } @else {
           <div
             class="space-y-3 rounded-xl border border-dashed border-plum/35 bg-plum/8 p-3"
             tabindex="0"
@@ -133,7 +140,7 @@
           </div>
 
           <div class="flex items-center justify-between text-xs text-ink/60">
-            <span>{{ waitingText() }}</span>
+            <span>Write up to 500 characters, or add an image or GIF.</span>
             <span>{{ remainingCharacters(target.playerId) }} left</span>
           </div>
 
@@ -143,8 +150,8 @@
             class="primary-button">
             Submit bribe
           </button>
-      }
-    </section>
-  }
+        }
+      </section>
+    }
   }
 </main>

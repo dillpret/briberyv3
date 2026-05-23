@@ -123,6 +123,63 @@ describe('Prompt', () => {
     expect(element.querySelector('[aria-label="Give me an idea"]')).not.toBeNull();
   });
 
+  it('keeps offline copy hidden while connected players are still pending', () => {
+    gameState.setGameState({
+      phase: 'Prompt',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      promptRequiredCount: 4,
+      promptSubmittedCount: 1,
+      players: [
+        { id: 'p1', name: 'Host', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Done', phaseStatusLabel: 'Submitted' },
+        { id: 'p2', name: 'Alex', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Pending', phaseStatusLabel: 'Needs prompt' },
+        { id: 'p3', name: 'Blair', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Pending', phaseStatusLabel: 'Needs prompt' },
+      ],
+      offlineBlockingPlayerNames: ['Casey'],
+      prompt: { hasSubmittedPrompt: true },
+    });
+
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(component.waitingText()).toBe('Waiting for 3 players.');
+    expect(element.textContent).toContain('Waiting for 3 players.');
+    expect(element.textContent).not.toContain('Offline player blocking progress');
+    expect(element.textContent).not.toContain('Advance without offline players');
+  });
+
+  it('shows offline-only blocker messaging to normal players without the host action', () => {
+    gameState.setGameState({
+      phase: 'Prompt',
+      currentPlayerId: 'p2',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      promptRequiredCount: 2,
+      promptSubmittedCount: 1,
+      players: [
+        { id: 'p1', name: 'Host', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Done', phaseStatusLabel: 'Submitted' },
+        { id: 'p2', name: 'Alex', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Done', phaseStatusLabel: 'Submitted' },
+      ],
+      offlineBlockingPlayerNames: ['Casey'],
+      prompt: { hasSubmittedPrompt: true },
+    });
+
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(component.waitingText()).toBe('Waiting on offline player: Casey.');
+    expect(element.textContent).toContain('Offline player blocking progress');
+    expect(element.textContent).toContain('Waiting on offline player: Casey.');
+    expect(element.textContent).not.toContain('Advance without offline players');
+  });
+
   async function clickIdeaButton() {
     const button = fixture.nativeElement.querySelector(
       '[aria-label="Give me an idea"]',
