@@ -117,9 +117,11 @@ describe('Prompt', () => {
 
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.textContent).toContain('Write the thing other players will bribe you for');
-    expect(element.textContent).toContain('The idea button replaces your draft');
+    expect(element.textContent).toContain("A prompt can be a question, a challenge, or something simple like asking for everyone's best dad joke");
+    expect(element.textContent).toContain('Other players will answer it with anonymous bribes');
+    expect(element.textContent).toContain('Stuck? Use Give me an idea.');
     expect(element.textContent).toContain('Give me an idea');
+    expect(element.querySelector('textarea')?.getAttribute('placeholder')).toBe('Best excuse for being late');
     expect(element.querySelector('[aria-label="Give me an idea"]')).not.toBeNull();
   });
 

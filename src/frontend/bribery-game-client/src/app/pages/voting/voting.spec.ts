@@ -73,9 +73,9 @@ describe('Voting', () => {
   it('explains that voting picks the favourite bribe sent to your prompt', () => {
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.textContent).toContain('anonymous bribes were sent to win over your prompt');
-    expect(element.textContent).toContain('Choose the one that makes the best case');
-    expect(element.textContent).toContain('the player who sent it gets the big round payout');
+    expect(element.textContent).toContain('Pick your favourite bribe');
+    expect(element.textContent).toContain('These are anonymous answers to your prompt');
+    expect(element.textContent).toContain('Choose the one you like most');
   });
 
   it('shows the current player prompt while choosing a bribe', () => {
@@ -83,7 +83,7 @@ describe('Voting', () => {
 
     expect(element.textContent).toContain('Your prompt');
     expect(element.textContent).toContain('Convince me to pick your bribe');
-    expect(element.textContent).toContain("another player's anonymous attempt to answer this prompt");
+    expect(element.textContent).toContain('Pick the bribe you like most');
   });
 
   it('counts offline blockers without showing the offline advance panel while connected voters are pending', () => {

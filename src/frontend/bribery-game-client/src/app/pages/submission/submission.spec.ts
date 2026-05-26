@@ -435,9 +435,10 @@ describe('Submission', () => {
   it('explains anonymous bribes and recipient voting', () => {
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.textContent).toContain("Each card is another player's prompt");
-    expect(element.textContent).toContain('anonymous text, image, or GIF bribe');
-    expect(element.textContent).toContain('Send a bribe to');
+    expect(element.textContent).toContain("A bribe is your anonymous answer to another player's prompt");
+    expect(element.textContent).toContain('If they pick yours, you score.');
+    expect(element.textContent).toContain("Player 2's prompt");
+    expect(element.textContent).toContain('Write your bribe, paste a GIF, or add an image');
   });
 
   it('shows one phase-level waiting status and does not repeat it inside bribe cards', () => {
