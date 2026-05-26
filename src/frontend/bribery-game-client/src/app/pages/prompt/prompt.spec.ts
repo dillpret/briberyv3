@@ -85,6 +85,36 @@ describe('Prompt', () => {
     expect(component.promptText).toBe('Second idea');
   });
 
+  it('does not repeat the same idea twice in a row when another idea exists', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('First idea\nSecond idea')));
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    await clickIdeaButton();
+    expect(component.promptText).toBe('First idea');
+
+    await clickIdeaButton();
+    expect(component.promptText).toBe('Second idea');
+  });
+
+  it('prefetches and reuses the idea file across clicks', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response('First idea\nSecond idea'));
+    vi.stubGlobal('fetch', fetch);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    await clickIdeaButton();
+    await clickIdeaButton();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('ignores blank lines in the idea file', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('\n\nOnly idea\n\n')));
     vi.spyOn(Math, 'random').mockReturnValue(0.95);
@@ -96,6 +126,21 @@ describe('Prompt', () => {
     await clickIdeaButton();
 
     expect(component.promptText).toBe('Only idea');
+  });
+
+  it('ignores duplicate lines in the idea file', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('First idea\nFirst idea\nSecond idea')));
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    await clickIdeaButton();
+    expect(component.promptText).toBe('First idea');
+
+    await clickIdeaButton();
+    expect(component.promptText).toBe('Second idea');
   });
 
   it('leaves existing text untouched when the idea file cannot be loaded', async () => {

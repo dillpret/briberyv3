@@ -24,6 +24,8 @@ export class Prompt {
   promptText = '';
   currentPlayerId;
   private promptIdeas: string[] | null = null;
+  private promptIdeasRequest: Promise<string[]> | null = null;
+  private lastPromptIdea: string | null = null;
 
   constructor(
     private signalr: SignalrService,
@@ -41,6 +43,8 @@ export class Prompt {
     this.advanceWithoutOfflinePlayersBlockedReason = this.gameState.advanceWithoutOfflinePlayersBlockedReason;
     this.prompt = this.gameState.prompt;
     this.currentPlayerId = this.gameState.currentPlayerId;
+
+    void this.loadPromptIdeas();
   }
 
   async submitPrompt() {
@@ -51,8 +55,7 @@ export class Prompt {
     const ideas = await this.loadPromptIdeas();
     if (ideas.length === 0) return;
 
-    const randomIndex = Math.floor(Math.random() * ideas.length);
-    this.promptText = ideas[randomIndex];
+    this.promptText = this.pickPromptIdea(ideas);
     this.changeDetector.detectChanges();
   }
 
@@ -112,23 +115,41 @@ export class Prompt {
 
   private async loadPromptIdeas(): Promise<string[]> {
     if (this.promptIdeas !== null) return this.promptIdeas;
+    if (this.promptIdeasRequest !== null) return this.promptIdeasRequest;
 
+    this.promptIdeasRequest = this.fetchPromptIdeas();
+    return this.promptIdeasRequest;
+  }
+
+  private async fetchPromptIdeas(): Promise<string[]> {
     try {
       const response = await fetch('/prompt-ideas.txt');
       if (!response.ok) {
         this.promptIdeas = [];
+        this.promptIdeasRequest = null;
         return this.promptIdeas;
       }
 
       const text = await response.text();
-      this.promptIdeas = text
+      this.promptIdeas = Array.from(new Set(text
         .split(/\r?\n/)
         .map((idea) => idea.trim())
-        .filter((idea) => idea.length > 0);
+        .filter((idea) => idea.length > 0)));
       return this.promptIdeas;
     } catch {
-      this.promptIdeas = [];
-      return this.promptIdeas;
+      this.promptIdeasRequest = null;
+      return [];
     }
+  }
+
+  private pickPromptIdea(ideas: string[]): string {
+    const availableIdeas = ideas.length > 1
+      ? ideas.filter((idea) => idea !== this.lastPromptIdea)
+      : ideas;
+    const randomIndex = Math.floor(Math.random() * availableIdeas.length);
+    const selectedIdea = availableIdeas[randomIndex];
+
+    this.lastPromptIdea = selectedIdea;
+    return selectedIdea;
   }
 }
