@@ -182,9 +182,12 @@
 
   .mascot-waiting {
     @apply block h-auto w-full max-w-[10rem] shrink-0 object-contain sm:max-w-[12rem];
-    animation: mascot-rock 5.8s ease-in-out infinite;
     filter: url("#bribery-mascot-boil") drop-shadow(0 12px 18px rgb(46 27 3 / 0.18));
     transform-origin: 50% 82%;
+  }
+
+  .mascot-rocking {
+    animation: mascot-rock 5.8s ease-in-out infinite;
   }
 
   .waiting-mascot-layout {
@@ -341,7 +344,7 @@
 @media (prefers-reduced-motion: reduce) {
   .phase-shell,
   .brand-logo,
-  .mascot-waiting,
+  .mascot-rocking,
   .soft-panel::after,
   .soft-card::after,
   .progress-fill {
