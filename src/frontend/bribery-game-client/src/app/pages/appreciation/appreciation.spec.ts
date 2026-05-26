@@ -75,10 +75,11 @@ describe('Appreciation', () => {
 
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     const selectedCoin = buttons.find((button) => button.textContent?.includes('Coin given'));
-    const disabledCoin = buttons.find((button) => button.textContent?.includes('+🪙') && button.disabled);
+    const disabledCoin = buttons.find((button) => button.getAttribute('aria-label') === 'Give coin' && button.disabled);
 
     expect(selectedCoin?.getAttribute('aria-pressed')).toBe('true');
     expect(disabledCoin).toBeTruthy();
+    expect(disabledCoin?.querySelector('img')?.getAttribute('src')).toBe('/brand/coin.png');
     expect(fixture.nativeElement.textContent).toContain('You cannot award a coin to your own bribe');
   });
 

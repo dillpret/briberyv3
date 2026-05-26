@@ -93,7 +93,7 @@ export class Appreciation {
   }
 
   coinButtonLabel(result: RoundResult): string {
-    return result.hasCurrentPlayerAwardedCoin ? 'Coin given' : '+🪙';
+    return result.hasCurrentPlayerAwardedCoin ? 'Coin given' : 'Give coin';
   }
 
   waitingText(): string {
