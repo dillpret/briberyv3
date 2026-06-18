@@ -58,11 +58,11 @@ describe('App', () => {
 
     await router.navigate([], { queryParams: { help: 'instructions' } });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Submit "bribes" according to prompts FROM other players');
+    expect(fixture.nativeElement.textContent).toContain('Write a prompt for other players');
 
     await router.navigate([], { queryParams: { help: null }, queryParamsHandling: 'merge' });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Submit "bribes" according to prompts FROM other players');
+    expect(fixture.nativeElement.textContent).not.toContain('Write a prompt for other players');
   });
 
   it('marks the splash as seen when query state leaves the splash modal', async () => {

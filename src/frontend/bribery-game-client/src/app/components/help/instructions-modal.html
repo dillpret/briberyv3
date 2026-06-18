@@ -1,27 +1,7 @@
 <app-help-overlay title="How to play" (closeOverlay)="close()">
-  <div class="space-y-5 p-5 sm:p-6">
-    <div class="hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
-      @for (step of steps; track step.text; let index = $index) {
-        <article class="nested-panel border-pine/20 bg-surface/70">
-          <div class="flex items-center gap-3">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-sun text-sm font-black text-ink">
-              {{ index + 1 }}
-            </span>
-            <img
-              [src]="step.image"
-              alt=""
-              aria-hidden="true"
-              class="h-14 w-14 shrink-0 object-contain"
-              [class.mascot-rocking]="index === 5" />
-          </div>
-          <p class="text-lg font-black leading-snug text-ink">{{ step.text }}</p>
-        </article>
-      }
-    </div>
-
-    <div class="space-y-4 sm:hidden">
+  <div class="mx-auto max-w-2xl space-y-4 p-5 sm:p-7">
       @if (steps[currentStep()]; as step) {
-        <article class="nested-panel min-h-[19rem] border-pine/20 bg-surface/70 text-center">
+        <article class="nested-panel flex min-h-[19rem] flex-col items-center justify-center border-pine/20 bg-surface/70 text-center sm:min-h-[23rem] sm:px-8">
           <span class="status-pill mx-auto border-sun bg-sun text-ink">
             Step {{ currentStep() + 1 }} of {{ steps.length }}
           </span>
@@ -29,9 +9,9 @@
             [src]="step.image"
             alt=""
             aria-hidden="true"
-            class="mascot-waiting mx-auto max-h-28 object-contain"
-            [class.mascot-rocking]="currentStep() === 5" />
-          <p class="text-2xl font-black leading-tight text-ink">{{ step.text }}</p>
+            class="mascot-waiting mx-auto max-h-28 object-contain sm:max-h-36"
+            [class.mascot-rocking]="currentStep() >= 4" />
+          <p class="text-2xl font-black leading-tight text-ink sm:text-3xl">{{ step.text }}</p>
         </article>
       }
 
@@ -65,6 +45,5 @@
           </button>
         }
       </div>
-    </div>
   </div>
 </app-help-overlay>

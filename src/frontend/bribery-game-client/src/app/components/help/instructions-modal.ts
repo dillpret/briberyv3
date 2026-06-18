@@ -21,7 +21,7 @@ export class InstructionsModal {
     { text: 'Submit "bribes" according to prompts FROM other players', image: '/brand/writing.gif' },
     { text: 'See bribes sent to you and pick a winner', image: '/brand/choosing.gif' },
     { text: 'Enjoy all the winning bribes for all players that round, and award bonus points to your favourites', image: '/brand/getCoin.gif' },
-    { text: 'See who is winning on the points scoreboard', image: '/brand/coin.png' },
+    { text: 'See who is winning on the points scoreboard', image: '/brand/bribery-mascot.png' },
     { text: 'Start a new round', image: '/brand/bribery-mascot.png' },
   ];
 
