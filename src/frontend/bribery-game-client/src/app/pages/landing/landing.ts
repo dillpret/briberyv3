@@ -1,17 +1,19 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SignalrService } from '../../core/signalr.service';
 import { CommonModule } from '@angular/common';
 import { buildInfo } from '../../build-info.generated';
 import { ErrorMessageService } from '../../core/error-message.service';
+import { HelpModalService } from '../../components/help/help-modal.service';
+import { SplashService } from '../../components/help/splash.service';
 
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './landing.html',
 })
-export class Landing {
+export class Landing implements AfterViewInit {
   name = localStorage.getItem('playerName') ?? '';
   gameId = localStorage.getItem('gameId') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
@@ -22,8 +24,18 @@ export class Landing {
     private signalr: SignalrService,
     private router: Router,
     private errors: ErrorMessageService,
+    private helpModal: HelpModalService,
+    private splash: SplashService,
   ) {
     localStorage.setItem('playerId', this.playerId);
+  }
+
+  ngAfterViewInit() {
+    this.splash.showFirstVisitSplash();
+  }
+
+  openSplash() {
+    this.helpModal.open('splash');
   }
 
   async createGame() {

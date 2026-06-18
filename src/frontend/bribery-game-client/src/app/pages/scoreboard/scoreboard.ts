@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService, RoundScore } from '../../state/game-state.service';
+import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 
 @Component({
   selector: 'app-scoreboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, WaitingTips],
   templateUrl: './scoreboard.html',
 })
 export class Scoreboard {

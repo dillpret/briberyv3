@@ -1,0 +1,25 @@
+<app-help-overlay title="Welcome to Bribery!" panelClass="max-w-3xl" (closeOverlay)="close()">
+  <div class="grid gap-5 p-5 sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
+    <div class="space-y-4">
+      <img
+        src="/brand/bribery-logo.png"
+        alt="Bribery"
+        class="brand-logo mx-auto max-w-[20rem] sm:mx-0" />
+
+      <div class="space-y-3 text-center sm:text-left">
+        <h3 class="text-3xl font-black leading-tight text-ink sm:text-4xl">{{ lines[0] }}</h3>
+        <p class="text-xl font-black leading-snug text-pine">{{ lines[1] }}</p>
+        <p class="text-base font-semibold leading-7 text-ink/75">{{ lines[2] }}</p>
+        <p class="rounded-[var(--radius-nested)] border-2 border-sun/65 bg-sun/15 p-4 text-base font-semibold leading-7 text-ink">
+          {{ lines[3] }}
+        </p>
+      </div>
+    </div>
+
+    <img
+      src="/brand/bribery-mascot.png"
+      alt=""
+      aria-hidden="true"
+      class="mascot-waiting mascot-rocking mx-auto hidden max-w-[9rem] sm:block sm:max-w-[12rem]" />
+  </div>
+</app-help-overlay>

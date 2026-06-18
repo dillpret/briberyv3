@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Submission } from './submission';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { WaitingTipsService } from '../../components/waiting-tips/waiting-tips.service';
 
 describe('Submission', () => {
   let fixture: ComponentFixture<Submission>;
@@ -30,7 +32,10 @@ describe('Submission', () => {
 
     await TestBed.configureTestingModule({
       imports: [Submission],
-      providers: [{ provide: SignalrService, useValue: signalr }],
+      providers: [
+        { provide: SignalrService, useValue: signalr },
+        { provide: WaitingTipsService, useValue: { currentTip: signal('Submission waiting tip') } },
+      ],
     }).compileComponents();
 
     gameState = TestBed.inject(GameStateService);
@@ -471,6 +476,7 @@ describe('Submission', () => {
 
     expect(component.waitingText()).toBe('Waiting for 3 players.');
     expect(text.match(/Waiting for 3 players\./g)).toHaveLength(1);
+    expect(text).toContain('Submission waiting tip');
     expect(text).toContain('Your submitted bribes are tucked away safely.');
     expect(text).toContain('Your bribe is tucked away safely.');
     expect(text).not.toContain('Offline player blocking progress');

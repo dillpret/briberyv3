@@ -1,0 +1,70 @@
+<app-help-overlay title="How to play" (closeOverlay)="close()">
+  <div class="space-y-5 p-5 sm:p-6">
+    <div class="hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+      @for (step of steps; track step.text; let index = $index) {
+        <article class="nested-panel border-pine/20 bg-surface/70">
+          <div class="flex items-center gap-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-sun text-sm font-black text-ink">
+              {{ index + 1 }}
+            </span>
+            <img
+              [src]="step.image"
+              alt=""
+              aria-hidden="true"
+              class="h-14 w-14 shrink-0 object-contain"
+              [class.mascot-rocking]="index === 5" />
+          </div>
+          <p class="text-lg font-black leading-snug text-ink">{{ step.text }}</p>
+        </article>
+      }
+    </div>
+
+    <div class="space-y-4 sm:hidden">
+      @if (steps[currentStep()]; as step) {
+        <article class="nested-panel min-h-[19rem] border-pine/20 bg-surface/70 text-center">
+          <span class="status-pill mx-auto border-sun bg-sun text-ink">
+            Step {{ currentStep() + 1 }} of {{ steps.length }}
+          </span>
+          <img
+            [src]="step.image"
+            alt=""
+            aria-hidden="true"
+            class="mascot-waiting mx-auto max-h-28 object-contain"
+            [class.mascot-rocking]="currentStep() === 5" />
+          <p class="text-2xl font-black leading-tight text-ink">{{ step.text }}</p>
+        </article>
+      }
+
+      <div class="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          class="secondary-button py-2"
+          [disabled]="currentStep() === 0"
+          (click)="previousStep()">
+          Previous
+        </button>
+        <button
+          type="button"
+          class="primary-button py-2"
+          [disabled]="currentStep() === steps.length - 1"
+          (click)="nextStep()">
+          Next
+        </button>
+      </div>
+
+      <div class="flex justify-center gap-2" aria-label="Instruction steps">
+        @for (step of steps; track step.text; let index = $index) {
+          <button
+            type="button"
+            class="h-3 w-3 rounded-full border border-ink/25"
+            [class.bg-pine]="index === currentStep()"
+            [class.bg-surface]="index !== currentStep()"
+            [attr.aria-label]="'Show step ' + (index + 1)"
+            [attr.aria-current]="index === currentStep() ? 'step' : null"
+            (click)="setStep(index)">
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</app-help-overlay>

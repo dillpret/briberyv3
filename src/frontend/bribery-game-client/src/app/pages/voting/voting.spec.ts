@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Voting } from './voting';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { WaitingTipsService } from '../../components/waiting-tips/waiting-tips.service';
 
 describe('Voting', () => {
   let fixture: ComponentFixture<Voting>;
@@ -17,7 +19,10 @@ describe('Voting', () => {
 
     await TestBed.configureTestingModule({
       imports: [Voting],
-      providers: [{ provide: SignalrService, useValue: signalr }],
+      providers: [
+        { provide: SignalrService, useValue: signalr },
+        { provide: WaitingTipsService, useValue: { currentTip: signal('Voting waiting tip') } },
+      ],
     }).compileComponents();
 
     gameState = TestBed.inject(GameStateService);
@@ -113,6 +118,7 @@ describe('Voting', () => {
 
     expect(component.waitingText()).toBe('Waiting for 3 players.');
     expect(element.textContent).toContain('Waiting for 3 players.');
+    expect(element.textContent).toContain('Voting waiting tip');
     expect(element.textContent).not.toContain('Offline player blocking progress');
     expect(element.textContent).not.toContain('Advance without offline players');
   });

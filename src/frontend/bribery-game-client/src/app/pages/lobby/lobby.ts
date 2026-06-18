@@ -2,11 +2,12 @@ import { Component, Input } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
 import { CommonModule } from '@angular/common';
+import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 
 @Component({
   selector: 'app-lobby',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, WaitingTips],
   templateUrl: './lobby.html',
 })
 export class Lobby {

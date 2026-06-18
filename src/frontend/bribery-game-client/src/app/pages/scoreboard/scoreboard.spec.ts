@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Scoreboard } from './scoreboard';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { WaitingTipsService } from '../../components/waiting-tips/waiting-tips.service';
 
 describe('Scoreboard', () => {
   let fixture: ComponentFixture<Scoreboard>;
@@ -14,6 +16,9 @@ describe('Scoreboard', () => {
       providers: [{
         provide: SignalrService,
         useValue: { startNextRound: vi.fn().mockResolvedValue(undefined) },
+      }, {
+        provide: WaitingTipsService,
+        useValue: { currentTip: signal('Scoreboard waiting tip') },
       }],
     }).compileComponents();
 

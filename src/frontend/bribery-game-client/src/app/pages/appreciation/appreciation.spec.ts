@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Appreciation } from './appreciation';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { WaitingTipsService } from '../../components/waiting-tips/waiting-tips.service';
 
 describe('Appreciation', () => {
   let fixture: ComponentFixture<Appreciation>;
@@ -18,7 +20,10 @@ describe('Appreciation', () => {
 
     await TestBed.configureTestingModule({
       imports: [Appreciation],
-      providers: [{ provide: SignalrService, useValue: signalr }],
+      providers: [
+        { provide: SignalrService, useValue: signalr },
+        { provide: WaitingTipsService, useValue: { currentTip: signal('Appreciation waiting tip') } },
+      ],
     }).compileComponents();
 
     gameState = TestBed.inject(GameStateService);
@@ -96,6 +101,7 @@ describe('Appreciation', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Appreciation done');
+    expect(fixture.nativeElement.textContent).toContain('Appreciation waiting tip');
   });
 });
 

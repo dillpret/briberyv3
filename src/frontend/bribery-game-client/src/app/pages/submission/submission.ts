@@ -3,11 +3,12 @@ import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService, SubmissionTarget } from '../../state/game-state.service';
+import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 
 @Component({
   selector: 'app-submission',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WaitingTips],
   templateUrl: './submission.html',
 })
 export class Submission {

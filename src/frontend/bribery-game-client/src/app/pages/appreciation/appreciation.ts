@@ -3,11 +3,12 @@ import { Component } from '@angular/core';
 import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService, RoundResult } from '../../state/game-state.service';
+import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 
 @Component({
   selector: 'app-appreciation',
   standalone: true,
-  imports: [CommonModule, BribeDisplay],
+  imports: [CommonModule, BribeDisplay, WaitingTips],
   templateUrl: './appreciation.html',
 })
 export class Appreciation {

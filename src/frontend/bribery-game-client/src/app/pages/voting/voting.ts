@@ -3,11 +3,12 @@ import { Component, signal } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
 import { BribeDisplay } from '../../components/bribe-display/bribe-display';
+import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 
 @Component({
   selector: 'app-voting',
   standalone: true,
-  imports: [CommonModule, BribeDisplay],
+  imports: [CommonModule, BribeDisplay, WaitingTips],
   templateUrl: './voting.html',
 })
 export class Voting {

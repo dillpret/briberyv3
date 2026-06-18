@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { WaitingTipsService } from '../../components/waiting-tips/waiting-tips.service';
 
 import { Lobby } from './lobby';
 
@@ -19,7 +21,10 @@ describe('Lobby', () => {
 
     await TestBed.configureTestingModule({
       imports: [Lobby],
-      providers: [{ provide: SignalrService, useValue: signalr }],
+      providers: [
+        { provide: SignalrService, useValue: signalr },
+        { provide: WaitingTipsService, useValue: { currentTip: signal('Lobby waiting tip') } },
+      ],
     }).compileComponents();
 
     const gameState = TestBed.inject(GameStateService);
@@ -69,6 +74,7 @@ describe('Lobby', () => {
     expect(component.isCurrentPlayerReady()).toBe(true);
     expect(element.textContent).toContain('I need a moment');
     expect(element.textContent).toContain('Start game');
+    expect(element.textContent).toContain('Lobby waiting tip');
   });
 
   it('renders waiting copy for non-host players', () => {

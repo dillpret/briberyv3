@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Prompt } from './prompt';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { WaitingTipsService } from '../../components/waiting-tips/waiting-tips.service';
 
 describe('Prompt', () => {
   let fixture: ComponentFixture<Prompt>;
@@ -19,7 +21,10 @@ describe('Prompt', () => {
 
     await TestBed.configureTestingModule({
       imports: [Prompt],
-      providers: [{ provide: SignalrService, useValue: signalr }],
+      providers: [
+        { provide: SignalrService, useValue: signalr },
+        { provide: WaitingTipsService, useValue: { currentTip: signal('Use a tip while waiting') } },
+      ],
     }).compileComponents();
 
     gameState = TestBed.inject(GameStateService);
@@ -195,6 +200,7 @@ describe('Prompt', () => {
 
     expect(component.waitingText()).toBe('Waiting for 3 players.');
     expect(element.textContent).toContain('Waiting for 3 players.');
+    expect(element.textContent).toContain('Use a tip while waiting');
     expect(element.textContent).not.toContain('Offline player blocking progress');
     expect(element.textContent).not.toContain('Advance without offline players');
   });

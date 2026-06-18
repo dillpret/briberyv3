@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { SignalrService } from '../../core/signalr.service';
+import { HelpModalService } from '../../components/help/help-modal.service';
+import { SplashService } from '../../components/help/splash.service';
 
 import { Landing } from './landing';
 
@@ -9,6 +11,8 @@ describe('Landing', () => {
   let fixture: ComponentFixture<Landing>;
   let router: Pick<Router, 'navigate'>;
   let signalr: Pick<SignalrService, 'createGame'>;
+  let helpModal: Pick<HelpModalService, 'open'>;
+  let splash: Pick<SplashService, 'showFirstVisitSplash'>;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -18,18 +22,30 @@ describe('Landing', () => {
     signalr = {
       createGame: vi.fn().mockResolvedValue('ab12'),
     };
+    helpModal = {
+      open: vi.fn(),
+    };
+    splash = {
+      showFirstVisitSplash: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [Landing],
       providers: [
         { provide: Router, useValue: router },
         { provide: SignalrService, useValue: signalr },
+        { provide: HelpModalService, useValue: helpModal },
+        { provide: SplashService, useValue: splash },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Landing);
     component = fixture.componentInstance;
     await fixture.whenStable();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should create', () => {
@@ -78,5 +94,22 @@ describe('Landing', () => {
 
     const element = fixture.nativeElement as HTMLElement;
     expect(element.textContent).toContain('local build local');
+  });
+
+  it('auto-opens the splash for first-time visitors', () => {
+    fixture.detectChanges();
+
+    expect(splash.showFirstVisitSplash).toHaveBeenCalled();
+  });
+
+  it('opens the splash from the landing about button', () => {
+    fixture.detectChanges();
+
+    const aboutButton = fixture.nativeElement.querySelector(
+      '[aria-label="Open Bribery introduction"]',
+    ) as HTMLButtonElement;
+    aboutButton.click();
+
+    expect(helpModal.open).toHaveBeenCalledWith('splash');
   });
 });

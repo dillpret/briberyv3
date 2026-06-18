@@ -1,9 +1,16 @@
 <main class="phase-shell justify-center">
-  <section class="text-center">
+  <section class="space-y-3 text-center">
     <img
       src="/brand/bribery-logo.png"
       alt="Bribery"
       class="brand-logo mx-auto" />
+    <button
+      type="button"
+      class="idea-button mx-auto"
+      aria-label="Open Bribery introduction"
+      (click)="openSplash()">
+      About Bribery
+    </button>
   </section>
 
   @if (errorMessage) {
