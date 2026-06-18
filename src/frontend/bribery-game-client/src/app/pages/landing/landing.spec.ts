@@ -112,4 +112,12 @@ describe('Landing', () => {
 
     expect(helpModal.open).toHaveBeenCalledWith('splash');
   });
+
+  it('keeps the about action outside the primary logo group', () => {
+    fixture.detectChanges();
+
+    const firstSection = fixture.nativeElement.querySelector('main > section:first-child') as HTMLElement;
+
+    expect(firstSection.textContent).not.toContain('About Bribery');
+  });
 });

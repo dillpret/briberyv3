@@ -25,7 +25,9 @@ export class InstructionsModal {
     { text: 'Start a new round', image: '/brand/bribery-mascot.png' },
   ];
 
-  constructor(private helpModal: HelpModalService) {}
+  constructor(private helpModal: HelpModalService) {
+    this.preloadImages(this.steps.map((step) => step.image));
+  }
 
   close() {
     this.helpModal.close();
@@ -41,5 +43,14 @@ export class InstructionsModal {
 
   setStep(step: number) {
     this.currentStep.set(step);
+  }
+
+  private preloadImages(sources: string[]) {
+    if (typeof Image === 'undefined') return;
+
+    for (const source of Array.from(new Set(sources))) {
+      const image = new Image();
+      image.src = source;
+    }
   }
 }

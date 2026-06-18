@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, Output, ViewChild } from '@angular/core';
+import { ScrollLockService } from '../../core/scroll-lock.service';
 
 @Component({
   selector: 'app-help-overlay',
@@ -24,12 +25,17 @@ export class HelpOverlay implements AfterViewInit, OnDestroy {
     '[tabindex]:not([tabindex="-1"])',
   ].join(',');
 
+  constructor(private scrollLock: ScrollLockService) {}
+
   ngAfterViewInit() {
     this.previousFocus = document.activeElement;
+    this.scrollLock.lock();
     window.setTimeout(() => this.closeButton?.nativeElement.focus(), 0);
   }
 
   ngOnDestroy() {
+    this.scrollLock.unlock();
+
     if (this.previousFocus instanceof HTMLElement) {
       this.previousFocus.focus();
     }

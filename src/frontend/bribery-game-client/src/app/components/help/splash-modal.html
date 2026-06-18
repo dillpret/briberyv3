@@ -1,16 +1,18 @@
 <app-help-overlay title="Welcome to Bribery!" panelClass="max-w-3xl" (closeOverlay)="close()">
-  <div class="p-5 sm:p-7">
-    <div class="mx-auto max-w-2xl space-y-5 text-center">
+  <div class="p-4 sm:p-6">
+    <div class="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center sm:gap-5">
       <img
         src="/brand/bribery-logo.png"
         alt="Bribery"
-        class="brand-logo mx-auto max-w-[20rem] sm:max-w-[25rem]" />
+        width="400"
+        height="180"
+        class="block h-auto max-h-28 w-full max-w-[18rem] object-contain sm:max-h-32 sm:max-w-[22rem]" />
 
-      <div class="space-y-3">
-        <h3 class="text-3xl font-black leading-tight text-ink sm:text-4xl">{{ lines[0] }}</h3>
-        <p class="text-xl font-black leading-snug text-pine">{{ lines[1] }}</p>
+      <div class="space-y-2 sm:space-y-3">
+        <h3 class="text-2xl font-black leading-tight text-ink sm:text-4xl">{{ lines[0] }}</h3>
+        <p class="text-lg font-black leading-snug text-pine sm:text-xl">{{ lines[1] }}</p>
         <p class="text-base font-semibold leading-7 text-ink/75">{{ lines[2] }}</p>
-        <p class="rounded-[var(--radius-nested)] border-2 border-sun/65 bg-sun/15 p-4 text-base font-semibold leading-7 text-ink sm:px-6">
+        <p class="rounded-[var(--radius-nested)] border-2 border-sun/65 bg-sun/15 p-4 text-sm font-semibold leading-6 text-ink sm:px-6 sm:text-base sm:leading-7">
           {{ lines[3] }}
         </p>
       </div>

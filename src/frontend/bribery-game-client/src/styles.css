@@ -219,6 +219,22 @@
     z-index: 1;
   }
 
+  .help-dialog-panel {
+    max-height: calc(100dvh - 1.5rem);
+  }
+
+  .help-dialog-panel::after {
+    animation: none;
+    filter: none;
+  }
+
+  .help-dialog-panel .brand-logo,
+  .help-dialog-panel .mascot-waiting,
+  .help-dialog-panel .mascot-rocking {
+    animation: none;
+    filter: none;
+  }
+
   .soft-card:hover {
     @apply border-pine/35 bg-surface/95 shadow-[0_14px_26px_rgb(40_89_67_/_0.18)];
   }

@@ -21,7 +21,12 @@ export class SplashModal {
   constructor(
     private helpModal: HelpModalService,
     private splash: SplashService,
-  ) {}
+  ) {
+    if (typeof Image !== 'undefined') {
+      const logo = new Image();
+      logo.src = '/brand/bribery-logo.png';
+    }
+  }
 
   close() {
     this.splash.markSeen();

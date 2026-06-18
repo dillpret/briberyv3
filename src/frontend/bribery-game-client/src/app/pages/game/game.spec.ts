@@ -3,12 +3,14 @@ import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { Game } from './game';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
+import { SplashService } from '../../components/help/splash.service';
 
 describe('Game', () => {
   let fixture: ComponentFixture<Game>;
   let component: Game;
   let signalr: Pick<SignalrService, 'start' | 'joinLobby'>;
   let router: Pick<Router, 'navigate'>;
+  let splash: Pick<SplashService, 'showFirstVisitSplash'>;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -22,12 +24,16 @@ describe('Game', () => {
     router = {
       navigate: vi.fn(),
     };
+    splash = {
+      showFirstVisitSplash: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [Game],
       providers: [
         { provide: SignalrService, useValue: signalr },
         { provide: Router, useValue: router },
+        { provide: SplashService, useValue: splash },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -38,6 +44,20 @@ describe('Game', () => {
         },
       ],
     }).compileComponents();
+  });
+
+  it('does not block a first-time game link with the splash', async () => {
+    localStorage.removeItem('playerName');
+    vi.mocked(signalr.joinLobby).mockResolvedValue(undefined);
+
+    fixture = TestBed.createComponent(Game);
+    component = fixture.componentInstance;
+    await component.ngOnInit();
+    fixture.detectChanges();
+
+    expect(component.joinState()).toBe('needs-name');
+    expect(splash.showFirstVisitSplash).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Choose a name');
   });
 
   it('shows join failures inline so the player can choose another name', async () => {

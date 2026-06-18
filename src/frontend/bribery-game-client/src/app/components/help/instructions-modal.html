@@ -1,17 +1,20 @@
 <app-help-overlay title="How to play" (closeOverlay)="close()">
-  <div class="mx-auto max-w-2xl space-y-4 p-5 sm:p-7">
+  <div class="mx-auto grid w-full max-w-2xl grid-rows-[1fr_auto_auto] gap-3 p-4 sm:gap-4 sm:p-6">
       @if (steps[currentStep()]; as step) {
-        <article class="nested-panel flex min-h-[19rem] flex-col items-center justify-center border-pine/20 bg-surface/70 text-center sm:min-h-[23rem] sm:px-8">
-          <span class="status-pill mx-auto border-sun bg-sun text-ink">
+        <article class="nested-panel grid h-[19rem] grid-rows-[1.75rem_6rem_7rem] place-items-center content-center gap-3 border-pine/20 bg-surface/70 text-center sm:h-[23rem] sm:grid-rows-[2rem_8rem_7rem] sm:gap-4 sm:px-8">
+          <span class="status-pill border-sun bg-sun text-ink">
             Step {{ currentStep() + 1 }} of {{ steps.length }}
           </span>
-          <img
-            [src]="step.image"
-            alt=""
-            aria-hidden="true"
-            class="mascot-waiting mx-auto max-h-28 object-contain sm:max-h-36"
-            [class.mascot-rocking]="currentStep() >= 4" />
-          <p class="text-2xl font-black leading-tight text-ink sm:text-3xl">{{ step.text }}</p>
+          <div class="flex h-24 w-40 items-center justify-center sm:h-32 sm:w-48">
+            <img
+              [src]="step.image"
+              alt=""
+              aria-hidden="true"
+              width="192"
+              height="128"
+              class="h-full w-full object-contain" />
+          </div>
+          <p class="flex h-28 w-full items-center justify-center overflow-hidden text-2xl font-black leading-tight text-ink sm:text-3xl">{{ step.text }}</p>
         </article>
       }
 

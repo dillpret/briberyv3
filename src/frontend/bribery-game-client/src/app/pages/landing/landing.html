@@ -1,16 +1,9 @@
 <main class="phase-shell justify-center">
-  <section class="space-y-3 text-center">
+  <section class="text-center">
     <img
       src="/brand/bribery-logo.png"
       alt="Bribery"
       class="brand-logo mx-auto" />
-    <button
-      type="button"
-      class="idea-button mx-auto"
-      aria-label="Open Bribery introduction"
-      (click)="openSplash()">
-      About Bribery
-    </button>
   </section>
 
   @if (errorMessage) {
@@ -73,6 +66,14 @@
       </section>
     </div>
   </section>
+
+  <button
+    type="button"
+    class="mx-auto -mt-2 text-sm font-black text-plum underline decoration-plum/35 underline-offset-4 transition hover:text-ink"
+    aria-label="Open Bribery introduction"
+    (click)="openSplash()">
+    About Bribery
+  </button>
 
   <p class="mx-auto max-w-md text-center text-xs font-semibold leading-snug text-ink/60">
     Please send any feedback, suggestions, or feature requests to

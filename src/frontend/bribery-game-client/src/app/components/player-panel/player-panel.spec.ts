@@ -9,6 +9,8 @@ describe('PlayerPanel', () => {
   beforeEach(async () => {
     localStorage.clear();
     localStorage.setItem('playerId', 'stale-player-id');
+    document.body.removeAttribute('style');
+    document.documentElement.removeAttribute('style');
 
     await TestBed.configureTestingModule({
       imports: [PlayerPanel],
@@ -34,6 +36,8 @@ describe('PlayerPanel', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    document.body.removeAttribute('style');
+    document.documentElement.removeAttribute('style');
   });
 
   it('sorts the current player first and then other players by name', () => {
@@ -75,6 +79,23 @@ describe('PlayerPanel', () => {
 
     expect(component.isOpen()).toBe(false);
     expect(back).toHaveBeenCalled();
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('locks page scroll while the mobile panel is open', () => {
+    component.openMobilePanel();
+    fixture.detectChanges();
+
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body.style.position).toBe('fixed');
+
+    component.closeMobilePanel();
+    fixture.detectChanges();
+
+    expect(document.documentElement.style.overflow).toBe('');
+    expect(document.body.style.overflow).toBe('');
+    expect(document.body.style.position).toBe('');
   });
 
   it('closes the mobile panel when browser back is pressed', () => {
