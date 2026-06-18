@@ -3,6 +3,7 @@
   role="presentation"
   (click)="closeOverlay.emit()">
   <section
+    #dialogPanel
     class="soft-panel max-h-[calc(100vh-2.5rem)] w-full max-w-4xl overflow-auto !bg-surface p-0 shadow-2xl shadow-ink/25"
     [ngClass]="panelClass"
     role="dialog"

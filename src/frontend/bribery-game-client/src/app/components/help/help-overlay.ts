@@ -11,9 +11,18 @@ export class HelpOverlay implements AfterViewInit, OnDestroy {
   @Input({ required: true }) title = '';
   @Input() panelClass = '';
   @Output() closeOverlay = new EventEmitter<void>();
+  @ViewChild('dialogPanel') dialogPanel?: ElementRef<HTMLElement>;
   @ViewChild('closeButton') closeButton?: ElementRef<HTMLButtonElement>;
 
   private previousFocus: Element | null = null;
+  private readonly focusableSelector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
 
   ngAfterViewInit() {
     this.previousFocus = document.activeElement;
@@ -26,8 +35,44 @@ export class HelpOverlay implements AfterViewInit, OnDestroy {
     }
   }
 
-  @HostListener('document:keydown.escape')
-  closeFromEscape() {
-    this.closeOverlay.emit();
+  @HostListener('document:keydown', ['$event'])
+  handleKeydown(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+
+    if (keyboardEvent.key === 'Escape') {
+      this.closeOverlay.emit();
+      return;
+    }
+
+    if (keyboardEvent.key !== 'Tab') return;
+
+    const focusableElements = this.focusableElements();
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement = document.activeElement;
+
+    if (!this.dialogPanel?.nativeElement.contains(activeElement)) {
+      event.preventDefault();
+      firstElement.focus();
+      return;
+    }
+
+    if (keyboardEvent.shiftKey && activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+      return;
+    }
+
+    if (!keyboardEvent.shiftKey && activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  }
+
+  private focusableElements(): HTMLElement[] {
+    return Array.from(this.dialogPanel?.nativeElement.querySelectorAll<HTMLElement>(this.focusableSelector) ?? [])
+      .filter((element) => element.getAttribute('aria-hidden') !== 'true');
   }
 }

@@ -51,6 +51,45 @@ describe('App', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Write a prompt for other players');
   });
 
+  it('hides the global instructions button while a help modal is open', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[aria-label="Open how to play instructions"]')).not.toBeNull();
+
+    const button = fixture.nativeElement.querySelector(
+      '[aria-label="Open how to play instructions"]',
+    ) as HTMLButtonElement;
+    button.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[aria-label="Open how to play instructions"]')).toBeNull();
+  });
+
+  it('keeps keyboard focus inside the help modal', async () => {
+    const router = TestBed.inject(Router);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    await router.navigate([], { queryParams: { help: 'instructions' } });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const lastStepDot = fixture.nativeElement.querySelector('[aria-label="Show step 6"]') as HTMLButtonElement;
+    const closeButton = fixture.nativeElement.querySelector('[aria-label="Close help"]') as HTMLButtonElement;
+
+    lastStepDot.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+
+    expect(document.activeElement).toBe(closeButton);
+
+    closeButton.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }));
+
+    expect(document.activeElement).toBe(lastStepDot);
+  });
+
   it('closes help when browser history returns to the prior URL state', async () => {
     const router = TestBed.inject(Router);
     const fixture = TestBed.createComponent(App);
