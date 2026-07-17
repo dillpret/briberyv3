@@ -25,6 +25,11 @@ async function waitForVisible(page, text) {
   await page.getByText(text, { exact: false }).first().waitFor({ state: 'visible', timeout: 15000 });
 }
 
+async function closeIntroIfVisible(page) {
+  const closeButton = page.getByRole('button', { name: 'Close help' });
+  if ((await closeButton.count()) > 0 && (await closeButton.isVisible())) await closeButton.click();
+}
+
 async function waitForAnyText(page, texts, timeout = 15000) {
   await expect
     .poll(async () => {
@@ -36,8 +41,9 @@ async function waitForAnyText(page, texts, timeout = 15000) {
 
 async function createGame(player) {
   await player.page.goto(baseUrl);
-  await player.page.getByPlaceholder('Your real name').fill(player.name);
-  await player.page.getByRole('button', { name: 'Create a new room' }).click();
+  await closeIntroIfVisible(player.page);
+  await player.page.getByPlaceholder('Enter your name').fill(player.name);
+  await player.page.getByRole('button', { name: 'Create game' }).click();
   await expect(player.page).toHaveURL(/\/game\/[A-Z0-9]+/, { timeout: 15000 });
   await waitForVisible(player.page, 'Room code');
   const gameId = new URL(player.page.url()).pathname.split('/').pop();
@@ -46,9 +52,11 @@ async function createGame(player) {
 }
 
 async function joinGame(player, gameId) {
-  await player.page.goto(`${baseUrl}/game/${gameId}`);
-  await player.page.getByPlaceholder('Your real name').fill(player.name);
-  await player.page.getByRole('button', { name: 'Join room' }).click();
+  await player.page.goto(baseUrl);
+  await closeIntroIfVisible(player.page);
+  await player.page.getByPlaceholder('Enter your name').fill(player.name);
+  await player.page.getByPlaceholder('AB12').fill(gameId);
+  await player.page.getByRole('button', { name: 'Join game' }).click();
   await waitForVisible(player.page, 'Room code');
 }
 
@@ -57,9 +65,26 @@ async function toggleReady(player) {
   await expect(player.page.getByRole('button', { name: 'I need a moment' })).toBeVisible({ timeout: 10000 });
 }
 
+async function enableTimers(host) {
+  const checkboxes = host.page.locator('input[type="checkbox"]');
+  await expect(checkboxes).toHaveCount(4, { timeout: 10000 });
+  const count = await checkboxes.count();
+  for (let index = 0; index < count; index += 1) await checkboxes.nth(index).check();
+
+  const durationInputs = host.page.locator('input[type="number"]');
+  await expect(durationInputs).toHaveCount(4, { timeout: 10000 });
+  const inputCount = await durationInputs.count();
+  for (let index = 0; index < inputCount; index += 1) await durationInputs.nth(index).fill('20');
+}
+
+async function expectCountdown(player) {
+  await expect(player.page.getByText('Time remaining', { exact: true })).toBeVisible({ timeout: 10000 });
+  await expect(player.page.getByText('Auto-submits when time runs out.', { exact: true })).toBeVisible({ timeout: 10000 });
+}
+
 async function submitPrompt(player, prompt) {
   await waitForVisible(player.page, 'Write your prompt');
-  await player.page.getByPlaceholder('What should people bribe you for?').fill(prompt);
+  await player.page.getByPlaceholder('Best excuse for being late').fill(prompt);
   await player.page.getByRole('button', { name: 'Submit prompt' }).click();
   await waitForAnyText(player.page, ['Prompt submitted', 'Send your bribes']);
 }
@@ -67,11 +92,11 @@ async function submitPrompt(player, prompt) {
 async function submitTextBribes(player) {
   await waitForVisible(player.page, 'Send your bribes');
 
-  const textareas = player.page.getByPlaceholder('Write a tempting little bribe');
-  const textareaCount = await textareas.count();
+  const composers = player.page.getByRole('textbox');
+  const composerCount = await composers.count();
 
-  for (let index = 0; index < textareaCount; index += 1) {
-    await textareas
+  for (let index = 0; index < composerCount; index += 1) {
+    await composers
       .nth(index)
       .fill(`A suspiciously excellent bribe ${index + 1} from ${player.name} at ${new Date().toISOString()}`);
   }
@@ -116,9 +141,17 @@ async function submitVotes(player) {
   if ((await option.count()) > 0) {
     await option.click();
     await player.page.getByRole('button', { name: 'Submit vote' }).click();
-    await waitForAnyText(player.page, ['Vote submitted', 'Round 1 wrapped']);
+    await waitForAnyText(player.page, ['Vote submitted', 'Round 1 winners']);
   } else {
     await waitForVisible(player.page, 'Voting is only for players who received bribes this round');
+  }
+}
+
+async function submitAppreciation(player) {
+  await waitForVisible(player.page, 'Round 1 winners');
+  const doneButton = player.page.getByRole('button', { name: 'Done appreciating winning bribes' });
+  if ((await doneButton.count()) > 0) {
+    await doneButton.click();
   }
 }
 
@@ -139,16 +172,22 @@ async function main() {
     console.log('Joined four isolated browser contexts.');
 
     const duplicate = await makePlayer(browser, 'Duplicate Alice');
-    await duplicate.page.goto(`${baseUrl}/game/${gameId}`);
-    await duplicate.page.getByPlaceholder('Your real name').fill('Alice');
-    await duplicate.page.getByRole('button', { name: 'Join room' }).click();
+    await duplicate.page.goto(baseUrl);
+    await closeIntroIfVisible(duplicate.page);
+    await duplicate.page.getByPlaceholder('Enter your name').fill('Alice');
+    await duplicate.page.getByPlaceholder('AB12').fill(gameId);
+    await duplicate.page.getByRole('button', { name: 'Join game' }).click();
     await waitForVisible(duplicate.page, 'Another player with that name is already in the game');
     await duplicate.context.close();
     console.log('Verified duplicate-name join error flow.');
 
+    await enableTimers(roster[0]);
+    console.log('Enabled all phase timers from the host lobby.');
+
     await Promise.all(roster.map(toggleReady));
     await roster[0].page.getByRole('button', { name: 'Start game' }).click();
     await waitForVisible(roster[0].page, 'Write your prompt');
+    await expectCountdown(roster[0]);
     console.log('Started the game from the host lobby.');
 
     await Promise.all(
@@ -168,7 +207,7 @@ async function main() {
     console.log('Submitted bribes, including one image upload.');
 
     await Promise.all(roster.map(submitVotes));
-    await waitForVisible(roster[0].page, 'Round 1 wrapped');
+    await Promise.all(roster.map(submitAppreciation));
     await waitForVisible(roster[0].page, 'Scoreboard');
     console.log('Completed voting and reached results.');
 
