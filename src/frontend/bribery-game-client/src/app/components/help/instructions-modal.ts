@@ -4,8 +4,8 @@ import { HelpModalService } from './help-modal.service';
 import { HelpOverlay } from './help-overlay';
 
 interface InstructionStep {
-  text: string;
   image: string;
+  label: string;
 }
 
 @Component({
@@ -17,12 +17,10 @@ interface InstructionStep {
 export class InstructionsModal {
   readonly currentStep = signal(0);
   readonly steps: InstructionStep[] = [
-    { text: 'Write a prompt for other players', image: '/brand/writing.gif' },
-    { text: 'Submit "bribes" according to prompts FROM other players', image: '/brand/writing.gif' },
-    { text: 'See bribes sent to you and pick a winner', image: '/brand/choosing.gif' },
-    { text: 'Enjoy all the winning bribes for all players that round, and award bonus points to your favourites', image: '/brand/getCoin.gif' },
-    { text: 'See who is winning on the points scoreboard', image: '/brand/bribery-mascot.png' },
-    { text: 'Start a new round', image: '/brand/bribery-mascot.png' },
+    { image: '/instructions/ins1.png', label: 'How to play, page 1' },
+    { image: '/instructions/ins2.png', label: 'How to play, page 2' },
+    { image: '/instructions/ins3.png', label: 'How to play, page 3' },
+    { image: '/instructions/ins4.png', label: 'How to play, page 4' },
   ];
 
   constructor(private helpModal: HelpModalService) {
@@ -42,7 +40,7 @@ export class InstructionsModal {
   }
 
   setStep(step: number) {
-    this.currentStep.set(step);
+    this.currentStep.set(Math.min(Math.max(step, 0), this.steps.length - 1));
   }
 
   private preloadImages(sources: string[]) {

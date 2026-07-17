@@ -48,14 +48,14 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('How to play');
-    expect(fixture.nativeElement.textContent).toContain('Write a prompt for other players');
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).not.toBeNull();
 
     const closeButton = fixture.nativeElement.querySelector('[aria-label="Close help"]') as HTMLButtonElement;
     closeButton.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).not.toContain('Write a prompt for other players');
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).toBeNull();
   });
 
   it('hides the global instructions button while a help modal is open', async () => {
@@ -114,7 +114,7 @@ describe('App', () => {
     expect(dialog.className).not.toContain('overflow-auto');
   });
 
-  it('uses stable instruction card, media, and text slots', async () => {
+  it('uses stable instruction artwork sizing', async () => {
     const router = TestBed.inject(Router);
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
@@ -124,12 +124,12 @@ describe('App', () => {
 
     const card = fixture.nativeElement.querySelector('article') as HTMLElement;
     const image = fixture.nativeElement.querySelector('article img') as HTMLImageElement;
-    const text = fixture.nativeElement.querySelector('article p') as HTMLElement;
 
-    expect(card.className).toContain('h-[19rem]');
-    expect(image.getAttribute('width')).toBe('192');
-    expect(image.getAttribute('height')).toBe('128');
-    expect(text.className).toContain('h-28');
+    expect(card.className).toContain('overflow-hidden');
+    expect(image.getAttribute('src')).toBe('/instructions/ins1.png');
+    expect(image.getAttribute('width')).toBe('1086');
+    expect(image.getAttribute('height')).toBe('1448');
+    expect(image.className).toContain('max-h-[calc(100dvh-13rem)]');
   });
 
   it('keeps keyboard focus inside the help modal', async () => {
@@ -141,7 +141,7 @@ describe('App', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const lastStepDot = fixture.nativeElement.querySelector('[aria-label="Show step 6"]') as HTMLButtonElement;
+    const lastStepDot = fixture.nativeElement.querySelector('[aria-label="Show step 4"]') as HTMLButtonElement;
     const closeButton = fixture.nativeElement.querySelector('[aria-label="Close help"]') as HTMLButtonElement;
 
     lastStepDot.focus();
@@ -162,11 +162,11 @@ describe('App', () => {
 
     await router.navigate([], { queryParams: { help: 'instructions' } });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Write a prompt for other players');
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).not.toBeNull();
 
     await router.navigate([], { queryParams: { help: null }, queryParamsHandling: 'merge' });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Write a prompt for other players');
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).toBeNull();
   });
 
   it('marks the splash as seen when query state leaves the splash modal', async () => {

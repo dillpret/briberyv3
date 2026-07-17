@@ -11,20 +11,15 @@ import { SplashService } from './splash.service';
   templateUrl: './splash-modal.html',
 })
 export class SplashModal {
-  readonly lines = [
-    'Welcome to Bribery!',
-    'An online social party game for 3-100 people',
-    'No installation required, each player just needs a phone or PC with an internet connection',
-    'Each player has some points to award every round, and two other players will each submit something (a clever answer to a question, a joke, a funny gif, anything really!) to try and earn those points',
-  ];
+  readonly aboutImage = '/instructions/aboutScreen.png';
 
   constructor(
     private helpModal: HelpModalService,
     private splash: SplashService,
   ) {
     if (typeof Image !== 'undefined') {
-      const logo = new Image();
-      logo.src = '/brand/bribery-logo.png';
+      const image = new Image();
+      image.src = this.aboutImage;
     }
   }
 

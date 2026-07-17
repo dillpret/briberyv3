@@ -1,20 +1,16 @@
-<app-help-overlay title="How to play" (closeOverlay)="close()">
-  <div class="mx-auto grid w-full max-w-2xl grid-rows-[1fr_auto_auto] gap-3 p-4 sm:gap-4 sm:p-6">
+<app-help-overlay title="How to play" panelClass="max-w-[32rem]" (closeOverlay)="close()">
+  <div class="mx-auto grid w-full grid-rows-[1fr_auto_auto] gap-3 p-3 sm:gap-4 sm:p-4">
       @if (steps[currentStep()]; as step) {
-        <article class="nested-panel grid h-[19rem] grid-rows-[1.75rem_6rem_7rem] place-items-center content-center gap-3 border-pine/20 bg-surface/70 text-center sm:h-[23rem] sm:grid-rows-[2rem_8rem_7rem] sm:gap-4 sm:px-8">
+        <article class="overflow-hidden rounded-[var(--radius-nested)] border-2 border-ink/15 bg-surface/70 shadow-inner">
           <span class="status-pill border-sun bg-sun text-ink">
-            Step {{ currentStep() + 1 }} of {{ steps.length }}
+            Page {{ currentStep() + 1 }} of {{ steps.length }}
           </span>
-          <div class="flex h-24 w-40 items-center justify-center sm:h-32 sm:w-48">
-            <img
-              [src]="step.image"
-              alt=""
-              aria-hidden="true"
-              width="192"
-              height="128"
-              class="h-full w-full object-contain" />
-          </div>
-          <p class="flex h-28 w-full items-center justify-center overflow-hidden text-2xl font-black leading-tight text-ink sm:text-3xl">{{ step.text }}</p>
+          <img
+            [src]="step.image"
+            [alt]="step.label"
+            width="1086"
+            height="1448"
+            class="block max-h-[calc(100dvh-13rem)] w-full object-contain" />
         </article>
       }
 
@@ -36,7 +32,7 @@
       </div>
 
       <div class="flex justify-center gap-2" aria-label="Instruction steps">
-        @for (step of steps; track step.text; let index = $index) {
+        @for (step of steps; track step.image; let index = $index) {
           <button
             type="button"
             class="h-3 w-3 rounded-full border border-ink/25"
