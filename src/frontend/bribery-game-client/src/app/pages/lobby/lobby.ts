@@ -73,7 +73,40 @@ export class Lobby {
 
   timerSummary(timerName: keyof GameSettings): string {
     const timer = this.settings()[timerName];
-    return timer.enabled ? `${timer.durationSeconds}s` : 'Off';
+    return timer.enabled ? `${timer.durationSeconds} seconds` : 'Off';
+  }
+
+  enabledTimerCount(): number {
+    return this.timerNames.filter((timerName) => this.settings()[timerName].enabled).length;
+  }
+
+  settingsSummary(): string {
+    const count = this.enabledTimerCount();
+    if (count === 0) return 'Timers off';
+    if (count === 1) return '1 timer enabled';
+    return `${count} timers enabled`;
+  }
+
+  timerDescription(timerName: keyof GameSettings): string {
+    const descriptions: Record<keyof GameSettings, string> = {
+      promptTimer: 'Auto-submits the prompt draft when time runs out.',
+      submissionTimer: 'Auto-submits saved bribe drafts when time runs out.',
+      votingTimer: 'Auto-submits the saved vote when time runs out.',
+      appreciationTimer: 'Locks in appreciation when time runs out.',
+    };
+    return descriptions[timerName];
+  }
+
+  timerStatusLabel(timerName: keyof GameSettings): string {
+    return this.settings()[timerName].enabled ? 'On' : 'Off';
+  }
+
+  timerInputClasses(timerName: keyof GameSettings): Record<string, boolean> {
+    const enabled = this.settings()[timerName].enabled;
+    return {
+      'border-ink/10 bg-ink/5 text-ink/45 shadow-none': !enabled,
+      'cursor-not-allowed': !enabled,
+    };
   }
 
   connectedCount(): number {

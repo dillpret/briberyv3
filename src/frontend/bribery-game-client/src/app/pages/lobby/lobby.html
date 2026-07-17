@@ -42,46 +42,7 @@
     <app-waiting-tips />
   </section>
 
-  <section class="soft-panel space-y-3">
-    <div class="nested-surface space-y-3 text-left">
-      <div>
-        <p class="text-sm font-black uppercase tracking-wide text-pine">Game settings</p>
-        <p class="text-sm leading-6 text-ink/70">
-          Timers are off by default. The host can enable them before starting.
-        </p>
-      </div>
-
-      @for (timerName of timerNames; track timerName) {
-        <div class="grid gap-2 border-t border-ink/10 pt-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
-          <div>
-            <p class="font-bold text-ink">{{ timerLabel(timerName) }}</p>
-            <p class="text-sm text-ink/65">{{ timerSummary(timerName) }}</p>
-          </div>
-
-          @if (isHost()) {
-            <label class="inline-flex items-center gap-2 text-sm font-bold text-ink">
-              <input
-                type="checkbox"
-                [ngModel]="settings()[timerName].enabled"
-                (ngModelChange)="updateTimer(timerName, { enabled: $event })" />
-              Timer
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="600"
-              class="soft-input max-w-28 py-2"
-              [ngModel]="settings()[timerName].durationSeconds"
-              (change)="updateTimer(timerName, { durationSeconds: $any($event.target).valueAsNumber })" />
-          } @else {
-            <span class="status-pill border-ink/15 bg-surface text-ink/70 sm:col-span-2">
-              {{ timerSummary(timerName) }}
-            </span>
-          }
-        </div>
-      }
-    </div>
-
+  <section class="soft-panel space-y-4">
     <button
       (click)="toggleReady()"
       class="secondary-button">
@@ -97,6 +58,80 @@
     } @else {
       <p class="text-center text-sm text-ink/60">The host will start once everyone is ready.</p>
     }
+
+    <details class="nested-surface group text-left">
+      <summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-ink">
+        <span>
+          <span class="block text-sm font-black uppercase tracking-wide text-pine">Game settings</span>
+          <span class="block text-sm leading-6 text-ink/70">{{ settingsSummary() }}</span>
+        </span>
+        <span class="status-pill border-plum/25 bg-surface text-plum group-open:hidden">Open</span>
+        <span class="status-pill hidden border-plum/25 bg-surface text-plum group-open:inline-flex">Close</span>
+      </summary>
+
+      <div class="mt-4 space-y-3 border-t border-ink/10 pt-4">
+        <div>
+          <p class="font-black text-ink">Round timers</p>
+          <p class="text-sm leading-6 text-ink/70">
+            Timers are off by default. Enable a time limit for each phase before starting.
+          </p>
+        </div>
+
+        @for (timerName of timerNames; track timerName) {
+          <section class="rounded-[var(--radius-nested)] border border-ink/10 bg-surface/60 p-3">
+            <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="font-bold text-ink">{{ timerLabel(timerName) }}</p>
+                  <span
+                    class="status-pill"
+                    [ngClass]="settings()[timerName].enabled
+                      ? 'border-pine/30 bg-pine/10 text-pine'
+                      : 'border-ink/15 bg-ink/5 text-ink/55'">
+                    {{ timerStatusLabel(timerName) }}
+                  </span>
+                </div>
+                <p class="text-sm leading-6 text-ink/65">{{ timerDescription(timerName) }}</p>
+              </div>
+
+              @if (isHost()) {
+                <label class="flex items-center justify-between gap-3 text-sm font-bold text-ink sm:min-w-36">
+                  <span>Time limit</span>
+                  <input
+                    type="checkbox"
+                    class="peer sr-only"
+                    [attr.aria-label]="timerLabel(timerName) + ' time limit'"
+                    [ngModel]="settings()[timerName].enabled"
+                    (ngModelChange)="updateTimer(timerName, { enabled: $event })" />
+                  <span class="relative h-7 w-12 shrink-0 rounded-full border-2 border-ink/20 bg-ink/10 transition peer-checked:border-pine peer-checked:bg-pine">
+                    <span
+                      class="absolute left-1 top-1 h-4 w-4 rounded-full bg-surface shadow transition"
+                      [ngClass]="{ 'translate-x-5': settings()[timerName].enabled }"></span>
+                  </span>
+                </label>
+
+                <label class="grid gap-1 text-sm font-bold text-ink sm:w-32">
+                  <span>Seconds</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="600"
+                    class="soft-input py-2"
+                    [ngClass]="timerInputClasses(timerName)"
+                    [disabled]="!settings()[timerName].enabled"
+                    [ngModel]="settings()[timerName].durationSeconds"
+                    (change)="updateTimer(timerName, { durationSeconds: $any($event.target).valueAsNumber })" />
+                </label>
+              } @else {
+                <span class="status-pill border-ink/15 bg-surface text-ink/70 sm:col-span-2">
+                  {{ timerSummary(timerName) }}
+                </span>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    </details>
   </section>
 
 </main>

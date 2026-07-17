@@ -9,7 +9,8 @@ import { Lobby } from './lobby';
 describe('Lobby', () => {
   let component: Lobby;
   let fixture: ComponentFixture<Lobby>;
-  let signalr: Pick<SignalrService, 'toggleReady' | 'startGame'>;
+  let signalr: Pick<SignalrService, 'toggleReady' | 'startGame' | 'updateGameSettings'>;
+  let gameState: GameStateService;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -17,6 +18,7 @@ describe('Lobby', () => {
     signalr = {
       toggleReady: vi.fn().mockResolvedValue(undefined),
       startGame: vi.fn().mockResolvedValue(undefined),
+      updateGameSettings: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -27,7 +29,7 @@ describe('Lobby', () => {
       ],
     }).compileComponents();
 
-    const gameState = TestBed.inject(GameStateService);
+    gameState = TestBed.inject(GameStateService);
     gameState.setGameState({
       phase: 'Lobby',
       currentPlayerId: 'p1',
@@ -77,11 +79,74 @@ describe('Lobby', () => {
     expect(element.textContent).toContain('Lobby waiting tip');
   });
 
+  it('renders editable host timer controls with disabled duration inputs for off timers', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    const timerToggles = element.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+    const durationInputs = element.querySelectorAll<HTMLInputElement>('input[type="number"]');
+
+    expect(element.textContent).toContain('Game settings');
+    expect(element.textContent).toContain('Timers off');
+    expect(element.textContent).toContain('Round timers');
+    expect(element.textContent).toContain('Time limit');
+    expect(timerToggles).toHaveLength(4);
+    expect(durationInputs).toHaveLength(4);
+    expect(Array.from(durationInputs).every((input) => input.disabled)).toBe(true);
+    expect(Array.from(durationInputs).map((input) => input.value)).toEqual(['120', '300', '90', '120']);
+  });
+
+  it('enables the seconds input and avoids duplicate duration text when a host timer is on', async () => {
+    gameState.settings.set({
+      promptTimer: { enabled: true, durationSeconds: 120 },
+      submissionTimer: { enabled: false, durationSeconds: 300 },
+      votingTimer: { enabled: false, durationSeconds: 90 },
+      appreciationTimer: { enabled: false, durationSeconds: 120 },
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const durationInputs = element.querySelectorAll<HTMLInputElement>('input[type="number"]');
+
+    expect(component.settingsSummary()).toBe('1 timer enabled');
+    expect(durationInputs[0].disabled).toBe(false);
+    expect(durationInputs[0].value).toBe('120');
+    expect(element.textContent).not.toContain('120 seconds');
+  });
+
+  it('sends clamped timer updates through SignalR', async () => {
+    await component.updateTimer('promptTimer', { enabled: true, durationSeconds: 999 });
+
+    expect(signalr.updateGameSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        promptTimer: { enabled: true, durationSeconds: 600 },
+      }),
+    );
+  });
+
   it('renders waiting copy for non-host players', () => {
     component.hostPlayerId.set('p2');
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('The host will start once everyone is ready.');
+  });
+
+  it('renders read-only timer summaries for non-host players', () => {
+    gameState.settings.set({
+      promptTimer: { enabled: true, durationSeconds: 120 },
+      submissionTimer: { enabled: false, durationSeconds: 300 },
+      votingTimer: { enabled: false, durationSeconds: 90 },
+      appreciationTimer: { enabled: false, durationSeconds: 120 },
+    });
+    component.hostPlayerId.set('p2');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).toContain('120 seconds');
+    expect(element.textContent).toContain('Off');
+    expect(element.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
+    expect(element.querySelectorAll('input[type="number"]')).toHaveLength(0);
   });
 
   it('copies the normalized room code and link', async () => {

@@ -66,10 +66,12 @@ async function toggleReady(player) {
 }
 
 async function enableTimers(host) {
-  const checkboxes = host.page.locator('input[type="checkbox"]');
-  await expect(checkboxes).toHaveCount(4, { timeout: 10000 });
-  const count = await checkboxes.count();
-  for (let index = 0; index < count; index += 1) await checkboxes.nth(index).check();
+  await host.page.getByText('Game settings', { exact: true }).click();
+
+  const timerLabels = host.page.getByText('Time limit', { exact: true });
+  await expect(timerLabels).toHaveCount(4, { timeout: 10000 });
+  const timerCount = await timerLabels.count();
+  for (let index = 0; index < timerCount; index += 1) await timerLabels.nth(index).click();
 
   const durationInputs = host.page.locator('input[type="number"]');
   await expect(durationInputs).toHaveCount(4, { timeout: 10000 });
