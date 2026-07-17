@@ -1,8 +1,8 @@
 <app-help-overlay title="How to play" panelClass="max-w-[32rem]" (closeOverlay)="close()">
-  <div class="mx-auto grid w-full grid-rows-[1fr_auto_auto] gap-3 p-3 sm:gap-4 sm:p-4">
+  <div class="mx-auto grid max-h-[calc(100dvh-5.5rem)] w-full grid-rows-[minmax(0,1fr)_auto_auto] gap-3 overflow-hidden p-3 sm:max-h-[calc(100dvh-7rem)] sm:gap-4 sm:p-4">
       @if (steps[currentStep()]; as step) {
-        <article class="overflow-hidden rounded-[var(--radius-nested)] border-2 border-ink/15 bg-surface/70 shadow-inner">
-          <span class="status-pill border-sun bg-sun text-ink">
+        <article class="flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-nested)] border-2 border-ink/15 bg-surface/70 shadow-inner">
+          <span class="status-pill self-start border-sun bg-sun text-ink">
             Page {{ currentStep() + 1 }} of {{ steps.length }}
           </span>
           <img
@@ -10,7 +10,7 @@
             [alt]="step.label"
             width="1086"
             height="1448"
-            class="block max-h-[calc(100dvh-13rem)] w-full object-contain" />
+            class="block min-h-0 flex-1 touch-none object-contain" />
         </article>
       }
 

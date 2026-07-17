@@ -1,10 +1,10 @@
 <app-help-overlay title="Welcome to Bribery!" panelClass="max-w-[32rem]" (closeOverlay)="close()">
-  <div class="p-3 sm:p-4">
+  <div class="flex max-h-[calc(100dvh-5.5rem)] overflow-hidden p-3 sm:max-h-[calc(100dvh-7rem)] sm:p-4">
     <img
       [src]="aboutImage"
       alt="About Bribery"
       width="1024"
       height="1536"
-      class="mx-auto block max-h-[calc(100dvh-7.5rem)] w-full object-contain" />
+      class="mx-auto block min-h-0 touch-none object-contain" />
   </div>
 </app-help-overlay>

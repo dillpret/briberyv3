@@ -16,6 +16,7 @@ export class HelpOverlay implements AfterViewInit, OnDestroy {
   @ViewChild('closeButton') closeButton?: ElementRef<HTMLButtonElement>;
 
   private previousFocus: Element | null = null;
+  private readonly preventScroll = (event: Event) => event.preventDefault();
   private readonly focusableSelector = [
     'a[href]',
     'button:not([disabled])',
@@ -30,10 +31,14 @@ export class HelpOverlay implements AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     this.previousFocus = document.activeElement;
     this.scrollLock.lock();
+    document.addEventListener('touchmove', this.preventScroll, { passive: false });
+    document.addEventListener('wheel', this.preventScroll, { passive: false });
     window.setTimeout(() => this.closeButton?.nativeElement.focus(), 0);
   }
 
   ngOnDestroy() {
+    document.removeEventListener('touchmove', this.preventScroll);
+    document.removeEventListener('wheel', this.preventScroll);
     this.scrollLock.unlock();
 
     if (this.previousFocus instanceof HTMLElement) {

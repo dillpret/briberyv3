@@ -129,7 +129,27 @@ describe('App', () => {
     expect(image.getAttribute('src')).toBe('/instructions/ins1.png');
     expect(image.getAttribute('width')).toBe('1086');
     expect(image.getAttribute('height')).toBe('1448');
-    expect(image.className).toContain('max-h-[calc(100dvh-13rem)]');
+    expect(image.className).toContain('min-h-0');
+    expect(image.className).toContain('touch-none');
+    expect(image.className).toContain('object-contain');
+  });
+
+  it('prevents touch and wheel scrolling behind the help modal', async () => {
+    const router = TestBed.inject(Router);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    await router.navigate([], { queryParams: { help: 'instructions' } });
+    fixture.detectChanges();
+
+    const touchEvent = new Event('touchmove', { bubbles: true, cancelable: true });
+    const wheelEvent = new Event('wheel', { bubbles: true, cancelable: true });
+
+    document.dispatchEvent(touchEvent);
+    document.dispatchEvent(wheelEvent);
+
+    expect(touchEvent.defaultPrevented).toBe(true);
+    expect(wheelEvent.defaultPrevented).toBe(true);
   });
 
   it('keeps keyboard focus inside the help modal', async () => {
