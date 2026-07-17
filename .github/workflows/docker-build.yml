@@ -44,4 +44,12 @@ jobs:
             docker pull ghcr.io/${{ github.repository }}:latest
             docker stop bribery-app || true
             docker rm bribery-app || true
-            docker run -d -p 80:80 --restart unless-stopped --name bribery-app ghcr.io/${{ github.repository }}:latest
+            docker run -d -p 80:80 \
+              --restart unless-stopped \
+              --name bribery-app \
+              -e OTEL_SERVICE_NAME=bribery-game-api \
+              -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production,service.namespace=bribery \
+              -e OTEL_EXPORTER_OTLP_ENDPOINT="${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}" \
+              -e OTEL_EXPORTER_OTLP_HEADERS="${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}" \
+              -e OTEL_EXPORTER_OTLP_PROTOCOL="${{ secrets.OTEL_EXPORTER_OTLP_PROTOCOL }}" \
+              ghcr.io/${{ github.repository }}:latest

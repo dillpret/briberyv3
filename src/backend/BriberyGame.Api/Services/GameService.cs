@@ -8,6 +8,7 @@ public class GameService
     private readonly ConcurrentDictionary<string, string> _connectionToGame = new();
     private readonly ConcurrentDictionary<string, GameSession> _games = new();
     private readonly MediaStore _mediaStore;
+    private readonly GameTelemetry? _telemetry;
     private readonly Func<DateTimeOffset> _now;
     private static readonly TimeSpan InactiveRoomTtl = TimeSpan.FromMinutes(15);
     
@@ -31,13 +32,25 @@ public class GameService
     {
     }
 
+    public GameService(MediaStore mediaStore, TimeProvider timeProvider, GameTelemetry telemetry)
+        : this(mediaStore, () => timeProvider.GetUtcNow(), telemetry)
+    {
+    }
+
     public GameService(MediaStore mediaStore, Func<DateTimeOffset> now)
+        : this(mediaStore, now, null)
+    {
+    }
+
+    public GameService(MediaStore mediaStore, Func<DateTimeOffset> now, GameTelemetry? telemetry)
     {
         _mediaStore = mediaStore;
         _now = now;
+        _telemetry = telemetry;
+        UpdateActiveTelemetry();
     }
     
-    public string CreateGame()
+    public string CreateGame(string country = "unknown")
     {
         CleanupInactiveGames();
 
@@ -53,6 +66,9 @@ public class GameService
         {
             EmptySince = _now()
         };
+
+        _telemetry?.GameCreated(country);
+        UpdateActiveTelemetry();
         
         return gameId;
     }
@@ -61,7 +77,8 @@ public class GameService
         string gameId,
         string connectionId,
         string playerId,
-        string name)
+        string name,
+        string country = "unknown")
     {
         CleanupInactiveGames();
 
@@ -71,9 +88,13 @@ public class GameService
         var game = session.Game;
 
         Result<GameStateDto> result;
+        var playerCountBefore = 0;
+        var playerCountAfter = 0;
         lock (session.SyncRoot)
         {
+            playerCountBefore = game.State.Players.Count;
             result = game.Join(connectionId, playerId, name);
+            playerCountAfter = game.State.Players.Count;
             if (result.Success)
             {
                 MarkActivity(normalizedGameId, game);
@@ -87,6 +108,13 @@ public class GameService
         }
 
         _connectionToGame[connectionId] = normalizedGameId;
+
+        if (playerCountAfter > playerCountBefore)
+            _telemetry?.PlayerJoined(country);
+        else
+            _telemetry?.PlayerReconnected(country);
+
+        UpdateActiveTelemetry();
 
         return (normalizedGameId, result);
     }
@@ -105,6 +133,7 @@ public class GameService
         }
         _connectionToGame.TryRemove(connectionId, out _);
         CleanupInactiveGames();
+        UpdateActiveTelemetry();
 
         return (gameId, state);
     }
@@ -137,7 +166,9 @@ public class GameService
         return (gameId, result);
     }
     
-    public (string? gameId, Result<GameStateDto>? result) StartGame(string connectionId)
+    public (string? gameId, Result<GameStateDto>? result) StartGame(
+        string connectionId,
+        string country = "unknown")
     {
         var (gameId, session) = ResolveSession(connectionId);
         if (session == null) return (null, null);
@@ -145,12 +176,21 @@ public class GameService
 
         IEnumerable<string> existingMediaIds;
         Result<GameStateDto> result;
+        var beforePhase = game.State.Phase;
+        var beforeRound = game.State.CurrentRound;
         lock (session.SyncRoot)
         {
             existingMediaIds = GetRoundMediaIds(game).ToList();
             result = game.StartGame(connectionId);
             if (gameId != null && result.Success)
                 _mediaStore.Remove(existingMediaIds);
+        }
+
+        if (result.Success)
+        {
+            _telemetry?.GameStarted(GetActivePlayerCount(game), country);
+            RecordPhaseTelemetry(game, beforePhase, beforeRound);
+            UpdateActiveTelemetry();
         }
 
         return (gameId, result);
@@ -162,10 +202,15 @@ public class GameService
         if (session == null) return (null, null);
 
         Result<GameStateDto> result;
+        var beforePhase = session.Game.State.Phase;
+        var beforeRound = session.Game.State.CurrentRound;
         lock (session.SyncRoot)
         {
             result = session.Game.SubmitPrompt(connectionId, text);
         }
+
+        if (result.Success)
+            RecordPhaseTelemetry(session.Game, beforePhase, beforeRound);
 
         return (gameId, result);
     }
@@ -208,6 +253,8 @@ public class GameService
         var game = session.Game;
 
         Result<GameStateDto> result;
+        var beforePhase = game.State.Phase;
+        var beforeRound = game.State.CurrentRound;
         lock (session.SyncRoot)
         {
             var player = game.State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
@@ -243,6 +290,9 @@ public class GameService
                 _mediaStore.Remove(request.Media.MediaId);
             }
         }
+
+        if (result.Success)
+            RecordPhaseTelemetry(game, beforePhase, beforeRound);
 
         return (gameId, result);
     }
@@ -316,10 +366,15 @@ public class GameService
         if (session == null) return (null, null);
 
         Result<GameStateDto> result;
+        var beforePhase = session.Game.State.Phase;
+        var beforeRound = session.Game.State.CurrentRound;
         lock (session.SyncRoot)
         {
             result = session.Game.SubmitVote(connectionId, bribeId);
         }
+
+        if (result.Success)
+            RecordPhaseTelemetry(session.Game, beforePhase, beforeRound);
 
         return (gameId, result);
     }
@@ -363,10 +418,15 @@ public class GameService
         if (session == null) return (null, null);
 
         Result<GameStateDto> result;
+        var beforePhase = session.Game.State.Phase;
+        var beforeRound = session.Game.State.CurrentRound;
         lock (session.SyncRoot)
         {
             result = session.Game.SubmitAppreciationDone(connectionId);
         }
+
+        if (result.Success)
+            RecordPhaseTelemetry(session.Game, beforePhase, beforeRound);
 
         return (gameId, result);
     }
@@ -379,6 +439,8 @@ public class GameService
 
         IEnumerable<string> existingMediaIds;
         Result<GameStateDto> result;
+        var beforePhase = game.State.Phase;
+        var beforeRound = game.State.CurrentRound;
         lock (session.SyncRoot)
         {
             existingMediaIds = GetRoundMediaIds(game).ToList();
@@ -386,6 +448,9 @@ public class GameService
             if (result.Success)
                 _mediaStore.Remove(existingMediaIds);
         }
+
+        if (result.Success)
+            RecordPhaseTelemetry(game, beforePhase, beforeRound);
 
         return (gameId, result);
     }
@@ -398,6 +463,8 @@ public class GameService
 
         IEnumerable<string> beforeMediaIds;
         Result<GameStateDto> result;
+        var beforePhase = game.State.Phase;
+        var beforeRound = game.State.CurrentRound;
         lock (session.SyncRoot)
         {
             beforeMediaIds = GetRoundMediaIds(game).ToList();
@@ -408,6 +475,9 @@ public class GameService
                 _mediaStore.Remove(beforeMediaIds.Except(remainingMediaIds));
             }
         }
+
+        if (result.Success)
+            RecordPhaseTelemetry(game, beforePhase, beforeRound);
 
         return (gameId, result);
     }
@@ -460,8 +530,13 @@ public class GameService
         {
             lock (pair.Value.SyncRoot)
             {
+                var beforePhase = pair.Value.Game.State.Phase;
+                var beforeRound = pair.Value.Game.State.CurrentRound;
                 if (pair.Value.Game.ExpireCurrentPhaseIfDue(currentTime))
+                {
                     changedGameIds.Add(pair.Key);
+                    RecordPhaseTelemetry(pair.Value.Game, beforePhase, beforeRound);
+                }
             }
         }
 
@@ -513,8 +588,44 @@ public class GameService
             : _now();
     }
 
+    private void RecordPhaseTelemetry(Game game, GamePhase beforePhase, int beforeRound)
+    {
+        if (_telemetry == null || game.State.Phase == beforePhase)
+            return;
+
+        var activePlayers = GetActivePlayerCount(game);
+        _telemetry.PhaseTransition(beforePhase, game.State.Phase, activePlayers);
+
+        if (game.State.Phase == GamePhase.Scoreboard)
+            _telemetry.RoundCompleted(beforeRound, activePlayers);
+    }
+
+    private void UpdateActiveTelemetry()
+    {
+        if (_telemetry == null)
+            return;
+
+        var activePlayers = 0;
+
+        foreach (var session in _games.Values)
+        {
+            lock (session.SyncRoot)
+            {
+                activePlayers += session.Game.State.Players.Count(player => player.Connected);
+            }
+        }
+
+        _telemetry.UpdateActiveCounts(_games.Count, activePlayers);
+    }
+
+    private static int GetActivePlayerCount(Game game)
+    {
+        return game.State.Players.Count(player => player.IsActive && player.Connected);
+    }
+
     private void CleanupInactiveGames()
     {
+        var removedAny = false;
         var cutoff = _now() - InactiveRoomTtl;
 
         foreach (var session in _games
@@ -523,6 +634,8 @@ public class GameService
         {
             if (!_games.TryRemove(session.Key, out _))
                 continue;
+
+            removedAny = true;
 
             _mediaStore.RemoveGameMedia(session.Key);
 
@@ -533,6 +646,9 @@ public class GameService
                 _connectionToGame.TryRemove(mapping.Key, out _);
             }
         }
+
+        if (removedAny)
+            UpdateActiveTelemetry();
     }
 
     private void RemoveStaleConnectionMappings(string gameId, Game game)

@@ -7,37 +7,45 @@ using BriberyGame.Api.Services;
 public class GameHub : Hub
 {
     private readonly GameService _gameService;
+    private readonly GameTelemetry _telemetry;
+    private readonly ILogger<GameHub> _logger;
 
-    public GameHub(GameService gameService)
+    public GameHub(
+        GameService gameService,
+        GameTelemetry telemetry,
+        ILogger<GameHub> logger)
     {
         _gameService = gameService;
+        _telemetry = telemetry;
+        _logger = logger;
     }
 
     public async Task JoinLobby(string gameId, string playerId, string name)
     {
         var (resolvedGameId, result) =
-            _gameService.Join(gameId, Context.ConnectionId, playerId, name);
+            _gameService.Join(gameId, Context.ConnectionId, playerId, name, GetCountry());
 
         if (resolvedGameId == null || result == null)
         {
-            await Clients.Caller.SendAsync("JoinFailed", "Game does not exist");
+            await SendFailure("join_lobby", "JoinFailed", "Game does not exist");
             return;
         }
 
         if (!result.Success)
         {
-            await Clients.Caller.SendAsync("JoinFailed", result.Error);
+            await SendFailure("join_lobby", "JoinFailed", result.Error);
             return;
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, resolvedGameId);
 
+        _logger.LogInformation("Player joined game from {Country}", GetCountry());
         await SendGameStateUpdates(resolvedGameId);
     }
     
     public async Task<string> CreateGame()
     {
-        var gameId = _gameService.CreateGame();
+        var gameId = _gameService.CreateGame(GetCountry());
 
         return gameId;
     }
@@ -51,7 +59,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+            await SendFailure("toggle_ready", "ActionFailed", result.Error);
             return;
         }
 
@@ -61,18 +69,18 @@ public class GameHub : Hub
     public async Task StartGame()
     {
         var (gameId, result) =
-            _gameService.StartGame(Context.ConnectionId);
+            _gameService.StartGame(Context.ConnectionId, GetCountry());
 
         if (gameId == null || result == null)
             return;
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("StartFailed", result.Error);
+            await SendFailure("start_game", "StartFailed", result.Error);
             return;
         }
 
+        _logger.LogInformation("Game started from {Country}", GetCountry());
         await SendGameStateUpdates(gameId);
     }
 
@@ -86,7 +94,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+            await SendFailure("update_game_settings", "ActionFailed", result.Error);
             return;
         }
 
@@ -103,8 +111,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("ActionFailed", result.Error);
+            await SendFailure("submit_prompt", "ActionFailed", result.Error);
             return;
         }
 
@@ -120,7 +127,7 @@ public class GameHub : Hub
             return;
 
         if (!result.Success)
-            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+            await SendFailure("save_prompt_draft", "ActionFailed", result.Error);
     }
 
     public async Task SubmitBribe(SubmitBribeRequest request)
@@ -133,8 +140,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("ActionFailed", result.Error);
+            await SendFailure("submit_bribe", "ActionFailed", result.Error);
             return;
         }
 
@@ -150,7 +156,7 @@ public class GameHub : Hub
             return;
 
         if (!result.Success)
-            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+            await SendFailure("save_bribe_draft", "ActionFailed", result.Error);
     }
 
     public async Task SubmitVote(string bribeId)
@@ -163,8 +169,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("ActionFailed", result.Error);
+            await SendFailure("submit_vote", "ActionFailed", result.Error);
             return;
         }
 
@@ -180,7 +185,7 @@ public class GameHub : Hub
             return;
 
         if (!result.Success)
-            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+            await SendFailure("save_vote_draft", "ActionFailed", result.Error);
     }
 
     public async Task ToggleAppreciationCoin(string bribeId)
@@ -193,8 +198,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("ActionFailed", result.Error);
+            await SendFailure("toggle_appreciation_coin", "ActionFailed", result.Error);
             return;
         }
 
@@ -211,8 +215,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("ActionFailed", result.Error);
+            await SendFailure("submit_appreciation_done", "ActionFailed", result.Error);
             return;
         }
 
@@ -229,8 +232,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("ActionFailed", result.Error);
+            await SendFailure("start_next_round", "ActionFailed", result.Error);
             return;
         }
 
@@ -247,8 +249,7 @@ public class GameHub : Hub
 
         if (!result.Success)
         {
-            await Clients.Caller
-                .SendAsync("ActionFailed", result.Error);
+            await SendFailure("advance_phase_without_offline_players", "ActionFailed", result.Error);
             return;
         }
 
@@ -277,5 +278,24 @@ public class GameHub : Hub
             await Clients.Client(state.ConnectionId)
                 .SendAsync("GameStateUpdated", state.State);
         }
+    }
+
+    private async Task SendFailure(string action, string clientMethod, string? error)
+    {
+        _telemetry.ActionFailed(action);
+        _logger.LogWarning("Game action failed: {Action}", action);
+        await Clients.Caller.SendAsync(clientMethod, error);
+    }
+
+    private string GetCountry()
+    {
+        var headers = Context.GetHttpContext()?.Request.Headers;
+
+        if (headers != null &&
+            headers.TryGetValue("CF-IPCountry", out var country) &&
+            !string.IsNullOrWhiteSpace(country))
+            return country.ToString();
+
+        return "unknown";
     }
 }

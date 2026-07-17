@@ -1,7 +1,46 @@
 using BriberyGame.Api.Hubs;
 using BriberyGame.Api.Services;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+var otlpExporterEnabled = !string.IsNullOrWhiteSpace(
+    builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+    logging.ParseStateValues = true;
+
+    if (otlpExporterEnabled)
+        logging.AddOtlpExporter();
+});
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(
+            serviceName: "bribery-game-api",
+            serviceNamespace: "bribery"))
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddMeter(GameTelemetry.MeterName);
+
+        if (otlpExporterEnabled)
+            metrics.AddOtlpExporter();
+    })
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation();
+
+        if (otlpExporterEnabled)
+            tracing.AddOtlpExporter();
+    });
 
 builder.Services.AddSignalR(options =>
     {
@@ -18,6 +57,7 @@ builder.Services.AddSignalR(options =>
 
 builder.Services.AddSingleton<MediaStore>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<GameTelemetry>();
 builder.Services.AddSingleton<GameService>();
 builder.Services.AddHostedService<PhaseTimerWorker>();
 
@@ -60,7 +100,8 @@ if (hasSpaAssets)
 app.MapPost("/api/games/{gameId}/media", async (
     string gameId,
     HttpRequest request,
-    GameService gameService) =>
+    GameService gameService,
+    GameTelemetry telemetry) =>
 {
     if (!request.HasFormContentType)
         return Results.BadRequest(new { error = "Expected multipart form data" });
@@ -92,9 +133,12 @@ app.MapPost("/api/games/{gameId}/media", async (
         file.Length,
         memory.ToArray());
 
-    return result.Success
-        ? Results.Ok(result.Data)
-        : Results.BadRequest(new { error = result.Error });
+    if (!result.Success)
+        return Results.BadRequest(new { error = result.Error });
+
+    telemetry.MediaUploaded(file.Length, file.ContentType);
+
+    return Results.Ok(result.Data);
 })
 .DisableAntiforgery();
 
