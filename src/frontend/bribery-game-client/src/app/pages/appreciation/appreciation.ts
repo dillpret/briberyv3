@@ -4,11 +4,12 @@ import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService, RoundResult } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
+import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
 
 @Component({
   selector: 'app-appreciation',
   standalone: true,
-  imports: [CommonModule, BribeDisplay, WaitingTips],
+  imports: [CommonModule, BribeDisplay, WaitingTips, PhaseCountdown],
   templateUrl: './appreciation.html',
 })
 export class Appreciation {

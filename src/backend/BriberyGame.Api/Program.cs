@@ -17,7 +17,9 @@ builder.Services.AddSignalR(options =>
     });
 
 builder.Services.AddSingleton<MediaStore>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<GameService>();
+builder.Services.AddHostedService<PhaseTimerWorker>();
 
 // builder.Services.AddCors(options =>
 // {

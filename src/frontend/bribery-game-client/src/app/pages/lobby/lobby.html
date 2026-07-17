@@ -43,6 +43,45 @@
   </section>
 
   <section class="soft-panel space-y-3">
+    <div class="nested-surface space-y-3 text-left">
+      <div>
+        <p class="text-sm font-black uppercase tracking-wide text-pine">Game settings</p>
+        <p class="text-sm leading-6 text-ink/70">
+          Timers are off by default. The host can enable them before starting.
+        </p>
+      </div>
+
+      @for (timerName of timerNames; track timerName) {
+        <div class="grid gap-2 border-t border-ink/10 pt-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+          <div>
+            <p class="font-bold text-ink">{{ timerLabel(timerName) }}</p>
+            <p class="text-sm text-ink/65">{{ timerSummary(timerName) }}</p>
+          </div>
+
+          @if (isHost()) {
+            <label class="inline-flex items-center gap-2 text-sm font-bold text-ink">
+              <input
+                type="checkbox"
+                [ngModel]="settings()[timerName].enabled"
+                (ngModelChange)="updateTimer(timerName, { enabled: $event })" />
+              Timer
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="600"
+              class="soft-input max-w-28 py-2"
+              [ngModel]="settings()[timerName].durationSeconds"
+              (change)="updateTimer(timerName, { durationSeconds: $any($event.target).valueAsNumber })" />
+          } @else {
+            <span class="status-pill border-ink/15 bg-surface text-ink/70 sm:col-span-2">
+              {{ timerSummary(timerName) }}
+            </span>
+          }
+        </div>
+      }
+    </div>
+
     <button
       (click)="toggleReady()"
       class="secondary-button">

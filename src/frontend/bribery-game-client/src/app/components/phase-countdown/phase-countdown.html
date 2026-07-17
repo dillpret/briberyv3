@@ -1,0 +1,13 @@
+@if (isVisible()) {
+  <div
+    class="nested-surface flex flex-col gap-2 border border-pine/20 bg-pine/8 sm:flex-row sm:items-center sm:justify-between"
+    [ngClass]="{ 'border-error/40 bg-error/10 text-error': isWarning() }">
+    <div>
+      <p class="text-sm font-black uppercase tracking-wide">Time remaining</p>
+      <p class="text-sm leading-6">Auto-submits when time runs out.</p>
+    </div>
+    <span class="text-3xl font-black tabular-nums text-ink" [ngClass]="{ 'text-error': isWarning() }">
+      {{ displayTime() }}
+    </span>
+  </div>
+}

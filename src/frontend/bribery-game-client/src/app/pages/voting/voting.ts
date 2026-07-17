@@ -4,11 +4,12 @@ import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
 import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
+import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
 
 @Component({
   selector: 'app-voting',
   standalone: true,
-  imports: [CommonModule, BribeDisplay, WaitingTips],
+  imports: [CommonModule, BribeDisplay, WaitingTips, PhaseCountdown],
   templateUrl: './voting.html',
 })
 export class Voting {
@@ -23,6 +24,8 @@ export class Voting {
   advanceWithoutOfflinePlayersBlockedReason;
   selectedBribeId = signal<string | null>(null);
   currentPlayerId;
+  private draftVersion = 0;
+  private draftSave: Promise<void> = Promise.resolve();
 
   constructor(
     private signalr: SignalrService,
@@ -41,13 +44,23 @@ export class Voting {
   }
 
   currentSelection(): string | null {
-    return this.voting()?.selectedBribeId ?? this.selectedBribeId();
+    return this.voting()?.selectedBribeId ?? this.selectedBribeId() ?? this.voting()?.draftSelectedBribeId ?? null;
+  }
+
+  selectBribe(bribeId: string) {
+    this.selectedBribeId.set(bribeId);
+    const version = ++this.draftVersion;
+    this.draftSave = this.draftSave
+      .catch(() => undefined)
+      .then(() => this.signalr.saveVoteDraft(bribeId, version))
+      .catch((error) => console.error('Vote draft save failed:', error));
   }
 
   async submitVote() {
     const bribeId = this.currentSelection();
     if (!bribeId) return;
 
+    await this.draftSave;
     await this.signalr.submitVote(bribeId);
   }
 

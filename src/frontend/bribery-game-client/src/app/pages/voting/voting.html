@@ -17,6 +17,8 @@
         <div class="progress-fill" [style.width.%]="voteProgressPercent()"></div>
       </div>
     </div>
+
+    <app-phase-countdown />
   </section>
 
   @if (isWaitingOnlyForOfflinePlayers()) {
@@ -94,7 +96,7 @@
           type="radio"
           name="bribe"
           [checked]="currentSelection() === bribe.bribeId"
-          (change)="selectedBribeId.set(bribe.bribeId)" />
+          (change)="selectBribe(bribe.bribeId)" />
         <span class="flex items-center justify-between gap-3">
           <span class="text-sm font-semibold uppercase tracking-wide text-ink/60">Anonymous bribe</span>
           @if (currentSelection() === bribe.bribeId) {

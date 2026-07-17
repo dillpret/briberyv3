@@ -1,17 +1,18 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
+import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
 
 @Component({
   selector: 'app-prompt',
   standalone: true,
-  imports: [CommonModule, FormsModule, WaitingTips],
+  imports: [CommonModule, FormsModule, WaitingTips, PhaseCountdown],
   templateUrl: './prompt.html',
 })
-export class Prompt {
+export class Prompt implements OnDestroy {
   currentRound;
   promptSubmittedCount;
   promptRequiredCount;
@@ -27,6 +28,9 @@ export class Prompt {
   private promptIdeas: string[] | null = null;
   private promptIdeasRequest: Promise<string[]> | null = null;
   private lastPromptIdea: string | null = null;
+  private draftVersion = 0;
+  private draftTimer: number | null = null;
+  private draftSave: Promise<void> = Promise.resolve();
 
   constructor(
     private signalr: SignalrService,
@@ -45,10 +49,23 @@ export class Prompt {
     this.prompt = this.gameState.prompt;
     this.currentPlayerId = this.gameState.currentPlayerId;
 
+    effect(() => {
+      const draftText = this.prompt()?.draftText ?? '';
+      if (!this.hasSubmittedPrompt() && !this.promptText && draftText) {
+        this.promptText = draftText;
+        this.changeDetector.detectChanges();
+      }
+    });
+
     void this.loadPromptIdeas();
   }
 
+  ngOnDestroy(): void {
+    if (this.draftTimer !== null) window.clearTimeout(this.draftTimer);
+  }
+
   async submitPrompt() {
+    await this.flushPromptDraft();
     await this.signalr.submitPrompt(this.promptText);
   }
 
@@ -56,8 +73,13 @@ export class Prompt {
     const ideas = await this.loadPromptIdeas();
     if (ideas.length === 0) return;
 
-    this.promptText = this.pickPromptIdea(ideas);
+    this.setPromptText(this.pickPromptIdea(ideas));
     this.changeDetector.detectChanges();
+  }
+
+  setPromptText(value: string) {
+    this.promptText = value;
+    this.schedulePromptDraftSave();
   }
 
   async advanceWithoutOfflinePlayers() {
@@ -152,5 +174,34 @@ export class Prompt {
 
     this.lastPromptIdea = selectedIdea;
     return selectedIdea;
+  }
+
+  private schedulePromptDraftSave() {
+    if (this.hasSubmittedPrompt()) return;
+    if (this.draftTimer !== null) window.clearTimeout(this.draftTimer);
+
+    const version = ++this.draftVersion;
+    this.draftTimer = window.setTimeout(() => {
+      this.draftTimer = null;
+      this.queuePromptDraftSave(version);
+    }, 600);
+  }
+
+  private async flushPromptDraft() {
+    if (this.draftTimer !== null) {
+      window.clearTimeout(this.draftTimer);
+      this.draftTimer = null;
+      this.queuePromptDraftSave(++this.draftVersion);
+    }
+
+    await this.draftSave;
+  }
+
+  private queuePromptDraftSave(version: number) {
+    const text = this.promptText;
+    this.draftSave = this.draftSave
+      .catch(() => undefined)
+      .then(() => this.signalr.savePromptDraft(text, version))
+      .catch((error) => console.error('Prompt draft save failed:', error));
   }
 }

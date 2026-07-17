@@ -14,12 +14,15 @@ export interface Player {
 
 export interface PromptPhaseState {
   hasSubmittedPrompt: boolean;
+  draftText?: string;
 }
 
 export interface SubmissionTarget {
   playerId: string;
   name: string;
   prompt: string;
+  draftText?: string;
+  draftMedia?: BribeMedia | null;
 }
 
 export interface SubmissionPhaseState {
@@ -47,6 +50,19 @@ export interface VotingPhaseState {
   promptText: string;
   bribes: VotingBribe[];
   selectedBribeId: string | null;
+  draftSelectedBribeId?: string | null;
+}
+
+export interface PhaseTimerSettings {
+  enabled: boolean;
+  durationSeconds: number;
+}
+
+export interface GameSettings {
+  promptTimer: PhaseTimerSettings;
+  submissionTimer: PhaseTimerSettings;
+  votingTimer: PhaseTimerSettings;
+  appreciationTimer: PhaseTimerSettings;
 }
 
 export interface RoundResult {
@@ -101,6 +117,18 @@ export class GameStateService {
   phase = signal<GamePhase>('Lobby');
   currentRound = signal(0);
   isCurrentPlayerActive = signal(false);
+  settings = signal<GameSettings>({
+    promptTimer: { enabled: false, durationSeconds: 120 },
+    submissionTimer: { enabled: false, durationSeconds: 300 },
+    votingTimer: { enabled: false, durationSeconds: 90 },
+    appreciationTimer: { enabled: false, durationSeconds: 120 },
+  });
+  serverNowUtc = signal<string | null>(null);
+  phaseStartedAtUtc = signal<string | null>(null);
+  phaseEndsAtUtc = signal<string | null>(null);
+  phaseDurationSeconds = signal<number | null>(null);
+  timerEnabled = signal(false);
+  phaseRevision = signal(0);
   promptSubmittedCount = signal(0);
   promptRequiredCount = signal(0);
   bribeSubmittedCount = signal(0);
@@ -123,6 +151,13 @@ export class GameStateService {
     this.phase.set(state.phase);
     this.currentRound.set(state.currentRound ?? 0);
     this.isCurrentPlayerActive.set(state.isCurrentPlayerActive ?? false);
+    this.settings.set(state.settings ?? this.settings());
+    this.serverNowUtc.set(state.serverNowUtc ?? null);
+    this.phaseStartedAtUtc.set(state.phaseStartedAtUtc ?? null);
+    this.phaseEndsAtUtc.set(state.phaseEndsAtUtc ?? null);
+    this.phaseDurationSeconds.set(state.phaseDurationSeconds ?? null);
+    this.timerEnabled.set(state.timerEnabled ?? false);
+    this.phaseRevision.set(state.phaseRevision ?? 0);
     this.promptSubmittedCount.set(state.promptSubmittedCount ?? 0);
     this.promptRequiredCount.set(state.promptRequiredCount ?? 0);
     this.bribeSubmittedCount.set(state.bribeSubmittedCount ?? 0);

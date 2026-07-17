@@ -18,6 +18,8 @@
       </div>
     </div>
 
+    <app-phase-countdown />
+
     @if (shouldShowPhaseWaitingStatus()) {
       <div class="nested-surface border border-pine/20 bg-pine/8 px-3 py-2">
         <p class="text-sm font-semibold text-pine">Your submitted bribes are tucked away safely.</p>
@@ -102,7 +104,9 @@
                     class="max-h-64 w-full rounded-lg object-contain" />
                 }
                 <div class="flex items-center justify-between gap-3 text-xs text-ink/70">
-                  <span class="min-w-0 truncate">{{ mediaDraft.file.name }} - {{ formatBytes(mediaDraft.file.size) }}</span>
+                  <span class="min-w-0 truncate">
+                    {{ mediaDraftName(mediaDraft) }} - {{ formatBytes(mediaDraftBytes(mediaDraft)) }}
+                  </span>
                   <button type="button" class="font-semibold text-plum" (click)="clearMedia(target.playerId)">Remove</button>
                 </div>
                 @if (mediaDraft.error) {
@@ -124,6 +128,7 @@
                   aria-multiline="true"
                   contenteditable="true"
                   class="soft-input min-h-28 whitespace-pre-wrap break-words"
+                  [textContent]="draftFor(target.playerId)"
                   (input)="handleComposerInput(target.playerId, $event)"
                   (beforeinput)="handleBeforeInput(target.playerId, $event)"
                   (paste)="handlePaste(target.playerId, $event)"></div>

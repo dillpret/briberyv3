@@ -76,6 +76,23 @@ public class GameHub : Hub
         await SendGameStateUpdates(gameId);
     }
 
+    public async Task UpdateGameSettings(GameSettings settings)
+    {
+        var (gameId, result) =
+            _gameService.UpdateGameSettings(Context.ConnectionId, settings);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
+    }
+
     public async Task SubmitPrompt(string text)
     {
         var (gameId, result) =
@@ -92,6 +109,18 @@ public class GameHub : Hub
         }
 
         await SendGameStateUpdates(gameId);
+    }
+
+    public async Task SavePromptDraft(string text, long clientDraftVersion)
+    {
+        var (gameId, result) =
+            _gameService.SavePromptDraft(Context.ConnectionId, text, clientDraftVersion);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+            await Clients.Caller.SendAsync("ActionFailed", result.Error);
     }
 
     public async Task SubmitBribe(SubmitBribeRequest request)
@@ -112,6 +141,18 @@ public class GameHub : Hub
         await SendGameStateUpdates(gameId);
     }
 
+    public async Task SaveBribeDraft(SaveBribeDraftRequest request)
+    {
+        var (gameId, result) =
+            _gameService.SaveBribeDraft(Context.ConnectionId, request);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+            await Clients.Caller.SendAsync("ActionFailed", result.Error);
+    }
+
     public async Task SubmitVote(string bribeId)
     {
         var (gameId, result) =
@@ -128,6 +169,18 @@ public class GameHub : Hub
         }
 
         await SendGameStateUpdates(gameId);
+    }
+
+    public async Task SaveVoteDraft(string bribeId, long clientDraftVersion)
+    {
+        var (gameId, result) =
+            _gameService.SaveVoteDraft(Context.ConnectionId, bribeId, clientDraftVersion);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+            await Clients.Caller.SendAsync("ActionFailed", result.Error);
     }
 
     public async Task ToggleAppreciationCoin(string bribeId)

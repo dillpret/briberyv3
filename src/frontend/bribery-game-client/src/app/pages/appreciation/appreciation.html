@@ -17,6 +17,8 @@
         <div class="progress-fill" [style.width.%]="doneProgressPercent()"></div>
       </div>
     </div>
+
+    <app-phase-countdown />
   </section>
 
   @if (isWaitingOnlyForOfflinePlayers()) {

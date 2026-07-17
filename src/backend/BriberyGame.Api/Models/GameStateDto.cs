@@ -8,6 +8,13 @@ public class GameStateDto
     public GamePhase Phase { get; set; }
     public int CurrentRound { get; set; }
     public bool IsCurrentPlayerActive { get; set; }
+    public GameSettings Settings { get; set; } = new();
+    public DateTimeOffset ServerNowUtc { get; set; }
+    public DateTimeOffset? PhaseStartedAtUtc { get; set; }
+    public DateTimeOffset? PhaseEndsAtUtc { get; set; }
+    public int? PhaseDurationSeconds { get; set; }
+    public bool TimerEnabled { get; set; }
+    public int PhaseRevision { get; set; }
     public int PromptSubmittedCount { get; set; }
     public int PromptRequiredCount { get; set; }
     public int BribeSubmittedCount { get; set; }
@@ -39,6 +46,7 @@ public class PlayerDto
 public class PromptPhaseDto
 {
     public bool HasSubmittedPrompt { get; set; }
+    public string DraftText { get; set; } = "";
 }
 
 public class SubmissionPhaseDto
@@ -52,6 +60,8 @@ public class SubmissionTargetDto
     public string PlayerId { get; set; } = "";
     public string Name { get; set; } = "";
     public string Prompt { get; set; } = "";
+    public string DraftText { get; set; } = "";
+    public BribeMedia? DraftMedia { get; set; }
 }
 
 public class VotingPhaseDto
@@ -59,6 +69,7 @@ public class VotingPhaseDto
     public string PromptText { get; set; } = "";
     public List<VotingBribeDto> Bribes { get; set; } = new();
     public string? SelectedBribeId { get; set; }
+    public string? DraftSelectedBribeId { get; set; }
 }
 
 public class VotingBribeDto

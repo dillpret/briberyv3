@@ -1,13 +1,14 @@
 import { Component, Input } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
-import { GameStateService } from '../../state/game-state.service';
+import { GameSettings, GameStateService } from '../../state/game-state.service';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 
 @Component({
   selector: 'app-lobby',
   standalone: true,
-  imports: [CommonModule, WaitingTips],
+  imports: [CommonModule, FormsModule, WaitingTips],
   templateUrl: './lobby.html',
 })
 export class Lobby {
@@ -16,7 +17,14 @@ export class Lobby {
   players;
   hostPlayerId;
   currentPlayerId;
+  settings;
   copyMessage = '';
+  timerNames: (keyof GameSettings)[] = [
+    'promptTimer',
+    'submissionTimer',
+    'votingTimer',
+    'appreciationTimer',
+  ];
 
   constructor(
     private signalr: SignalrService,
@@ -25,6 +33,7 @@ export class Lobby {
     this.players = this.gameState.players;
     this.hostPlayerId = this.gameState.hostPlayerId;
     this.currentPlayerId = this.gameState.currentPlayerId;
+    this.settings = this.gameState.settings;
   }
 
   async toggleReady() {
@@ -33,6 +42,38 @@ export class Lobby {
 
   async startGame() {
     await this.signalr.startGame();
+  }
+
+  async updateTimer(
+    timerName: keyof GameSettings,
+    changes: Partial<{ enabled: boolean; durationSeconds: number }>,
+  ) {
+    const current = this.settings();
+    const timer = current[timerName];
+    const nextDuration = changes.durationSeconds ?? timer.durationSeconds;
+    await this.signalr.updateGameSettings({
+      ...current,
+      [timerName]: {
+        ...timer,
+        ...changes,
+        durationSeconds: this.clampDuration(nextDuration),
+      },
+    });
+  }
+
+  timerLabel(timerName: keyof GameSettings): string {
+    const labels: Record<keyof GameSettings, string> = {
+      promptTimer: 'Prompt',
+      submissionTimer: 'Submission',
+      votingTimer: 'Voting',
+      appreciationTimer: 'Appreciation',
+    };
+    return labels[timerName];
+  }
+
+  timerSummary(timerName: keyof GameSettings): string {
+    const timer = this.settings()[timerName];
+    return timer.enabled ? `${timer.durationSeconds}s` : 'Off';
   }
 
   connectedCount(): number {
@@ -89,5 +130,9 @@ export class Lobby {
     window.setTimeout(() => {
       this.copyMessage = '';
     }, 1800);
+  }
+
+  private clampDuration(value: number): number {
+    return Math.min(Math.max(Math.round(Number(value) || 1), 1), 600);
   }
 }

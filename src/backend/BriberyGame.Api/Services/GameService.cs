@@ -22,7 +22,12 @@ public class GameService
     }
 
     public GameService(MediaStore mediaStore)
-        : this(mediaStore, () => DateTimeOffset.UtcNow)
+        : this(mediaStore, TimeProvider.System)
+    {
+    }
+
+    public GameService(MediaStore mediaStore, TimeProvider timeProvider)
+        : this(mediaStore, () => timeProvider.GetUtcNow())
     {
     }
 
@@ -44,7 +49,7 @@ public class GameService
         }
         while (_games.ContainsKey(gameId));
         
-        _games[gameId] = new GameSession(new Game(gameId))
+        _games[gameId] = new GameSession(new Game(gameId, _now))
         {
             EmptySince = _now()
         };
@@ -64,7 +69,11 @@ public class GameService
         var game = GetGame(normalizedGameId);
         if (game == null) return (null, null);
 
-        var result = game.Join(connectionId, playerId, name);
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.Join(connectionId, playerId, name);
+        }
         if (!result.Success)
         {
             _connectionToGame.TryRemove(connectionId, out _);
@@ -83,7 +92,11 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (gameId == null || game == null) return (null, null);
 
-        var state = game.Disconnect(connectionId);
+        GameStateDto state;
+        lock (game)
+        {
+            state = game.Disconnect(connectionId);
+        }
         _connectionToGame.TryRemove(connectionId, out _);
         MarkActivity(gameId, game);
         CleanupInactiveGames();
@@ -96,7 +109,25 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var result = game.ToggleReady(connectionId);
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.ToggleReady(connectionId);
+        }
+
+        return (gameId, result);
+    }
+
+    public (string? gameId, Result<GameStateDto>? result) UpdateGameSettings(string connectionId, GameSettings settings)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.UpdateGameSettings(connectionId, settings);
+        }
 
         return (gameId, result);
     }
@@ -106,10 +137,15 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var existingMediaIds = GetSubmittedMediaIds(game);
-        var result = game.StartGame(connectionId);
-        if (gameId != null && result.Success)
-            _mediaStore.Remove(existingMediaIds);
+        IEnumerable<string> existingMediaIds;
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            existingMediaIds = GetSubmittedMediaIds(game).ToList();
+            result = game.StartGame(connectionId);
+            if (gameId != null && result.Success)
+                _mediaStore.Remove(existingMediaIds);
+        }
 
         return (gameId, result);
     }
@@ -119,7 +155,28 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var result = game.SubmitPrompt(connectionId, text);
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.SubmitPrompt(connectionId, text);
+        }
+
+        return (gameId, result);
+    }
+
+    public (string? gameId, Result<GameStateDto>? result) SavePromptDraft(
+        string connectionId,
+        string text,
+        long clientDraftVersion)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.SavePromptDraft(connectionId, text, clientDraftVersion);
+        }
 
         return (gameId, result);
     }
@@ -143,28 +200,53 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var player = game.State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
-        if (player == null)
-            return (gameId, Result<GameStateDto>.Fail("Player not found"));
-
-        if (request.Media != null)
+        Result<GameStateDto> result;
+        lock (game)
         {
-            var mediaResult = _mediaStore.ReserveForBribe(
-                gameId!,
-                player.Id,
-                request.Media,
-                GetActiveMediaBudgetBytes(game));
+            var player = game.State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
+            if (player == null)
+                return (gameId, Result<GameStateDto>.Fail("Player not found"));
 
-            if (!mediaResult.Success)
-                return (gameId, Result<GameStateDto>.Fail(mediaResult.Error!));
+            if (request.Media != null)
+            {
+                var mediaResult = _mediaStore.ReserveForBribe(
+                    gameId!,
+                    player.Id,
+                    request.Media,
+                    GetActiveMediaBudgetBytes(game));
 
-            request.Media = mediaResult.Data;
+                if (!mediaResult.Success)
+                    return (gameId, Result<GameStateDto>.Fail(mediaResult.Error!));
+
+                request.Media = mediaResult.Data;
+            }
+
+            result = game.SubmitBribe(connectionId, request);
+
+            if (!result.Success && request.Media != null)
+                _mediaStore.Remove(request.Media.MediaId);
         }
 
-        var result = game.SubmitBribe(connectionId, request);
+        return (gameId, result);
+    }
 
-        if (!result.Success && request.Media != null)
-            _mediaStore.Remove(request.Media.MediaId);
+    public (string? gameId, Result<GameStateDto>? result) SaveBribeDraft(
+        string connectionId,
+        SaveBribeDraftRequest request)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.SaveBribeDraft(
+                connectionId,
+                request.TargetPlayerId,
+                request.Text,
+                request.Media,
+                request.ClientDraftVersion);
+        }
 
         return (gameId, result);
     }
@@ -176,7 +258,28 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var result = game.SubmitVote(connectionId, bribeId);
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.SubmitVote(connectionId, bribeId);
+        }
+
+        return (gameId, result);
+    }
+
+    public (string? gameId, Result<GameStateDto>? result) SaveVoteDraft(
+        string connectionId,
+        string bribeId,
+        long clientDraftVersion)
+    {
+        var (gameId, game) = ResolveGame(connectionId);
+        if (game == null) return (null, null);
+
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.SaveVoteDraft(connectionId, bribeId, clientDraftVersion);
+        }
 
         return (gameId, result);
     }
@@ -188,7 +291,11 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var result = game.ToggleAppreciationCoin(connectionId, bribeId);
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.ToggleAppreciationCoin(connectionId, bribeId);
+        }
 
         return (gameId, result);
     }
@@ -198,7 +305,11 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var result = game.SubmitAppreciationDone(connectionId);
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            result = game.SubmitAppreciationDone(connectionId);
+        }
 
         return (gameId, result);
     }
@@ -208,10 +319,15 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var existingMediaIds = GetSubmittedMediaIds(game);
-        var result = game.StartNextRound(connectionId);
-        if (result.Success)
-            _mediaStore.Remove(existingMediaIds);
+        IEnumerable<string> existingMediaIds;
+        Result<GameStateDto> result;
+        lock (game)
+        {
+            existingMediaIds = GetSubmittedMediaIds(game).ToList();
+            result = game.StartNextRound(connectionId);
+            if (result.Success)
+                _mediaStore.Remove(existingMediaIds);
+        }
 
         return (gameId, result);
     }
@@ -221,12 +337,17 @@ public class GameService
         var (gameId, game) = ResolveGame(connectionId);
         if (game == null) return (null, null);
 
-        var beforeMediaIds = GetSubmittedMediaIds(game);
-        var result = game.AdvancePhaseWithoutOfflinePlayers(connectionId);
-        if (result.Success)
+        IEnumerable<string> beforeMediaIds;
+        Result<GameStateDto> result;
+        lock (game)
         {
-            var remainingMediaIds = GetSubmittedMediaIds(game);
-            _mediaStore.Remove(beforeMediaIds.Except(remainingMediaIds));
+            beforeMediaIds = GetSubmittedMediaIds(game).ToList();
+            result = game.AdvancePhaseWithoutOfflinePlayers(connectionId);
+            if (result.Success)
+            {
+                var remainingMediaIds = GetSubmittedMediaIds(game);
+                _mediaStore.Remove(beforeMediaIds.Except(remainingMediaIds));
+            }
         }
 
         return (gameId, result);
@@ -235,7 +356,11 @@ public class GameService
     public List<ConnectionGameStateDto> GetConnectedPlayerStates(string gameId)
     {
         var game = GetGame(gameId);
-        return game?.GetConnectedPlayerStates() ?? [];
+        if (game == null) return [];
+        lock (game)
+        {
+            return game.GetConnectedPlayerStates();
+        }
     }
 
     public Result<BribeMedia> StoreMedia(
@@ -262,6 +387,24 @@ public class GameService
     {
         CleanupInactiveGames();
         return _mediaStore.Get(mediaId);
+    }
+
+    public List<string> ExpireDuePhases(DateTimeOffset? now = null)
+    {
+        var currentTime = now ?? _now();
+        var changedGameIds = new List<string>();
+
+        foreach (var pair in _games.ToList())
+        {
+            var game = pair.Value.Game;
+            lock (game)
+            {
+                if (game.ExpireCurrentPhaseIfDue(currentTime))
+                    changedGameIds.Add(pair.Key);
+            }
+        }
+
+        return changedGameIds;
     }
     
     private (string? gameId, Game? game) ResolveGame(string connectionId)

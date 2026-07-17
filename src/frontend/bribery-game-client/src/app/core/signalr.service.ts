@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { GameStateService } from '../state/game-state.service';
-import { BribeMedia } from '../state/game-state.service';
+import { BribeMedia, GameSettings } from '../state/game-state.service';
 import { ErrorMessageService } from './error-message.service';
 
 export interface SubmitBribeRequest {
@@ -14,6 +14,13 @@ interface ActiveSession {
   gameId: string;
   playerId: string;
   name: string;
+}
+
+export interface SaveBribeDraftRequest {
+  targetPlayerId: string;
+  text?: string;
+  media?: BribeMedia | null;
+  clientDraftVersion: number;
 }
 
 type ConnectionMode = 'not-connected' | 'reconnecting' | 'connected';
@@ -192,14 +199,29 @@ export class SignalrService {
     await this.connection!.invoke('StartGame');
   }
 
+  async updateGameSettings(settings: GameSettings): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('UpdateGameSettings', settings);
+  }
+
   async submitPrompt(text: string): Promise<void> {
     await this.ensureReadyForAction();
     await this.connection!.invoke('SubmitPrompt', text);
   }
 
+  async savePromptDraft(text: string, clientDraftVersion: number): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('SavePromptDraft', text, clientDraftVersion);
+  }
+
   async submitBribe(request: SubmitBribeRequest): Promise<void> {
     await this.ensureReadyForAction();
     await this.connection!.invoke('SubmitBribe', request);
+  }
+
+  async saveBribeDraft(request: SaveBribeDraftRequest): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('SaveBribeDraft', request);
   }
 
   async uploadBribeMedia(gameId: string, playerId: string, file: File): Promise<BribeMedia> {
@@ -225,6 +247,11 @@ export class SignalrService {
   async submitVote(bribeId: string): Promise<void> {
     await this.ensureReadyForAction();
     await this.connection!.invoke('SubmitVote', bribeId);
+  }
+
+  async saveVoteDraft(bribeId: string, clientDraftVersion: number): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('SaveVoteDraft', bribeId, clientDraftVersion);
   }
 
   async toggleAppreciationCoin(bribeId: string): Promise<void> {

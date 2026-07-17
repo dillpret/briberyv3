@@ -22,6 +22,8 @@
         <div class="progress-fill" [style.width.%]="promptProgressPercent()"></div>
       </div>
     </div>
+
+    <app-phase-countdown />
   </section>
 
   @if (isWaitingOnlyForOfflinePlayers()) {
@@ -94,7 +96,8 @@
           </button>
         </span>
         <textarea
-          [(ngModel)]="promptText"
+          [ngModel]="promptText"
+          (ngModelChange)="setPromptText($event)"
           maxlength="200"
           rows="5"
           class="soft-input resize-none"

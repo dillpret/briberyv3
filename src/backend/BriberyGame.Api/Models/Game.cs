@@ -1,5 +1,7 @@
 namespace BriberyGame.Api.Models;
 
+using BriberyGame.Api.Services;
+
 public class Game
 {
     private const int MaxPromptLength = 200;
@@ -28,9 +30,18 @@ public class Game
     ];
 
     public GameState State { get; }
+    private readonly Func<DateTimeOffset> _now;
+    private readonly Random _random;
 
     public Game(string gameId)
+        : this(gameId, () => DateTimeOffset.UtcNow)
     {
+    }
+
+    public Game(string gameId, Func<DateTimeOffset> now)
+    {
+        _now = now;
+        _random = new Random();
         State = new GameState
         {
             GameId = gameId
@@ -78,6 +89,25 @@ public class Game
         State.Players.Add(player);
 
         ReassignHost();
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> UpdateGameSettings(string connectionId, GameSettings settings)
+    {
+        var phaseResult = RequirePhase(GamePhase.Lobby, "Cannot update settings after the game has started");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null || player.Id != State.HostPlayerId)
+            return Result<GameStateDto>.Fail("Player is not host and cannot update settings");
+
+        var validation = ValidateSettings(settings);
+        if (!validation.Success)
+            return Result<GameStateDto>.Fail(validation.Error!);
+
+        State.Settings = settings.Clone();
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
     }
@@ -205,7 +235,7 @@ public class Game
         {
             PlayerId = player.Id,
             Text = promptText,
-            SubmittedAt = DateTimeOffset.UtcNow
+            SubmittedAt = _now()
         };
 
         if (AllActivePlayersSubmittedPrompts())
@@ -286,7 +316,7 @@ public class Game
             Kind = hasMedia ? BribeContentKind.Media : BribeContentKind.Text,
             Text = bribeText,
             Media = media,
-            SubmittedAt = DateTimeOffset.UtcNow
+            SubmittedAt = _now()
         };
 
         if (AllRequiredBribesSubmitted())
@@ -322,7 +352,7 @@ public class Game
         {
             VoterPlayerId = player.Id,
             BribeId = bribeId,
-            SubmittedAt = DateTimeOffset.UtcNow
+            SubmittedAt = _now()
         };
 
         if (AllActivePlayersVoted())
@@ -335,6 +365,145 @@ public class Game
         }
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> SavePromptDraft(string connectionId, string text, long clientDraftVersion)
+    {
+        var phaseResult = RequirePhase(GamePhase.Prompt, "Cannot save prompt draft outside prompt phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot save prompt drafts");
+
+        if (State.Prompts.ContainsKey(player.Id))
+            return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+
+        var draftText = (text ?? "").Trim();
+        if (draftText.Length > MaxPromptLength)
+            draftText = draftText[..MaxPromptLength];
+
+        if (State.PromptDrafts.TryGetValue(player.Id, out var existing) &&
+            existing.Version > clientDraftVersion)
+            return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+
+        State.PromptDrafts[player.Id] = new TextDraft
+        {
+            Text = draftText,
+            Version = clientDraftVersion,
+            UpdatedAt = _now()
+        };
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> SaveBribeDraft(
+        string connectionId,
+        string targetPlayerId,
+        string? text,
+        BribeMedia? media,
+        long clientDraftVersion)
+    {
+        var phaseResult = RequirePhase(GamePhase.Submission, "Cannot save bribe draft outside submission phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot save bribe drafts");
+
+        if (!State.TargetAssignments.TryGetValue(player.Id, out var targets) ||
+            !targets.Contains(targetPlayerId))
+            return Result<GameStateDto>.Fail("Cannot save a draft for an unassigned target");
+
+        if (HasSubmittedBribe(player.Id, targetPlayerId))
+            return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+
+        var draftKey = BribeDraftKey(player.Id, targetPlayerId);
+        if (State.BribeDrafts.TryGetValue(draftKey, out var existing) &&
+            existing.Version > clientDraftVersion)
+            return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+
+        var draftText = (text ?? "").Trim();
+        if (draftText.Length > MaxBribeLength)
+            draftText = draftText[..MaxBribeLength];
+
+        if (media != null)
+        {
+            if (media.ByteSize <= 0 || media.ByteSize > MaxMediaBribeBytes)
+                return Result<GameStateDto>.Fail("Media bribe cannot exceed 8 MB");
+
+            if (!IsAllowedMediaContentType(media.ContentType))
+                return Result<GameStateDto>.Fail("Media bribe must be a supported image or GIF");
+
+            if (string.IsNullOrWhiteSpace(media.MediaId) || string.IsNullOrWhiteSpace(media.Url))
+                return Result<GameStateDto>.Fail("Media bribe is missing upload information");
+        }
+
+        State.BribeDrafts[draftKey] = new BribeDraft
+        {
+            Text = media == null ? draftText : "",
+            Media = media,
+            Version = clientDraftVersion,
+            UpdatedAt = _now()
+        };
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> SaveVoteDraft(string connectionId, string bribeId, long clientDraftVersion)
+    {
+        var phaseResult = RequirePhase(GamePhase.Voting, "Cannot save vote draft outside voting phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot save vote drafts");
+
+        if (State.Votes.ContainsKey(player.Id))
+            return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+
+        if (!State.Bribes.TryGetValue(bribeId, out var bribe) || bribe.ToPlayerId != player.Id)
+            return Result<GameStateDto>.Fail("Cannot save a vote for a bribe that was not sent to you");
+
+        if (State.VoteDrafts.TryGetValue(player.Id, out var existing) &&
+            existing.Version > clientDraftVersion)
+            return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+
+        State.VoteDrafts[player.Id] = new VoteDraft
+        {
+            BribeId = bribeId,
+            Version = clientDraftVersion,
+            UpdatedAt = _now()
+        };
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public bool ExpireCurrentPhaseIfDue(DateTimeOffset now)
+    {
+        if (State.PhaseEndsAtUtc == null || State.PhaseEndsAtUtc > now)
+            return false;
+
+        return State.Phase switch
+        {
+            GamePhase.Prompt => ExpirePromptPhase(),
+            GamePhase.Submission => ExpireSubmissionPhase(),
+            GamePhase.Voting => ExpireVotingPhase(),
+            GamePhase.Appreciation => ExpireAppreciationPhase(),
+            _ => false
+        };
     }
 
     public Result<GameStateDto> ToggleAppreciationCoin(string connectionId, string bribeId)
@@ -474,6 +643,23 @@ public class Game
                connectedPlayers.All(p => p.IsReady);
     }
 
+    private static Result<object> ValidateSettings(GameSettings settings)
+    {
+        foreach (var timer in new[]
+                 {
+                     settings.PromptTimer,
+                     settings.SubmissionTimer,
+                     settings.VotingTimer,
+                     settings.AppreciationTimer
+                 })
+        {
+            if (timer.DurationSeconds is < 1 or > 600)
+                return Result<object>.Fail("Timer duration must be between 1 and 600 seconds");
+        }
+
+        return Result<object>.Ok(new object());
+    }
+
     private Player? FindPlayerByConnection(string connectionId)
     {
         return State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
@@ -495,6 +681,15 @@ public class Game
         }
 
         State.Phase = nextPhase;
+        State.PhaseRevision += 1;
+        State.PhaseStartedAtUtc = _now();
+
+        var timer = State.Settings.TimerFor(nextPhase);
+        if (timer.Enabled && IsTimedPhase(nextPhase))
+            State.PhaseEndsAtUtc = State.PhaseStartedAtUtc.Value.AddSeconds(timer.DurationSeconds);
+        else
+            State.PhaseEndsAtUtc = null;
+
         return Result<object>.Ok(new object());
     }
 
@@ -508,6 +703,11 @@ public class Game
         State.AppreciationDonePlayerIds.Clear();
         State.RoundResults.Clear();
         State.RoundScores.Clear();
+        State.PromptDrafts.Clear();
+        State.BribeDrafts.Clear();
+        State.VoteDrafts.Clear();
+        State.PhaseStartedAtUtc = null;
+        State.PhaseEndsAtUtc = null;
     }
 
     private void GenerateTargetAssignments()
@@ -703,9 +903,155 @@ public class Game
         return (int)Math.Ceiling(activePlayerCount / 5.0) * 5;
     }
 
+    private bool ExpirePromptPhase()
+    {
+        if (State.Phase != GamePhase.Prompt)
+            return false;
+
+        foreach (var player in State.Players.Where(p => p.IsActive).ToList())
+        {
+            if (State.Prompts.ContainsKey(player.Id))
+                continue;
+
+            var draft = State.PromptDrafts.TryGetValue(player.Id, out var savedDraft)
+                ? savedDraft.Text.Trim()
+                : "";
+            var text = draft.Length > 0
+                ? draft
+                : PromptLibrary.RandomPrompt(_random);
+
+            State.Prompts[player.Id] = new PromptSubmission
+            {
+                PlayerId = player.Id,
+                Text = text,
+                SubmittedAt = _now()
+            };
+        }
+
+        GenerateTargetAssignments();
+        TransitionTo(GamePhase.Submission);
+        return true;
+    }
+
+    private bool ExpireSubmissionPhase()
+    {
+        if (State.Phase != GamePhase.Submission)
+            return false;
+
+        foreach (var key in GetRequiredBribeKeys())
+        {
+            if (HasSubmittedBribe(key.FromPlayerId, key.ToPlayerId))
+                continue;
+
+            var draftKey = BribeDraftKey(key.FromPlayerId, key.ToPlayerId);
+            State.BribeDrafts.TryGetValue(draftKey, out var draft);
+
+            var request = draft?.Media != null
+                ? new SubmitBribeRequest { TargetPlayerId = key.ToPlayerId, Media = draft.Media }
+                : new SubmitBribeRequest
+                {
+                    TargetPlayerId = key.ToPlayerId,
+                    Text = !string.IsNullOrWhiteSpace(draft?.Text)
+                        ? draft!.Text
+                        : "<didn't submit a bribe in time, for shame>"
+                };
+
+            AddBribeSubmission(key.FromPlayerId, request);
+        }
+
+        TransitionTo(GamePhase.Voting);
+        return true;
+    }
+
+    private bool ExpireVotingPhase()
+    {
+        if (State.Phase != GamePhase.Voting)
+            return false;
+
+        foreach (var player in State.Players.Where(p => p.IsActive).ToList())
+        {
+            if (State.Votes.ContainsKey(player.Id))
+                continue;
+
+            var validBribeIds = State.Bribes.Values
+                .Where(bribe => bribe.ToPlayerId == player.Id)
+                .Select(bribe => bribe.Id)
+                .ToList();
+
+            if (validBribeIds.Count == 0)
+                continue;
+
+            var draftBribeId = State.VoteDrafts.TryGetValue(player.Id, out var draft) &&
+                               validBribeIds.Contains(draft.BribeId)
+                ? draft.BribeId
+                : validBribeIds[_random.Next(validBribeIds.Count)];
+
+            State.Votes[player.Id] = new VoteSubmission
+            {
+                VoterPlayerId = player.Id,
+                BribeId = draftBribeId,
+                SubmittedAt = _now()
+            };
+        }
+
+        BuildRoundResults();
+        TransitionTo(GamePhase.Appreciation);
+        return true;
+    }
+
+    private bool ExpireAppreciationPhase()
+    {
+        if (State.Phase != GamePhase.Appreciation)
+            return false;
+
+        foreach (var playerId in GetActivePlayerIds())
+            State.AppreciationDonePlayerIds.Add(playerId);
+
+        ApplyRoundScores();
+        TransitionTo(GamePhase.Scoreboard);
+        return true;
+    }
+
+    private void AddBribeSubmission(string fromPlayerId, SubmitBribeRequest request)
+    {
+        var bribeText = request.Text?.Trim() ?? "";
+        var media = request.Media;
+        var hasMedia = media != null;
+        var bribeId = Guid.NewGuid().ToString("N");
+
+        State.Bribes[bribeId] = new BribeSubmission
+        {
+            Id = bribeId,
+            FromPlayerId = fromPlayerId,
+            ToPlayerId = request.TargetPlayerId,
+            Kind = hasMedia ? BribeContentKind.Media : BribeContentKind.Text,
+            Text = hasMedia ? "" : bribeText,
+            Media = media,
+            SubmittedAt = _now()
+        };
+    }
+
+    private static string BribeDraftKey(string fromPlayerId, string targetPlayerId)
+    {
+        return $"{fromPlayerId}\u001f{targetPlayerId}";
+    }
+
+    private bool HasSubmittedBribe(string fromPlayerId, string targetPlayerId)
+    {
+        return State.Bribes.Values.Any(bribe =>
+            bribe.FromPlayerId == fromPlayerId &&
+            bribe.ToPlayerId == targetPlayerId);
+    }
+
+    private static bool IsTimedPhase(GamePhase phase)
+    {
+        return phase is GamePhase.Prompt or GamePhase.Submission or GamePhase.Voting or GamePhase.Appreciation;
+    }
+
     private GameStateDto BuildStateForPlayer(string playerId)
     {
         var activePlayerIds = GetActivePlayerIds();
+        var timer = State.Settings.TimerFor(State.Phase);
 
         var state = new GameStateDto
         {
@@ -725,6 +1071,13 @@ public class Game
             Phase = State.Phase,
             CurrentRound = State.CurrentRound,
             IsCurrentPlayerActive = activePlayerIds.Contains(playerId),
+            Settings = State.Settings.Clone(),
+            ServerNowUtc = _now(),
+            PhaseStartedAtUtc = State.PhaseStartedAtUtc,
+            PhaseEndsAtUtc = State.PhaseEndsAtUtc,
+            PhaseDurationSeconds = timer.Enabled && IsTimedPhase(State.Phase) ? timer.DurationSeconds : null,
+            TimerEnabled = timer.Enabled && IsTimedPhase(State.Phase),
+            PhaseRevision = State.PhaseRevision,
             PromptSubmittedCount = State.Prompts.Keys.Count(activePlayerIds.Contains),
             PromptRequiredCount = activePlayerIds.Count,
             BribeSubmittedCount = GetSubmittedRequiredBribeCount(),
@@ -759,7 +1112,10 @@ public class Game
 
         return new PromptPhaseDto
         {
-            HasSubmittedPrompt = State.Prompts.ContainsKey(playerId)
+            HasSubmittedPrompt = State.Prompts.ContainsKey(playerId),
+            DraftText = State.PromptDrafts.TryGetValue(playerId, out var draft)
+                ? draft.Text
+                : ""
         };
     }
 
@@ -777,12 +1133,15 @@ public class Game
                 .Select(targetId =>
                 {
                     var target = State.Players.First(p => p.Id == targetId);
+                    State.BribeDrafts.TryGetValue(BribeDraftKey(playerId, target.Id), out var draft);
 
                     return new SubmissionTargetDto
                     {
                         PlayerId = target.Id,
                         Name = target.Name,
-                        Prompt = State.Prompts[target.Id].Text
+                        Prompt = State.Prompts[target.Id].Text,
+                        DraftText = draft?.Text ?? "",
+                        DraftMedia = draft?.Media
                     };
                 })
                 .ToList(),
@@ -815,6 +1174,9 @@ public class Game
                 .ToList(),
             SelectedBribeId = State.Votes.TryGetValue(playerId, out var vote)
                 ? vote.BribeId
+                : null,
+            DraftSelectedBribeId = State.VoteDrafts.TryGetValue(playerId, out var draft)
+                ? draft.BribeId
                 : null
         };
     }
@@ -1034,6 +1396,8 @@ public class Game
             State.Prompts.Remove(playerId);
             State.TargetAssignments.Remove(playerId);
             State.Votes.Remove(playerId);
+            State.PromptDrafts.Remove(playerId);
+            State.VoteDrafts.Remove(playerId);
             State.AppreciationDonePlayerIds.Remove(playerId);
         }
 
@@ -1080,6 +1444,14 @@ public class Game
             }
 
             assignment.Value.RemoveAll(playerIds.Contains);
+        }
+
+        foreach (var draftKey in State.BribeDrafts.Keys
+                     .Where(key => playerIds.Any(playerId => key.StartsWith($"{playerId}\u001f") ||
+                                                             key.EndsWith($"\u001f{playerId}")))
+                     .ToList())
+        {
+            State.BribeDrafts.Remove(draftKey);
         }
 
         RemoveInvalidVotes();

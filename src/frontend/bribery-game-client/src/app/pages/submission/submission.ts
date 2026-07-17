@@ -1,17 +1,18 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, OnDestroy, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
-import { GameStateService, SubmissionTarget } from '../../state/game-state.service';
+import { BribeMedia, GameStateService, SubmissionTarget } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
+import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
 
 @Component({
   selector: 'app-submission',
   standalone: true,
-  imports: [CommonModule, FormsModule, WaitingTips],
+  imports: [CommonModule, FormsModule, WaitingTips, PhaseCountdown],
   templateUrl: './submission.html',
 })
-export class Submission {
+export class Submission implements OnDestroy {
   submission;
   bribeSubmittedCount;
   bribeRequiredCount;
@@ -27,6 +28,9 @@ export class Submission {
   gameId = localStorage.getItem('gameId') ?? '';
   readonly maxMediaBytes = 8 * 1024 * 1024;
   readonly mediaAccept = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,.gif';
+  private draftVersions = new Map<string, number>();
+  private draftTimers = new Map<string, number>();
+  private draftSaves = new Map<string, Promise<void>>();
 
   constructor(
     private signalr: SignalrService,
@@ -42,6 +46,30 @@ export class Submission {
     this.offlineBlockingPlayerNames = this.gameState.offlineBlockingPlayerNames;
     this.advanceWithoutOfflinePlayersBlockedReason = this.gameState.advanceWithoutOfflinePlayersBlockedReason;
     this.currentPlayerId = this.gameState.currentPlayerId;
+
+    effect(() => {
+      for (const target of this.submission()?.targets ?? []) {
+        if (!this.hasSubmitted(target.playerId) && target.draftText && !this.draftFor(target.playerId)) {
+          this.setDraft(target.playerId, target.draftText, false);
+        }
+
+        if (!this.hasSubmitted(target.playerId) && target.draftMedia && !this.mediaDraftFor(target.playerId)) {
+          this.setMediaDraft(target.playerId, {
+            file: this.fileFromUploadedMedia(target.draftMedia),
+            uploadedMedia: target.draftMedia,
+            previewUrl: target.draftMedia.url,
+            error: null,
+            uploading: false,
+          });
+        }
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    for (const timer of this.draftTimers.values()) {
+      window.clearTimeout(timer);
+    }
   }
 
   hasSubmitted(targetPlayerId: string): boolean {
@@ -52,15 +80,26 @@ export class Submission {
     return this.drafts()[targetPlayerId] ?? '';
   }
 
-  setDraft(targetPlayerId: string, value: string) {
+  setDraft(targetPlayerId: string, value: string, scheduleSave = true) {
     this.drafts.update((drafts) => ({
       ...drafts,
       [targetPlayerId]: value,
     }));
+
+    if (scheduleSave) this.scheduleBribeDraftSave(targetPlayerId);
   }
 
   async submitBribe(target: SubmissionTarget) {
     const mediaDraft = this.mediaDraftFor(target.playerId);
+
+    if (mediaDraft?.uploadedMedia) {
+      await this.flushBribeDraft(target.playerId);
+      await this.signalr.submitBribe({
+        targetPlayerId: target.playerId,
+        media: mediaDraft.uploadedMedia,
+      });
+      return;
+    }
 
     if (mediaDraft?.file) {
       if (mediaDraft.error) return;
@@ -74,6 +113,7 @@ export class Submission {
       try {
         const processedFile = await this.prepareMediaFile(mediaDraft.file);
         const media = await this.signalr.uploadBribeMedia(this.gameId, this.currentPlayerId(), processedFile);
+        await this.saveUploadedMediaDraft(target.playerId, media);
         await this.signalr.submitBribe({
           targetPlayerId: target.playerId,
           media,
@@ -89,6 +129,7 @@ export class Submission {
       return;
     }
 
+    await this.flushBribeDraft(target.playerId);
     await this.signalr.submitBribe({
       targetPlayerId: target.playerId,
       text: this.draftFor(target.playerId),
@@ -117,7 +158,8 @@ export class Submission {
   }
 
   hasContent(targetPlayerId: string): boolean {
-    return !!this.draftFor(targetPlayerId).trim() || !!this.mediaDraftFor(targetPlayerId)?.file;
+    const mediaDraft = this.mediaDraftFor(targetPlayerId);
+    return !!this.draftFor(targetPlayerId).trim() || !!mediaDraft?.file || !!mediaDraft?.uploadedMedia;
   }
 
   canSubmit(targetPlayerId: string): boolean {
@@ -212,17 +254,27 @@ export class Submission {
 
   clearMedia(targetPlayerId: string) {
     const existing = this.mediaDraftFor(targetPlayerId);
-    if (existing?.previewUrl) URL.revokeObjectURL(existing.previewUrl);
+    if (existing?.previewUrl && !existing.uploadedMedia) URL.revokeObjectURL(existing.previewUrl);
 
     this.mediaDrafts.update((drafts) => {
       const next = { ...drafts };
       delete next[targetPlayerId];
       return next;
     });
+
+    this.scheduleBribeDraftSave(targetPlayerId);
   }
 
   formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  mediaDraftName(mediaDraft: MediaDraft): string {
+    return mediaDraft.uploadedMedia ? 'Uploaded media draft' : mediaDraft.file.name;
+  }
+
+  mediaDraftBytes(mediaDraft: MediaDraft): number {
+    return mediaDraft.uploadedMedia?.byteSize ?? mediaDraft.file.size;
   }
 
   waitingText(): string {
@@ -265,7 +317,7 @@ export class Submission {
   private selectMedia(targetPlayerId: string, file: File) {
     const error = this.validateMedia(file);
     const existing = this.mediaDraftFor(targetPlayerId);
-    if (existing?.previewUrl) URL.revokeObjectURL(existing.previewUrl);
+    if (existing?.previewUrl && !existing.uploadedMedia) URL.revokeObjectURL(existing.previewUrl);
     this.setDraft(targetPlayerId, '');
 
     this.setMediaDraft(targetPlayerId, {
@@ -281,6 +333,67 @@ export class Submission {
       ...drafts,
       [targetPlayerId]: draft,
     }));
+  }
+
+  private scheduleBribeDraftSave(targetPlayerId: string) {
+    if (this.hasSubmitted(targetPlayerId)) return;
+    const existing = this.draftTimers.get(targetPlayerId);
+    if (existing !== undefined) window.clearTimeout(existing);
+
+    const version = (this.draftVersions.get(targetPlayerId) ?? 0) + 1;
+    this.draftVersions.set(targetPlayerId, version);
+    this.draftTimers.set(targetPlayerId, window.setTimeout(() => {
+      this.draftTimers.delete(targetPlayerId);
+      this.queueBribeDraftSave(targetPlayerId, version);
+    }, 600));
+  }
+
+  private async flushBribeDraft(targetPlayerId: string) {
+    const timer = this.draftTimers.get(targetPlayerId);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      this.draftTimers.delete(targetPlayerId);
+      const version = (this.draftVersions.get(targetPlayerId) ?? 0) + 1;
+      this.draftVersions.set(targetPlayerId, version);
+      this.queueBribeDraftSave(targetPlayerId, version);
+    }
+
+    await (this.draftSaves.get(targetPlayerId) ?? Promise.resolve());
+  }
+
+  private async saveUploadedMediaDraft(targetPlayerId: string, media: BribeMedia) {
+    this.setMediaDraft(targetPlayerId, {
+      file: this.fileFromUploadedMedia(media),
+      uploadedMedia: media,
+      previewUrl: media.url,
+      error: null,
+      uploading: false,
+    });
+    this.drafts.update((drafts) => ({ ...drafts, [targetPlayerId]: '' }));
+    const version = (this.draftVersions.get(targetPlayerId) ?? 0) + 1;
+    this.draftVersions.set(targetPlayerId, version);
+    this.queueBribeDraftSave(targetPlayerId, version);
+    await this.flushBribeDraft(targetPlayerId);
+  }
+
+  private queueBribeDraftSave(targetPlayerId: string, version: number) {
+    const mediaDraft = this.mediaDraftFor(targetPlayerId);
+    const previous = this.draftSaves.get(targetPlayerId) ?? Promise.resolve();
+    const next = previous
+      .catch(() => undefined)
+      .then(() => this.signalr.saveBribeDraft({
+        targetPlayerId,
+        text: mediaDraft?.uploadedMedia ? '' : this.draftFor(targetPlayerId),
+        media: mediaDraft?.uploadedMedia ?? null,
+        clientDraftVersion: version,
+      }))
+      .catch((error) => console.error('Bribe draft save failed:', error));
+
+    this.draftSaves.set(targetPlayerId, next);
+  }
+
+  private fileFromUploadedMedia(media: BribeMedia): File {
+    return new File([], 'Uploaded media draft', { type: media.contentType });
   }
 
   private validateMedia(file: File): string | null {
@@ -621,6 +734,7 @@ export class Submission {
 
 interface MediaDraft {
   file: File;
+  uploadedMedia?: BribeMedia;
   previewUrl: string;
   error: string | null;
   uploading: boolean;
