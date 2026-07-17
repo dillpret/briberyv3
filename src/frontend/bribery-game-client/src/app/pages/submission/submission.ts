@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, effect, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
 import { BribeMedia, GameStateService, SubmissionTarget } from '../../state/game-state.service';
@@ -31,10 +31,12 @@ export class Submission implements OnDestroy {
   private draftVersions = new Map<string, number>();
   private draftTimers = new Map<string, number>();
   private draftSaves = new Map<string, Promise<void>>();
+  private hydratedDraftTargets = new Set<string>();
 
   constructor(
     private signalr: SignalrService,
     private gameState: GameStateService,
+    private host: ElementRef<HTMLElement>,
   ) {
     this.submission = this.gameState.submission;
     this.bribeSubmittedCount = this.gameState.bribeSubmittedCount;
@@ -51,6 +53,7 @@ export class Submission implements OnDestroy {
       for (const target of this.submission()?.targets ?? []) {
         if (!this.hasSubmitted(target.playerId) && target.draftText && !this.draftFor(target.playerId)) {
           this.setDraft(target.playerId, target.draftText, false);
+          this.hydrateComposerDraft(target.playerId, target.draftText);
         }
 
         if (!this.hasSubmitted(target.playerId) && target.draftMedia && !this.mediaDraftFor(target.playerId)) {
@@ -394,6 +397,19 @@ export class Submission implements OnDestroy {
 
   private fileFromUploadedMedia(media: BribeMedia): File {
     return new File([], 'Uploaded media draft', { type: media.contentType });
+  }
+
+  private hydrateComposerDraft(targetPlayerId: string, text: string) {
+    if (this.hydratedDraftTargets.has(targetPlayerId)) return;
+    this.hydratedDraftTargets.add(targetPlayerId);
+
+    window.setTimeout(() => {
+      const composer = this.host.nativeElement
+        .querySelector(`[data-composer-target="${targetPlayerId}"]`);
+      if (composer instanceof HTMLElement && !composer.textContent) {
+        composer.textContent = text;
+      }
+    });
   }
 
   private validateMedia(file: File): string | null {

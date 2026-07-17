@@ -48,6 +48,16 @@ public class MediaStore
         BribeMedia media,
         long activeMediaBudgetBytes)
     {
+        return ReserveForBribe(gameId, ownerPlayerId, media, activeMediaBudgetBytes, null);
+    }
+
+    public Result<BribeMedia> ReserveForBribe(
+        string gameId,
+        string ownerPlayerId,
+        BribeMedia media,
+        long activeMediaBudgetBytes,
+        string? referenceKey)
+    {
         CleanupExpiredOrphans();
 
         if (!_media.TryGetValue(media.MediaId, out var stored))
@@ -56,13 +66,14 @@ public class MediaStore
         if (stored.GameId != gameId || stored.OwnerPlayerId != ownerPlayerId)
             return Result<BribeMedia>.Fail("Uploaded media does not belong to this player");
 
-        if (stored.IsReferenced)
+        if (stored.IsReferenced && stored.ReferenceKey != referenceKey)
             return Result<BribeMedia>.Fail("Uploaded media has already been submitted");
 
-        if (ActiveSubmittedBytes(gameId) + stored.ByteSize > activeMediaBudgetBytes)
+        if (!stored.IsReferenced && ActiveSubmittedBytes(gameId) + stored.ByteSize > activeMediaBudgetBytes)
             return Result<BribeMedia>.Fail("This game has reached its current media limit");
 
         stored.IsReferenced = true;
+        stored.ReferenceKey = referenceKey;
 
         return Result<BribeMedia>.Ok(ToBribeMedia(stored.MediaId, stored.ContentType, stored.ByteSize));
     }
@@ -72,6 +83,18 @@ public class MediaStore
         CleanupExpiredOrphans();
         _media.TryGetValue(mediaId, out var media);
         return media;
+    }
+
+    public void ReleaseReference(string mediaId, string referenceKey)
+    {
+        if (!_media.TryGetValue(mediaId, out var stored))
+            return;
+
+        if (stored.ReferenceKey != referenceKey)
+            return;
+
+        stored.IsReferenced = false;
+        stored.ReferenceKey = null;
     }
 
     public void Remove(string mediaId)
@@ -155,4 +178,5 @@ public class StoredMedia
     public byte[] Bytes { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; }
     public bool IsReferenced { get; set; }
+    public string? ReferenceKey { get; set; }
 }

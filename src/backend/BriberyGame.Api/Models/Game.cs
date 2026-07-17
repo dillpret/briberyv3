@@ -1,7 +1,5 @@
 namespace BriberyGame.Api.Models;
 
-using BriberyGame.Api.Services;
-
 public class Game
 {
     private const int MaxPromptLength = 200;
@@ -456,6 +454,17 @@ public class Game
         };
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public BribeMedia? GetBribeDraftMedia(string connectionId, string targetPlayerId)
+    {
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return null;
+
+        return State.BribeDrafts.TryGetValue(BribeDraftKey(player.Id, targetPlayerId), out var draft)
+            ? draft.Media
+            : null;
     }
 
     public Result<GameStateDto> SaveVoteDraft(string connectionId, string bribeId, long clientDraftVersion)

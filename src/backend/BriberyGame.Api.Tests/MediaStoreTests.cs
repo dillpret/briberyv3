@@ -46,6 +46,87 @@ public class MediaStoreTests
     }
 
     [Fact]
+    public void ReservedMediaReferenceIsIdempotentOnlyForSameReferenceKey()
+    {
+        var store = new MediaStore();
+        var media = store.Store("TEST", "p1", "image/png", 10, new byte[10]).Data!;
+
+        var first = store.ReserveForBribe("TEST", "p1", media, Game.MaxMediaBribeBytes, "bribe:p1:p2");
+        var sameReference = store.ReserveForBribe("TEST", "p1", media, Game.MaxMediaBribeBytes, "bribe:p1:p2");
+        var differentReference = store.ReserveForBribe("TEST", "p1", media, Game.MaxMediaBribeBytes, "bribe:p1:p3");
+
+        Assert.True(first.Success, first.Error);
+        Assert.True(sameReference.Success, sameReference.Error);
+        Assert.False(differentReference.Success);
+    }
+
+    [Fact]
+    public void DraftMediaIsReservedAndSurvivesOrphanCleanupUntilReleased()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var mediaStore = new MediaStore();
+        var service = new GameService(mediaStore, () => now);
+        var gameId = StartSubmissionGame(service);
+        var target = StateFor(service, gameId, "c1").Submission!.Targets[0];
+        var media = service.StoreMedia(gameId, "p1", "image/png", 10, new byte[10]).Data!;
+
+        var draft = service.SaveBribeDraft("c1", new SaveBribeDraftRequest
+        {
+            TargetPlayerId = target.PlayerId,
+            Media = media,
+            ClientDraftVersion = 1
+        });
+        Assert.True(draft.result!.Success, draft.result.Error);
+
+        mediaStore.Get(media.MediaId)!.CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-16);
+        mediaStore.CleanupExpiredOrphans();
+        Assert.NotNull(service.GetMedia(media.MediaId));
+
+        var textDraft = service.SaveBribeDraft("c1", new SaveBribeDraftRequest
+        {
+            TargetPlayerId = target.PlayerId,
+            Text = "Switched to text",
+            ClientDraftVersion = 2
+        });
+        Assert.True(textDraft.result!.Success, textDraft.result.Error);
+
+        mediaStore.CleanupExpiredOrphans();
+        Assert.Null(service.GetMedia(media.MediaId));
+    }
+
+    [Fact]
+    public void SavingMediaDraftRejectsSpoofedOrCrossPlayerMedia()
+    {
+        var mediaStore = new MediaStore();
+        var service = new GameService(mediaStore);
+        var gameId = StartSubmissionGame(service);
+        var target = StateFor(service, gameId, "c1").Submission!.Targets[0];
+        var p2Media = service.StoreMedia(gameId, "p2", "image/png", 10, new byte[10]).Data!;
+
+        var spoofed = service.SaveBribeDraft("c1", new SaveBribeDraftRequest
+        {
+            TargetPlayerId = target.PlayerId,
+            Media = new BribeMedia
+            {
+                MediaId = "not-real",
+                Url = "/api/media/not-real",
+                ContentType = "image/png",
+                ByteSize = 10
+            },
+            ClientDraftVersion = 1
+        });
+        var wrongOwner = service.SaveBribeDraft("c1", new SaveBribeDraftRequest
+        {
+            TargetPlayerId = target.PlayerId,
+            Media = p2Media,
+            ClientDraftVersion = 2
+        });
+
+        Assert.False(spoofed.result!.Success);
+        Assert.False(wrongOwner.result!.Success);
+    }
+
+    [Fact]
     public void StartingNextRoundRemovesReferencedRoundMedia()
     {
         var mediaStore = new MediaStore();
@@ -170,5 +251,23 @@ public class MediaStoreTests
         return service.GetConnectedPlayerStates(gameId)
             .Single(state => state.ConnectionId == connectionId)
             .State;
+    }
+
+    private static string StartSubmissionGame(GameService service)
+    {
+        var gameId = service.CreateGame();
+
+        for (var i = 1; i <= 3; i++)
+        {
+            Assert.True(service.Join(gameId, $"c{i}", $"p{i}", $"Player {i}").result!.Success);
+            Assert.True(service.ToggleReady($"c{i}").result!.Success);
+        }
+
+        Assert.True(service.StartGame("c1").result!.Success);
+
+        for (var i = 1; i <= 3; i++)
+            Assert.True(service.SubmitPrompt($"c{i}", $"Prompt {i}").result!.Success);
+
+        return gameId;
     }
 }

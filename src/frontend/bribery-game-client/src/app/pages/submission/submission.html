@@ -128,7 +128,7 @@
                   aria-multiline="true"
                   contenteditable="true"
                   class="soft-input min-h-28 whitespace-pre-wrap break-words"
-                  [textContent]="draftFor(target.playerId)"
+                  [attr.data-composer-target]="target.playerId"
                   (input)="handleComposerInput(target.playerId, $event)"
                   (beforeinput)="handleBeforeInput(target.playerId, $event)"
                   (paste)="handlePaste(target.playerId, $event)"></div>

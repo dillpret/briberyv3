@@ -1,4 +1,4 @@
-namespace BriberyGame.Api.Services;
+namespace BriberyGame.Api.Models;
 
 public static class PromptLibrary
 {
