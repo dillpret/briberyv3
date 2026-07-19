@@ -77,9 +77,8 @@ export class Game implements OnInit {
         localStorage.setItem('playerId', currentPlayerId);
       }
       this.joinState.set('joined');
-    } catch (err) {
-      console.error('Join failed', err);
-      const message = err instanceof Error ? err.message : 'Unable to join this room.';
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to join this room.';
       if (message !== 'Game does not exist') {
         this.joinError.set(message);
         this.errors.show(message);

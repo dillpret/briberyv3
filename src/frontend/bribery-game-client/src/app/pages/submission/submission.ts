@@ -398,7 +398,7 @@ export class Submission implements OnDestroy {
         media: mediaDraft?.uploadedMedia ?? null,
         clientDraftVersion: version,
       }))
-      .catch((error) => console.error('Bribe draft save failed:', error));
+      .catch(() => undefined);
 
     this.draftSaves.set(targetPlayerId, next);
   }

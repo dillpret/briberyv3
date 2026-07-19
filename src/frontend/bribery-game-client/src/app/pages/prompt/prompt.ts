@@ -202,6 +202,6 @@ export class Prompt implements OnDestroy {
     this.draftSave = this.draftSave
       .catch(() => undefined)
       .then(() => this.signalr.savePromptDraft(text, version))
-      .catch((error) => console.error('Prompt draft save failed:', error));
+      .catch(() => undefined);
   }
 }

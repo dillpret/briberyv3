@@ -53,7 +53,7 @@ export class Voting {
     this.draftSave = this.draftSave
       .catch(() => undefined)
       .then(() => this.signalr.saveVoteDraft(bribeId, version))
-      .catch((error) => console.error('Vote draft save failed:', error));
+      .catch(() => undefined);
   }
 
   async submitVote() {

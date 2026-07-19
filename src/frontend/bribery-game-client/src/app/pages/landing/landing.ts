@@ -46,8 +46,7 @@ export class Landing implements AfterViewInit {
       localStorage.setItem('gameId', gameId);
 
       this.join();
-    } catch (err) {
-      console.error('CreateGame failed', err);
+    } catch {
       this.errors.show('Could not create a game. Please check your connection and try again.');
     }
   }

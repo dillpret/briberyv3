@@ -46,12 +46,12 @@ export class SignalrService {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         void this.restoreConnectionAndSession().catch((err) =>
-          console.error('SignalR reconnect failed:', err));
+          this.errors.show(this.errorMessage(err)));
       });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           void this.restoreConnectionAndSession().catch((err) =>
-            console.error('SignalR reconnect failed:', err));
+            this.errors.show(this.errorMessage(err)));
         }
       });
     }
@@ -76,12 +76,10 @@ export class SignalrService {
     if (this.connection) {
       this.startPromise = this.connection.start()
         .then(() => {
-          console.log('SignalR connected');
           this.connectionMode = 'connected';
         })
         .catch((err) => {
           this.connectionMode = 'not-connected';
-          console.error('SignalR error:', err);
           throw err;
         })
         .finally(() => {
@@ -100,7 +98,6 @@ export class SignalrService {
       .build();
 
     this.connection.on('GameStateUpdated', (state) => {
-      console.log('GAME STATE RECEIVED', state);
       if (this.activeSession && state.currentPlayerId) {
         this.activeSession = {
           ...this.activeSession,
@@ -114,19 +111,16 @@ export class SignalrService {
     });
 
     this.connection.on('JoinFailed', (message: string) => {
-      console.error('Join failed:', message);
       this.pendingJoinReject?.(new Error(message));
       this.pendingJoinResolve = undefined;
       this.pendingJoinReject = undefined;
     });
 
     this.connection.on('ActionFailed', (message: string) => {
-      console.error('Action failed:', message);
       this.errors.show(message);
     });
 
     this.connection.on('StartFailed', (message: string) => {
-      console.error('Start failed:', message);
       this.errors.show(message);
     });
 
@@ -147,18 +141,16 @@ export class SignalrService {
       this.clearReconnectWaiters();
       window.setTimeout(() => {
         void this.restoreConnectionAndSession().catch((err) =>
-          console.error('SignalR reconnect failed:', err));
+          this.errors.show(this.errorMessage(err)));
       }, 1000);
     });
 
     try {
       this.startPromise = this.connection.start();
       await this.startPromise;
-      console.log('SignalR connected');
       this.connectionMode = 'connected';
     } catch (err) {
       this.connectionMode = 'not-connected';
-      console.error('SignalR error:', err);
       throw err;
     } finally {
       this.startPromise = undefined;
@@ -345,5 +337,11 @@ export class SignalrService {
     this.reconnectPromise = undefined;
     this.resolveReconnect = undefined;
     this.rejectReconnect = undefined;
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error
+      ? error.message
+      : 'Connection failed. Please check your connection and try again.';
   }
 }
