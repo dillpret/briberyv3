@@ -6,12 +6,12 @@
 
   <section class="soft-panel space-y-3">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-ink/60">This round</h2>
-    @for (score of sortedRoundScores(); track score.playerId; let rank = $index) {
-      <div class="nested-panel !space-y-2 border-2" [ngClass]="rankClasses(rank)">
+    @for (score of sortedRoundScores(); track score.playerId) {
+      <div class="nested-panel !space-y-2 border-2" [ngClass]="roundRankClasses(score)">
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-3">
             <span class="flex h-9 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-surface/80 text-xs font-black text-ink">
-              {{ rankLabel(rank) }}
+              {{ roundRankLabel(score) }}
             </span>
             <div class="min-w-0">
               <p class="truncate font-semibold text-ink">
@@ -36,11 +36,11 @@
   @if (currentRound() >= 2) {
     <section class="soft-panel space-y-3">
       <h2 class="text-sm font-semibold uppercase tracking-wide text-ink/60">Overall</h2>
-      @for (score of sortedOverallScores(); track score.playerId; let rank = $index) {
-        <div class="nested-panel !space-y-0 flex items-center justify-between gap-3 border-2" [ngClass]="rankClasses(rank)">
+      @for (score of sortedOverallScores(); track score.playerId) {
+        <div class="nested-panel !space-y-0 flex items-center justify-between gap-3 border-2" [ngClass]="overallRankClasses(score)">
           <div class="flex min-w-0 items-center gap-3">
             <span class="flex h-9 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-surface/80 text-xs font-black text-ink">
-              {{ rankLabel(rank) }}
+              {{ overallRankLabel(score) }}
             </span>
             <p class="truncate font-semibold text-ink">
               {{ score.playerName }}

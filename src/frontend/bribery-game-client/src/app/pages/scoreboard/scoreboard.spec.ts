@@ -60,6 +60,30 @@ describe('Scoreboard', () => {
     expect(fixture.nativeElement.textContent).toContain('2 chosen bribes + 1 bonus coin');
   });
 
+  it('assigns the same medal to tied scores', () => {
+    gameState.scoreboard.set({
+      roundScores: [
+        score({ playerId: 'p1', playerName: 'Gold Player', totalRoundPoints: 25 }),
+        score({ playerId: 'p2', playerName: 'Silver A', totalRoundPoints: 23 }),
+        score({ playerId: 'p3', playerName: 'Silver B', totalRoundPoints: 23 }),
+        score({ playerId: 'p4', playerName: 'Bronze Player', totalRoundPoints: 22 }),
+        score({ playerId: 'p5', playerName: 'No Medal', totalRoundPoints: 21 }),
+      ],
+      overallScores: [
+        score({ playerId: 'p1', playerName: 'Gold Player', cumulativeScore: 25 }),
+        score({ playerId: 'p2', playerName: 'Silver A', cumulativeScore: 23 }),
+        score({ playerId: 'p3', playerName: 'Silver B', cumulativeScore: 23 }),
+        score({ playerId: 'p4', playerName: 'Bronze Player', cumulativeScore: 22 }),
+        score({ playerId: 'p5', playerName: 'No Medal', cumulativeScore: 21 }),
+      ],
+    });
+
+    const roundScores = component.sortedRoundScores();
+
+    expect(roundScores.map((score) => score.totalRoundPoints)).toEqual([25, 23, 23, 22, 21]);
+    expect(roundScores.map((score) => component.roundRankLabel(score))).toEqual(['Gold', 'Silver', 'Silver', 'Bronze', '']);
+  });
+
   it('hides cumulative scores during round one and shows them from round two', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Overall');
 
