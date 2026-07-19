@@ -58,7 +58,7 @@
   }
 
   .phase-shell {
-    @apply mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8 lg:px-0 lg:py-0;
+    @apply mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-24 pt-5 sm:px-6 sm:py-8 lg:px-0 lg:py-0;
     animation: cosy-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
@@ -212,7 +212,7 @@
   }
 
   .game-layout {
-    @apply mx-auto grid min-h-screen w-full max-w-7xl gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6 xl:gap-6;
+    @apply mx-auto grid min-h-screen w-full max-w-7xl gap-4 px-4 pb-20 pt-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6 xl:gap-6;
   }
 
   .soft-panel::after,
@@ -306,6 +306,27 @@
   .media-bribe,
   .media-bribe img {
     max-height: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .soft-panel,
+  .soft-card,
+  .prompt-card {
+    backdrop-filter: none;
+    transform: none;
+  }
+
+  .soft-panel::after,
+  .soft-card::after,
+  .prompt-card::after {
+    animation: none;
+    filter: none;
+  }
+
+  .progress-fill {
+    animation: none;
+    background-size: auto;
   }
 }
 

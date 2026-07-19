@@ -4,7 +4,7 @@
       <p class="text-sm font-semibold uppercase tracking-wide text-pine">Voting</p>
       <h1 class="text-2xl font-bold text-ink">Pick your favourite bribe</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        These are anonymous answers to your prompt. Choose the one you like most.
+        Pick the anonymous answer you like most.
       </p>
     </div>
 
@@ -50,11 +50,18 @@
             Voting is only for players who received bribes this round.
           </p>
         </div>
-        <img
-          src="/brand/choosing.gif"
-          alt=""
-          aria-hidden="true"
-          class="mascot-waiting" />
+        <picture>
+          <source srcset="/brand/choosing.webp" type="image/webp" />
+          <img
+            src="/brand/choosing.gif"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting" />
+        </picture>
       </div>
       <app-waiting-tips />
     </section>
@@ -68,11 +75,18 @@
             {{ waitingText() }}
           </p>
         </div>
-        <img
-          src="/brand/choosing.gif"
-          alt=""
-          aria-hidden="true"
-          class="mascot-waiting" />
+        <picture>
+          <source srcset="/brand/choosing.webp" type="image/webp" />
+          <img
+            src="/brand/choosing.gif"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting" />
+        </picture>
       </div>
       <app-waiting-tips />
     </section>
@@ -113,11 +127,14 @@
       </label>
     }
 
-    <button
-      (click)="submitVote()"
-      [disabled]="!currentSelection()"
-      class="primary-button">
-      Submit vote
-    </button>
+    @if (currentSelection()) {
+      <div class="sticky bottom-14 z-20 rounded-[var(--radius-panel)] bg-mint/85 p-2 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        <button
+          (click)="submitVote()"
+          class="primary-button">
+          Submit vote
+        </button>
+      </div>
+    }
   }
 </main>

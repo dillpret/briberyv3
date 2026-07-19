@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService, RoundScore } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
+
+type ScoreboardView = 'round' | 'overall';
 
 @Component({
   selector: 'app-scoreboard',
@@ -16,6 +18,9 @@ export class Scoreboard {
   hostPlayerId;
   currentRound;
   currentPlayerId;
+  selectedView = signal<ScoreboardView>('round');
+  showAllRoundScores = signal(false);
+  showAllOverallScores = signal(false);
 
   constructor(
     private signalr: SignalrService,
@@ -38,6 +43,51 @@ export class Scoreboard {
 
   sortedOverallScores(): RoundScore[] {
     return this.sortScores(this.scoreboard()?.overallScores ?? [], 'cumulativeScore');
+  }
+
+  selectView(view: ScoreboardView) {
+    if (view === 'overall' && !this.canShowOverallScores()) return;
+
+    this.selectedView.set(view);
+  }
+
+  canShowOverallScores(): boolean {
+    return this.currentRound() >= 2;
+  }
+
+  selectedTitle(): string {
+    return this.selectedView() === 'overall' ? 'Overall' : 'This round';
+  }
+
+  selectedScores(): RoundScore[] {
+    return this.selectedView() === 'overall' ? this.sortedOverallScores() : this.sortedRoundScores();
+  }
+
+  visibleScores(): RoundScore[] {
+    const scores = this.selectedScores();
+    if (!this.shouldSummarizeScores()) return scores;
+
+    const currentPlayerScore = scores.find((score) => this.isCurrentPlayer(score));
+    const topScores = scores.slice(0, 3);
+    if (!currentPlayerScore || topScores.some((score) => score.playerId === currentPlayerScore.playerId)) {
+      return topScores;
+    }
+
+    return [...topScores, currentPlayerScore];
+  }
+
+  shouldSummarizeScores(): boolean {
+    if (this.selectedView() === 'overall') return !this.showAllOverallScores() && this.sortedOverallScores().length > 5;
+    return !this.showAllRoundScores() && this.sortedRoundScores().length > 5;
+  }
+
+  showAllScores() {
+    if (this.selectedView() === 'overall') {
+      this.showAllOverallScores.set(true);
+      return;
+    }
+
+    this.showAllRoundScores.set(true);
   }
 
   isHost(): boolean {
@@ -71,6 +121,27 @@ export class Scoreboard {
 
   overallRankLabel(score: RoundScore): string {
     return this.rankLabel(this.medalRank(score, this.scoreboard()?.overallScores ?? [], 'cumulativeScore'));
+  }
+
+  selectedRankClasses(score: RoundScore): string {
+    return this.selectedView() === 'overall' ? this.overallRankClasses(score) : this.roundRankClasses(score);
+  }
+
+  selectedRankLabel(score: RoundScore): string {
+    const rankLabel = this.selectedView() === 'overall' ? this.overallRankLabel(score) : this.roundRankLabel(score);
+    if (rankLabel) return rankLabel;
+
+    return String(this.selectedScores().findIndex((candidate) => candidate.playerId === score.playerId) + 1);
+  }
+
+  selectedScoreValue(score: RoundScore): number {
+    return this.selectedView() === 'overall' ? score.cumulativeScore : score.totalRoundPoints;
+  }
+
+  selectedBreakdown(score: RoundScore): string {
+    if (this.selectedView() === 'overall') return `${score.cumulativeScore} total points`;
+
+    return this.breakdown(score);
   }
 
   private rankClasses(rank: number): string {

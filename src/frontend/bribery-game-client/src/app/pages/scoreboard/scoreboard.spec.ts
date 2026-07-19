@@ -94,6 +94,70 @@ describe('Scoreboard', () => {
     expect(component.sortedOverallScores().map((score) => score.playerName)).toEqual(['Alice', 'Charlie', 'Bob']);
   });
 
+  it('summarizes long scoreboards with medal positions and the current player', () => {
+    gameState.currentPlayerId.set('p6');
+    gameState.scoreboard.set({
+      roundScores: [
+        score({ playerId: 'p1', playerName: 'Alpha', totalRoundPoints: 60 }),
+        score({ playerId: 'p2', playerName: 'Bravo', totalRoundPoints: 50 }),
+        score({ playerId: 'p3', playerName: 'Charlie', totalRoundPoints: 40 }),
+        score({ playerId: 'p4', playerName: 'Delta', totalRoundPoints: 30 }),
+        score({ playerId: 'p5', playerName: 'Echo', totalRoundPoints: 20 }),
+        score({ playerId: 'p6', playerName: 'Foxtrot', totalRoundPoints: 10 }),
+      ],
+      overallScores: [],
+    });
+
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+
+    expect(component.visibleScores().map((score) => score.playerName)).toEqual(['Alpha', 'Bravo', 'Charlie', 'Foxtrot']);
+    expect(text).toContain('Show all scores');
+    expect(text).toContain('Foxtrot');
+    expect(text).not.toContain('Delta');
+  });
+
+  it('shows all summarized scores when requested', () => {
+    gameState.scoreboard.set({
+      roundScores: [
+        score({ playerId: 'p1', playerName: 'Alpha', totalRoundPoints: 60 }),
+        score({ playerId: 'p2', playerName: 'Bravo', totalRoundPoints: 50 }),
+        score({ playerId: 'p3', playerName: 'Charlie', totalRoundPoints: 40 }),
+        score({ playerId: 'p4', playerName: 'Delta', totalRoundPoints: 30 }),
+        score({ playerId: 'p5', playerName: 'Echo', totalRoundPoints: 20 }),
+        score({ playerId: 'p6', playerName: 'Foxtrot', totalRoundPoints: 10 }),
+      ],
+      overallScores: [],
+    });
+
+    component.showAllScores();
+    fixture.detectChanges();
+
+    expect(component.visibleScores().map((score) => score.playerName)).toEqual([
+      'Alpha',
+      'Bravo',
+      'Charlie',
+      'Delta',
+      'Echo',
+      'Foxtrot',
+    ]);
+    expect(fixture.nativeElement.textContent).not.toContain('Show all scores');
+  });
+
+  it('switches between round and overall score views', () => {
+    gameState.currentRound.set(2);
+    fixture.detectChanges();
+
+    expect(component.selectedView()).toBe('round');
+
+    component.selectView('overall');
+    fixture.detectChanges();
+
+    expect(component.selectedView()).toBe('overall');
+    expect(fixture.nativeElement.textContent).toContain('16 total points');
+  });
+
   it('disables next round when fewer than three players are connected', () => {
     gameState.players.set([
       { id: 'p1', name: 'Player 1', connected: true, isReady: false, isActive: true, score: 1, phaseStatus: 'Done', phaseStatusLabel: 'Done' },

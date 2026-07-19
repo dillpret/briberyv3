@@ -4,6 +4,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
 var otlpExporterEnabled = !string.IsNullOrWhiteSpace(
@@ -92,7 +93,28 @@ var hasSpaAssets = File.Exists(spaIndexPath);
 if (hasSpaAssets)
 {
     app.UseDefaultFiles();
-    app.UseStaticFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        OnPrepareResponse = context =>
+        {
+            var fileName = Path.GetFileName(context.File.Name);
+            var path = context.Context.Request.Path.Value ?? string.Empty;
+            var headers = context.Context.Response.Headers;
+
+            if (Regex.IsMatch(fileName, "-[A-Z0-9]{8,}\\.", RegexOptions.IgnoreCase))
+            {
+                headers.CacheControl = "public,max-age=31536000,immutable";
+                return;
+            }
+
+            if (path.StartsWith("/brand/", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/fonts/", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/instructions/", StringComparison.OrdinalIgnoreCase))
+            {
+                headers.CacheControl = "public,max-age=86400";
+            }
+        }
+    });
 }
 
 // app.UseCors();

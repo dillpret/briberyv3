@@ -318,7 +318,11 @@ export class Submission implements OnDestroy {
   }
 
   shouldShowPhaseWaitingStatus(): boolean {
-    return this.isCurrentPlayerActive() && this.bribeSubmittedCount() > 0;
+    return this.isCurrentPlayerActive() && this.bribeSubmittedCount() > 0 && !this.hasPendingTargets();
+  }
+
+  hasPendingTargets(): boolean {
+    return (this.submission()?.targets ?? []).some((target) => !this.hasSubmitted(target.playerId));
   }
 
   private connectedPendingPlayers() {

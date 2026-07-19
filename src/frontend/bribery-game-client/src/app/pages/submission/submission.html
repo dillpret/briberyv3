@@ -4,7 +4,7 @@
       <p class="text-sm font-semibold uppercase tracking-wide text-pine">Submission</p>
       <h1 class="text-2xl font-bold text-ink">Send your bribes</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        A bribe is your anonymous answer to another player's prompt. If they pick yours, you score.
+        Answer another player's prompt anonymously. If they pick yours, you score.
       </p>
     </div>
 
@@ -19,14 +19,6 @@
     </div>
 
     <app-phase-countdown />
-
-    @if (shouldShowPhaseWaitingStatus()) {
-      <div class="nested-surface border border-pine/20 bg-pine/8 px-3 py-2">
-        <p class="text-sm font-semibold text-pine">Your submitted bribes are tucked away safely.</p>
-        <p class="text-sm leading-6 text-ink/70">{{ waitingText() }}</p>
-      </div>
-      <app-waiting-tips />
-    }
   </section>
 
   @if (isWaitingOnlyForOfflinePlayers()) {
@@ -58,18 +50,26 @@
             This round already has its bribe assignments. You will be included when the host starts the next round.
           </p>
         </div>
-        <img
-          src="/brand/writing.gif"
-          alt=""
-          aria-hidden="true"
-          class="mascot-waiting" />
+        <picture>
+          <source srcset="/brand/writing.webp" type="image/webp" />
+          <img
+            src="/brand/writing.gif"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting" />
+        </picture>
       </div>
       <app-waiting-tips />
     </section>
   } @else {
     @for (target of submission()?.targets ?? []; track target.playerId) {
       <section
-        class="soft-card space-y-3"
+        class="soft-card"
+        [ngClass]="hasSubmitted(target.playerId) ? 'space-y-2 p-3' : 'space-y-3'"
         [class.opacity-80]="hasSubmitted(target.playerId)">
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -82,13 +82,16 @@
           }
         </div>
 
-        <blockquote class="nested-surface">
-          {{ target.prompt }}
-        </blockquote>
-
         @if (hasSubmitted(target.playerId)) {
+          <blockquote class="nested-surface py-2 text-sm">
+            {{ target.prompt }}
+          </blockquote>
           <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely.</p>
         } @else {
+          <blockquote class="nested-surface">
+            {{ target.prompt }}
+          </blockquote>
+
           <div
             class="nested-surface is-dashed space-y-3"
             tabindex="0"
@@ -101,6 +104,8 @@
                   <img
                     [src]="mediaDraft.previewUrl"
                     alt="Selected bribe preview"
+                    loading="lazy"
+                    decoding="async"
                     class="max-h-64 w-full rounded-lg object-contain" />
                 }
                 <div class="flex items-center justify-between gap-3 text-xs text-ink/70">
@@ -145,7 +150,7 @@
             }
           </div>
 
-          <div class="flex items-center justify-between text-xs text-ink/60">
+          <div class="flex items-center justify-between gap-3 pr-14 text-xs text-ink/60 sm:pr-0">
             <span>Write up to 500 characters, or add an image or GIF.</span>
             <span>{{ remainingCharacters(target.playerId) }} left</span>
           </div>
@@ -157,6 +162,16 @@
             Submit bribe
           </button>
         }
+      </section>
+    }
+
+    @if (shouldShowPhaseWaitingStatus()) {
+      <section class="soft-panel space-y-3">
+        <div class="nested-surface border border-pine/20 bg-pine/8 px-3 py-2">
+          <p class="text-sm font-semibold text-pine">Your bribes are safely in.</p>
+          <p class="text-sm leading-6 text-ink/70">{{ waitingText() }}</p>
+        </div>
+        <app-waiting-tips />
       </section>
     }
   }

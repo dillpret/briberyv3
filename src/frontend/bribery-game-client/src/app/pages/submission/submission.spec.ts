@@ -473,13 +473,13 @@ describe('Submission', () => {
   it('explains anonymous bribes and recipient voting', () => {
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.textContent).toContain("A bribe is your anonymous answer to another player's prompt");
+    expect(element.textContent).toContain("Answer another player's prompt anonymously");
     expect(element.textContent).toContain('If they pick yours, you score.');
     expect(element.textContent).toContain("Player 2's prompt");
     expect(element.textContent).toContain('Write your bribe, paste a GIF, or add an image');
   });
 
-  it('shows one phase-level waiting status and does not repeat it inside bribe cards', () => {
+  it('keeps phase waiting tips below primary work until all assigned bribes are sent', () => {
     gameState.setGameState({
       phase: 'Submission',
       currentPlayerId: 'p1',
@@ -508,12 +508,44 @@ describe('Submission', () => {
     const text = element.textContent ?? '';
 
     expect(component.waitingText()).toBe('Waiting for 3 players.');
-    expect(text.match(/Waiting for 3 players\./g)).toHaveLength(1);
-    expect(text).toContain('Submission waiting tip');
-    expect(text).toContain('Your submitted bribes are tucked away safely.');
+    expect(text).not.toContain('Waiting for 3 players.');
+    expect(text).not.toContain('Submission waiting tip');
+    expect(text).not.toContain('Your bribes are safely in.');
     expect(text).toContain('Your bribe is tucked away safely.');
     expect(text).not.toContain('Offline player blocking progress');
     expect(text).not.toContain('Advance without offline players');
+  });
+
+  it('shows waiting tips after all assigned bribes are sent', () => {
+    gameState.setGameState({
+      phase: 'Submission',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      bribeSubmittedCount: 2,
+      bribeRequiredCount: 4,
+      players: [
+        { id: 'p1', name: 'Host', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Done', phaseStatusLabel: 'Submitted' },
+        { id: 'p2', name: 'Alex', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Pending', phaseStatusLabel: 'Needs bribes' },
+      ],
+      submission: {
+        targets: [
+          { playerId: 'p2', name: 'Alex', prompt: 'A useful prompt' },
+          { playerId: 'p3', name: 'Blair', prompt: 'Another useful prompt' },
+        ],
+        submittedTargetPlayerIds: ['p2', 'p3'],
+      },
+    });
+
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(component.shouldShowPhaseWaitingStatus()).toBe(true);
+    expect(text).toContain('Your bribes are safely in.');
+    expect(text).toContain('Waiting for Alex.');
+    expect(text).toContain('Submission waiting tip');
+    expect(fixture.nativeElement.querySelector('[contenteditable="true"]')).toBeNull();
   });
 
   it('shows the host offline advance panel only when offline players are the only blockers', () => {

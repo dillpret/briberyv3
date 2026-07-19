@@ -4,6 +4,7 @@
       [src]="media.url"
       [alt]="mediaAlt()"
       loading="lazy"
+      decoding="async"
       (error)="failed.set(true)" />
     <figcaption class="sr-only">{{ label }}</figcaption>
   </figure>

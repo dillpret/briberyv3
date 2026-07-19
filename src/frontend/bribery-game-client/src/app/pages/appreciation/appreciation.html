@@ -4,7 +4,7 @@
       <p class="text-sm font-semibold uppercase tracking-wide text-pine">Appreciation</p>
       <h1 class="text-2xl font-bold text-ink">Round {{ currentRound() }} winners</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        The winning bribes are on the table. Toss a coin to the ones that deserve a little extra applause.
+        Toss a coin to winning bribes that deserve extra applause.
       </p>
     </div>
 
@@ -50,19 +50,26 @@
             You can browse the winning bribes, but coins are only for active players this round.
           </p>
         </div>
-        <img
-          src="/brand/getCoin.gif"
-          alt=""
-          aria-hidden="true"
-          class="mascot-waiting" />
+        <picture>
+          <source srcset="/brand/getCoin.webp" type="image/webp" />
+          <img
+            src="/brand/getCoin.gif"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting" />
+        </picture>
       </div>
       <app-waiting-tips />
     </section>
   }
 
-  <section class="space-y-3">
+  <section class="space-y-2.5">
     @for (result of appreciation()?.roundResults ?? []; track result.promptOwnerPlayerId) {
-      <article class="soft-card space-y-3" [ngClass]="cardClasses(result)">
+      <article class="soft-card space-y-2.5" [ngClass]="cardClasses(result)">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0 space-y-1">
             <div class="flex flex-wrap items-center gap-2">
@@ -90,6 +97,10 @@
                 src="/brand/coin.png"
                 alt=""
                 aria-hidden="true"
+                width="16"
+                height="16"
+                loading="lazy"
+                decoding="async"
                 class="h-4 w-4 shrink-0 object-contain" />
               <span class="sr-only">Give coin</span>
             }
@@ -104,12 +115,12 @@
           [media]="result.winningBribeMedia"
           [label]="result.winningPlayerName + ' winning bribe'" />
 
-        <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-ink/65">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-ink/60">
           <span>{{ result.coinCount }} bonus coin(s)</span>
           @if (!result.canCurrentPlayerAwardCoin) {
-            <span class="font-semibold">{{ result.coinDisabledReason }}</span>
+            <span class="text-xs font-semibold">{{ result.coinDisabledReason }}</span>
           } @else if (appreciation()?.hasCurrentPlayerDone) {
-            <span class="font-semibold">Coins locked in</span>
+            <span class="text-xs font-semibold">Coins locked in</span>
           }
         </div>
       </article>
@@ -124,16 +135,23 @@
           <h2 class="text-lg font-semibold text-ink">Coins tucked into the ledger.</h2>
           <p class="text-sm leading-6 text-ink/70">{{ waitingText() }}</p>
         </div>
-        <img
-          src="/brand/getCoin.gif"
-          alt=""
-          aria-hidden="true"
-          class="mascot-waiting" />
+        <picture>
+          <source srcset="/brand/getCoin.webp" type="image/webp" />
+          <img
+            src="/brand/getCoin.gif"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting" />
+        </picture>
       </div>
       <app-waiting-tips />
     } @else {
       <p class="text-sm leading-6 text-ink/70">
-        Browse at your own pace, then lock in your appreciation.
+        Browse, then lock in your appreciation.
       </p>
       <button
         (click)="submitDone()"

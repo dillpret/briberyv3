@@ -33,11 +33,18 @@
       <p class="text-sm text-ink/70">{{ canStartHint() }}</p>
     </div>
 
-    <img
-      src="/brand/getCoin.gif"
-      alt=""
-      aria-hidden="true"
-      class="mascot-waiting mx-auto" />
+    <picture>
+      <source srcset="/brand/getCoin.webp" type="image/webp" />
+      <img
+        src="/brand/getCoin.gif"
+        alt=""
+        aria-hidden="true"
+        width="192"
+        height="192"
+        loading="lazy"
+        decoding="async"
+        class="mascot-waiting mx-auto" />
+    </picture>
 
     <app-waiting-tips />
   </section>

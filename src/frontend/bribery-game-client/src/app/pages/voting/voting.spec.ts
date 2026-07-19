@@ -9,11 +9,12 @@ describe('Voting', () => {
   let fixture: ComponentFixture<Voting>;
   let component: Voting;
   let gameState: GameStateService;
-  let signalr: Pick<SignalrService, 'submitVote' | 'advancePhaseWithoutOfflinePlayers'>;
+  let signalr: Pick<SignalrService, 'submitVote' | 'saveVoteDraft' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
     signalr = {
       submitVote: vi.fn().mockResolvedValue(undefined),
+      saveVoteDraft: vi.fn().mockResolvedValue(undefined),
       advancePhaseWithoutOfflinePlayers: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -79,8 +80,16 @@ describe('Voting', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.textContent).toContain('Pick your favourite bribe');
-    expect(element.textContent).toContain('These are anonymous answers to your prompt');
-    expect(element.textContent).toContain('Choose the one you like most');
+    expect(element.textContent).toContain('Pick the anonymous answer you like most');
+  });
+
+  it('shows the submit vote action only after a bribe is selected', () => {
+    expect(fixture.nativeElement.textContent).not.toContain('Submit vote');
+
+    component.selectBribe('b1');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Submit vote');
   });
 
   it('shows the current player prompt while choosing a bribe', () => {

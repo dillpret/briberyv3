@@ -5,7 +5,7 @@
         <p class="text-sm font-semibold uppercase tracking-wide text-pine">Prompt</p>
         <h1 class="text-2xl font-bold text-ink">Write your prompt</h1>
         <p class="mt-1 text-sm leading-6 text-ink/70">
-          A prompt can be a question, a challenge, or something simple like asking for everyone's best dad joke. Other players will answer it with anonymous bribes, then you pick your favourite.
+          Ask a question or set a challenge. Others answer anonymously.
         </p>
       </div>
       <span class="status-pill border-plum/30 bg-plum/10 text-plum">
@@ -55,11 +55,18 @@
             You joined after this round began, so you can watch the room settle and jump in next round.
           </p>
         </div>
-        <img
-          src="/brand/writing.gif"
-          alt=""
-          aria-hidden="true"
-          class="mascot-waiting" />
+        <picture>
+          <source srcset="/brand/writing.webp" type="image/webp" />
+          <img
+            src="/brand/writing.gif"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting" />
+        </picture>
       </div>
       <app-waiting-tips />
     </section>
@@ -73,11 +80,18 @@
             {{ waitingText() }}
           </p>
         </div>
-        <img
-          src="/brand/writing.gif"
-          alt=""
-          aria-hidden="true"
-          class="mascot-waiting" />
+        <picture>
+          <source srcset="/brand/writing.webp" type="image/webp" />
+          <img
+            src="/brand/writing.gif"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting" />
+        </picture>
       </div>
       <app-waiting-tips />
     </section>
