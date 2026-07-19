@@ -18,6 +18,7 @@ public sealed class GameTelemetry
     private readonly Histogram<long> _mediaUploadBytes;
     private int _activeGames;
     private int _activePlayers;
+    private int _retainedGames;
 
     public GameTelemetry(IMeterFactory meterFactory)
     {
@@ -40,12 +41,17 @@ public sealed class GameTelemetry
         meter.CreateObservableGauge(
             "bribery_active_players",
             () => Volatile.Read(ref _activePlayers));
+
+        meter.CreateObservableGauge(
+            "bribery_retained_games",
+            () => Volatile.Read(ref _retainedGames));
     }
 
-    public void UpdateActiveCounts(int activeGames, int activePlayers)
+    public void UpdateActiveCounts(int activeGames, int activePlayers, int retainedGames)
     {
         Volatile.Write(ref _activeGames, activeGames);
         Volatile.Write(ref _activePlayers, activePlayers);
+        Volatile.Write(ref _retainedGames, retainedGames);
     }
 
     public void GameCreated(string country)

@@ -65,4 +65,41 @@ public class GameServiceCodeTests
         Assert.Equal(gameId, disconnectGameId);
         Assert.NotNull(state);
     }
+
+    [Fact]
+    public void CleanupInactiveGamesRetainsEmptyGamesBeforeTtl()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var service = new GameService(new MediaStore(), () => now);
+        var gameId = service.CreateGame();
+        service.Join(gameId, "c1", "p1", "Player 1");
+        service.Disconnect("c1");
+
+        now = now.AddMinutes(14);
+        var removedGameIds = service.CleanupInactiveGames();
+
+        Assert.Empty(removedGameIds);
+        var (resolvedGameId, result) = service.Join(gameId, "c1-reconnected", "p1", "Player 1");
+        Assert.Equal(gameId, resolvedGameId);
+        Assert.NotNull(result);
+        Assert.True(result.Success, result.Error);
+    }
+
+    [Fact]
+    public void CleanupInactiveGamesRemovesEmptyGamesAfterTtl()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var service = new GameService(new MediaStore(), () => now);
+        var gameId = service.CreateGame();
+        service.Join(gameId, "c1", "p1", "Player 1");
+        service.Disconnect("c1");
+
+        now = now.AddMinutes(15).AddSeconds(1);
+        var removedGameIds = service.CleanupInactiveGames();
+
+        Assert.Equal([gameId], removedGameIds);
+        var (resolvedGameId, result) = service.Join(gameId, "c1-reconnected", "p1", "Player 1");
+        Assert.Null(resolvedGameId);
+        Assert.Null(result);
+    }
 }

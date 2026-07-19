@@ -8,15 +8,18 @@ public class PhaseTimerWorker : BackgroundService
     private readonly GameService _gameService;
     private readonly IHubContext<GameHub> _hubContext;
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<PhaseTimerWorker> _logger;
 
     public PhaseTimerWorker(
         GameService gameService,
         IHubContext<GameHub> hubContext,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ILogger<PhaseTimerWorker> logger)
     {
         _gameService = gameService;
         _hubContext = hubContext;
         _timeProvider = timeProvider;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -26,6 +29,10 @@ public class PhaseTimerWorker : BackgroundService
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             var changedGameIds = _gameService.ExpireDuePhases(_timeProvider.GetUtcNow());
+            var removedGameIds = _gameService.CleanupInactiveGames();
+
+            if (removedGameIds.Count > 0)
+                _logger.LogInformation("Cleaned up {GameCount} inactive games", removedGameIds.Count);
 
             foreach (var gameId in changedGameIds)
                 await SendGameStateUpdates(gameId, stoppingToken);

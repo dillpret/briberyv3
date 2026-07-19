@@ -521,6 +521,35 @@ public class GameService
         return _mediaStore.Get(mediaId);
     }
 
+    public List<string> CleanupInactiveGames()
+    {
+        var removedGameIds = new List<string>();
+        var cutoff = _now() - InactiveRoomTtl;
+
+        foreach (var session in _games
+                     .Where(pair => pair.Value.EmptySince is { } emptySince && emptySince <= cutoff)
+                     .ToList())
+        {
+            if (!_games.TryRemove(session.Key, out _))
+                continue;
+
+            removedGameIds.Add(session.Key);
+            _mediaStore.RemoveGameMedia(session.Key);
+
+            foreach (var mapping in _connectionToGame
+                         .Where(mapping => mapping.Value == session.Key)
+                         .ToList())
+            {
+                _connectionToGame.TryRemove(mapping.Key, out _);
+            }
+        }
+
+        if (removedGameIds.Count > 0)
+            UpdateActiveTelemetry();
+
+        return removedGameIds;
+    }
+
     public List<string> ExpireDuePhases(DateTimeOffset? now = null)
     {
         var currentTime = now ?? _now();
@@ -605,50 +634,27 @@ public class GameService
         if (_telemetry == null)
             return;
 
+        var activeGames = 0;
         var activePlayers = 0;
 
         foreach (var session in _games.Values)
         {
             lock (session.SyncRoot)
             {
-                activePlayers += session.Game.State.Players.Count(player => player.Connected);
+                var connectedPlayers = session.Game.State.Players.Count(player => player.Connected);
+                activePlayers += connectedPlayers;
+
+                if (connectedPlayers > 0)
+                    activeGames++;
             }
         }
 
-        _telemetry.UpdateActiveCounts(_games.Count, activePlayers);
+        _telemetry.UpdateActiveCounts(activeGames, activePlayers, _games.Count);
     }
 
     private static int GetActivePlayerCount(Game game)
     {
         return game.State.Players.Count(player => player.IsActive && player.Connected);
-    }
-
-    private void CleanupInactiveGames()
-    {
-        var removedAny = false;
-        var cutoff = _now() - InactiveRoomTtl;
-
-        foreach (var session in _games
-                     .Where(pair => pair.Value.EmptySince is { } emptySince && emptySince <= cutoff)
-                     .ToList())
-        {
-            if (!_games.TryRemove(session.Key, out _))
-                continue;
-
-            removedAny = true;
-
-            _mediaStore.RemoveGameMedia(session.Key);
-
-            foreach (var mapping in _connectionToGame
-                         .Where(mapping => mapping.Value == session.Key)
-                         .ToList())
-            {
-                _connectionToGame.TryRemove(mapping.Key, out _);
-            }
-        }
-
-        if (removedAny)
-            UpdateActiveTelemetry();
     }
 
     private void RemoveStaleConnectionMappings(string gameId, Game game)
