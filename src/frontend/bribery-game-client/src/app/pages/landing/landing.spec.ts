@@ -79,6 +79,15 @@ describe('Landing', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/game', 'AB12']);
   });
 
+  it('limits stored player names to the display-safe length', () => {
+    component.name = ` ${'A'.repeat(component.maxPlayerNameLength + 4)} `;
+    component.gameId = 'AB12';
+
+    component.join();
+
+    expect(localStorage.getItem('playerName')).toBe('A'.repeat(component.maxPlayerNameLength));
+  });
+
   it('creates a game, stores the returned code, and joins it', async () => {
     component.name = 'Player 1';
 

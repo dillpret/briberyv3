@@ -2,6 +2,7 @@ namespace BriberyGame.Api.Models;
 
 public class Game
 {
+    public const int MaxPlayerNameLength = 24;
     private const int MaxPromptLength = 200;
     private const int MaxBribeLength = 500;
     public const long MaxMediaBribeBytes = 8 * 1024 * 1024;
@@ -51,7 +52,13 @@ public class Game
         if (State.Players.FirstOrDefault(p => p.ConnectionId == connectionId) is { } alreadyConnected)
             return Result<GameStateDto>.Ok(BuildStateForPlayer(alreadyConnected.Id));
 
+        if (string.IsNullOrWhiteSpace(name))
+            return Result<GameStateDto>.Fail("Player name is required.");
+
         var trimmedName = name.Trim();
+        if (trimmedName.Length > MaxPlayerNameLength)
+            return Result<GameStateDto>.Fail($"Player name cannot exceed {MaxPlayerNameLength} characters.");
+
         var existing = State.Players.FirstOrDefault(p => p.Id == playerId);
 
         if (existing != null)

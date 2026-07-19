@@ -14,6 +14,7 @@ import { SplashService } from '../../components/help/splash.service';
   templateUrl: './landing.html',
 })
 export class Landing implements AfterViewInit {
+  readonly maxPlayerNameLength = 24;
   name = localStorage.getItem('playerName') ?? '';
   gameId = localStorage.getItem('gameId') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
@@ -53,13 +54,19 @@ export class Landing implements AfterViewInit {
 
   join() {
     const normalizedGameId = this.normalizeGameId(this.gameId);
+    const normalizedName = this.normalizePlayerName(this.name);
 
-    if (!this.name.trim() || !normalizedGameId) return;
+    if (!normalizedName || !normalizedGameId) return;
 
-    localStorage.setItem('playerName', this.name.trim());
+    this.name = normalizedName;
+    localStorage.setItem('playerName', normalizedName);
     localStorage.setItem('gameId', normalizedGameId);
 
     this.router.navigate(['/game', normalizedGameId]);
+  }
+
+  normalizePlayerName(name: string): string {
+    return name.trim().slice(0, this.maxPlayerNameLength);
   }
 
   normalizeGameId(gameId: string): string {

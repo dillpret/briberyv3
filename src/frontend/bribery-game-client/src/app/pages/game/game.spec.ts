@@ -78,6 +78,18 @@ describe('Game', () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
+  it('normalizes stored names before joining from a room link', async () => {
+    localStorage.setItem('playerName', ` ${'A'.repeat(30)} `);
+    vi.mocked(signalr.joinLobby).mockResolvedValue(undefined);
+
+    fixture = TestBed.createComponent(Game);
+    component = fixture.componentInstance;
+    await component.ngOnInit();
+
+    expect(signalr.joinLobby).toHaveBeenCalledWith('TEST', 'p-new', 'A'.repeat(component.maxPlayerNameLength));
+    expect(localStorage.getItem('playerName')).toBe('A'.repeat(component.maxPlayerNameLength));
+  });
+
   it('keeps unknown-room failures on the landing route flow', async () => {
     vi.mocked(signalr.joinLobby).mockRejectedValue(new Error('Game does not exist'));
 

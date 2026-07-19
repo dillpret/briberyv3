@@ -112,6 +112,19 @@ public class LobbyAndConnectionTests
     }
 
     [Fact]
+    public void PlayerNameCannotExceedDisplayLimit()
+    {
+        var harness = new GameTestHarness();
+        var longName = new string('A', Game.MaxPlayerNameLength + 1);
+
+        var result = harness.Game.Join("c1", "p1", longName);
+
+        Assert.False(result.Success);
+        Assert.Equal($"Player name cannot exceed {Game.MaxPlayerNameLength} characters.", result.Error);
+        Assert.Empty(harness.Game.State.Players);
+    }
+
+    [Fact]
     public void NewPlayerWithOfflinePlayerNameTakesOverExistingPlayerRecord()
     {
         var harness = new GameTestHarness();

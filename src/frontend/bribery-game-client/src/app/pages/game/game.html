@@ -16,9 +16,13 @@
         <span class="text-sm font-semibold text-ink/80">Your name</span>
         <input
           [(ngModel)]="name"
+          [attr.maxlength]="maxPlayerNameLength"
           class="soft-input"
           autocomplete="nickname"
           placeholder="Your real name" />
+        <span class="block text-xs font-semibold text-ink/55">
+          Up to {{ maxPlayerNameLength }} characters.
+        </span>
       </label>
 
       <button

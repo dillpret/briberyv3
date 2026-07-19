@@ -99,6 +99,12 @@
     border-radius: var(--radius-control);
   }
 
+  .text-flow {
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: manual;
+  }
+
   .nested-surface.is-dashed {
     @apply border border-dashed border-plum/35 bg-plum/8;
   }
@@ -172,6 +178,17 @@
   .media-bribe-fallback {
     @apply mt-3 border-2 border-sun bg-surface p-3 text-sm font-bold text-ink;
     border-radius: var(--radius-control);
+  }
+
+  .soft-panel,
+  .soft-card,
+  .prompt-card,
+  .nested-surface,
+  .player-list-item,
+  .media-bribe-fallback {
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: manual;
   }
 
   .brand-logo {

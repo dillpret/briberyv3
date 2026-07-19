@@ -21,6 +21,7 @@ import { ErrorMessageService } from '../../core/error-message.service';
   templateUrl: './game.html',
 })
 export class Game implements OnInit {
+  readonly maxPlayerNameLength = 24;
   gameId = '';
   name = localStorage.getItem('playerName') ?? '';
   playerId = localStorage.getItem('playerId') ?? crypto.randomUUID();
@@ -58,19 +59,24 @@ export class Game implements OnInit {
   }
 
   async submitNameAndJoin() {
-    if (!this.name.trim()) return;
+    const normalizedName = this.normalizePlayerName(this.name);
+    if (!normalizedName) return;
 
-    localStorage.setItem('playerName', this.name.trim());
+    this.name = normalizedName;
+    localStorage.setItem('playerName', normalizedName);
     await this.autoJoin();
   }
 
   private async autoJoin() {
-    if (!this.name.trim() || !this.gameId.trim()) return;
+    const normalizedName = this.normalizePlayerName(this.name);
+    if (!normalizedName || !this.gameId.trim()) return;
 
     try {
       this.joinState.set('joining');
       this.joinError.set('');
-      await this.signalr.joinLobby(this.gameId, this.playerId, this.name.trim());
+      this.name = normalizedName;
+      localStorage.setItem('playerName', normalizedName);
+      await this.signalr.joinLobby(this.gameId, this.playerId, normalizedName);
       const currentPlayerId = this.gameState.currentPlayerId();
       if (currentPlayerId) {
         this.playerId = currentPlayerId;
@@ -98,5 +104,9 @@ export class Game implements OnInit {
 
   private normalizeGameId(gameId: string): string {
     return gameId.trim().toUpperCase();
+  }
+
+  private normalizePlayerName(name: string): string {
+    return name.trim().slice(0, this.maxPlayerNameLength);
   }
 }
