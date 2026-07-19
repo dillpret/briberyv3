@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, signal } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
-import { GameStateService } from '../../state/game-state.service';
+import { CompletionKind, GameStateService, VotingBribe } from '../../state/game-state.service';
 import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
@@ -45,6 +45,18 @@ export class Voting {
 
   currentSelection(): string | null {
     return this.voting()?.selectedBribeId ?? this.selectedBribeId() ?? this.voting()?.draftSelectedBribeId ?? null;
+  }
+
+  promptCompletionLabel(): string | null {
+    return completionLabel(this.voting()?.promptCompletionKind, this.voting()?.promptCompletedWhileOffline, 'prompt', 'added automatically');
+  }
+
+  bribeCompletionLabel(bribe: VotingBribe): string | null {
+    return completionLabel(bribe.completionKind, bribe.completedWhileOffline, 'bribe', 'added automatically');
+  }
+
+  selectedVoteCompletionLabel(): string | null {
+    return completionLabel(this.voting()?.selectedVoteCompletionKind, this.voting()?.selectedVoteCompletedWhileOffline, 'vote', 'selected automatically');
   }
 
   selectBribe(bribeId: string) {
@@ -109,4 +121,21 @@ export class Voting {
   private connectedPendingPlayers() {
     return this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
   }
+}
+
+function completionLabel(
+  kind?: CompletionKind | null,
+  completedWhileOffline = false,
+  noun = 'item',
+  fallbackText = 'added automatically',
+): string | null {
+  if (!completedWhileOffline && kind === 'PlayerSubmitted') return null;
+  if (kind === 'SavedDraft') return `${capitalize(noun)} submitted from saved draft${completedWhileOffline ? ' while offline' : ''}.`;
+  if (kind === 'Fallback') return `${capitalize(noun)} ${fallbackText}${completedWhileOffline ? ' while offline' : ''}.`;
+  if (completedWhileOffline) return `${capitalize(noun)} completed while offline.`;
+  return null;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

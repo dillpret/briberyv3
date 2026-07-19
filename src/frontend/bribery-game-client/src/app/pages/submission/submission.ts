@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
-import { BribeMedia, GameStateService, SubmissionTarget } from '../../state/game-state.service';
+import { BribeMedia, CompletionKind, GameStateService, SubmissionTarget } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
 
@@ -83,6 +83,14 @@ export class Submission implements OnDestroy {
 
   hasSubmitted(targetPlayerId: string): boolean {
     return this.submission()?.submittedTargetPlayerIds.includes(targetPlayerId) ?? false;
+  }
+
+  promptCompletionLabel(target: SubmissionTarget): string | null {
+    return completionLabel(target.promptCompletionKind, target.promptCompletedWhileOffline, 'prompt');
+  }
+
+  submittedBribeCompletionLabel(target: SubmissionTarget): string | null {
+    return completionLabel(target.submittedBribeCompletionKind, target.submittedBribeCompletedWhileOffline, 'bribe');
   }
 
   draftFor(targetPlayerId: string): string {
@@ -762,4 +770,16 @@ interface MediaDraft {
   previewUrl: string;
   error: string | null;
   uploading: boolean;
+}
+
+function completionLabel(kind?: CompletionKind | null, completedWhileOffline = false, noun = 'item'): string | null {
+  if (!completedWhileOffline && kind === 'PlayerSubmitted') return null;
+  if (kind === 'SavedDraft') return `${capitalize(noun)} submitted from saved draft${completedWhileOffline ? ' while offline' : ''}.`;
+  if (kind === 'Fallback') return `${capitalize(noun)} added automatically${completedWhileOffline ? ' while offline' : ''}.`;
+  if (completedWhileOffline) return `${capitalize(noun)} completed while offline.`;
+  return null;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

@@ -85,9 +85,15 @@
         <blockquote class="nested-surface">
           {{ target.prompt }}
         </blockquote>
+        @if (promptCompletionLabel(target); as completionLabel) {
+          <p class="status-pill w-fit border-sun/40 bg-sun/15 text-ink">{{ completionLabel }}</p>
+        }
 
         @if (hasSubmitted(target.playerId)) {
           <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely.</p>
+          @if (submittedBribeCompletionLabel(target); as completionLabel) {
+            <p class="status-pill w-fit border-sun/40 bg-sun/15 text-ink">{{ completionLabel }}</p>
+          }
         } @else {
           <div
             class="nested-surface is-dashed space-y-3"

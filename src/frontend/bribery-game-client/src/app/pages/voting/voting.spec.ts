@@ -91,6 +91,41 @@ describe('Voting', () => {
     expect(element.textContent).toContain('Pick the bribe you like most');
   });
 
+  it('shows completion badges for offline prompt, bribe, and vote fallbacks', () => {
+    gameState.setGameState({
+      phase: 'Voting',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      voteSubmittedCount: 1,
+      voteRequiredCount: 1,
+      voting: {
+        promptText: 'Convince me to pick your bribe',
+        promptCompletionKind: 'Fallback',
+        promptCompletedWhileOffline: true,
+        selectedBribeId: 'b1',
+        selectedVoteCompletionKind: 'Fallback',
+        selectedVoteCompletedWhileOffline: true,
+        bribes: [{
+          bribeId: 'b1',
+          kind: 'Text',
+          text: 'A fallback bribe',
+          media: null,
+          completionKind: 'Fallback',
+          completedWhileOffline: true,
+        }],
+      },
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(component.promptCompletionLabel()).toBe('Prompt added automatically while offline.');
+    expect(component.bribeCompletionLabel(gameState.voting()!.bribes[0])).toBe('Bribe added automatically while offline.');
+    expect(component.selectedVoteCompletionLabel()).toBe('Vote selected automatically while offline.');
+    expect(element.textContent).toContain('Vote selected automatically while offline.');
+  });
+
   it('counts offline blockers without showing the offline advance panel while connected voters are pending', () => {
     gameState.setGameState({
       phase: 'Voting',

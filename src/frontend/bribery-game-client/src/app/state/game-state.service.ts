@@ -15,14 +15,20 @@ export interface Player {
 export interface PromptPhaseState {
   hasSubmittedPrompt: boolean;
   draftText?: string;
+  completionKind?: CompletionKind | null;
+  completedWhileOffline?: boolean;
 }
 
 export interface SubmissionTarget {
   playerId: string;
   name: string;
   prompt: string;
+  promptCompletionKind?: CompletionKind;
+  promptCompletedWhileOffline?: boolean;
   draftText?: string;
   draftMedia?: BribeMedia | null;
+  submittedBribeCompletionKind?: CompletionKind | null;
+  submittedBribeCompletedWhileOffline?: boolean;
 }
 
 export interface SubmissionPhaseState {
@@ -38,18 +44,25 @@ export interface BribeMedia {
 }
 
 export type BribeKind = 'Text' | 'Media';
+export type CompletionKind = 'PlayerSubmitted' | 'SavedDraft' | 'Fallback';
 
 export interface VotingBribe {
   bribeId: string;
   kind: BribeKind;
   text: string;
   media: BribeMedia | null;
+  completionKind?: CompletionKind;
+  completedWhileOffline?: boolean;
 }
 
 export interface VotingPhaseState {
   promptText: string;
+  promptCompletionKind?: CompletionKind;
+  promptCompletedWhileOffline?: boolean;
   bribes: VotingBribe[];
   selectedBribeId: string | null;
+  selectedVoteCompletionKind?: CompletionKind | null;
+  selectedVoteCompletedWhileOffline?: boolean;
   draftSelectedBribeId?: string | null;
 }
 
@@ -75,6 +88,12 @@ export interface RoundResult {
   winningPlayerId: string;
   winningPlayerName: string;
   winningBribeId: string;
+  promptCompletionKind?: CompletionKind;
+  promptCompletedWhileOffline?: boolean;
+  winningBribeCompletionKind?: CompletionKind;
+  winningBribeCompletedWhileOffline?: boolean;
+  voteCompletionKind?: CompletionKind;
+  voteCompletedWhileOffline?: boolean;
   isCurrentPlayersPrompt: boolean;
   currentPlayerSubmittedBribe: boolean;
   currentPlayerSubmittedWinningBribe: boolean;

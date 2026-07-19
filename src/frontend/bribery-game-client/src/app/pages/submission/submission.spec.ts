@@ -86,6 +86,38 @@ describe('Submission', () => {
     });
   });
 
+  it('shows completion badges for offline prompt and bribe fallbacks', () => {
+    gameState.setGameState({
+      phase: 'Submission',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      bribeSubmittedCount: 1,
+      bribeRequiredCount: 1,
+      players: [{ id: 'p1', name: 'Player 1', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Done', phaseStatusLabel: 'Submitted' }],
+      submission: {
+        targets: [{
+          playerId: 'p2',
+          name: 'Player 2',
+          prompt: 'A useful prompt',
+          promptCompletionKind: 'Fallback',
+          promptCompletedWhileOffline: true,
+          submittedBribeCompletionKind: 'Fallback',
+          submittedBribeCompletedWhileOffline: true,
+        }],
+        submittedTargetPlayerIds: ['p2'],
+      },
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(component.promptCompletionLabel(gameState.submission()!.targets[0])).toBe('Prompt added automatically while offline.');
+    expect(component.submittedBribeCompletionLabel(gameState.submission()!.targets[0])).toBe('Bribe added automatically while offline.');
+    expect(element.textContent).toContain('Prompt added automatically while offline.');
+    expect(element.textContent).toContain('Bribe added automatically while offline.');
+  });
+
   it('captures typed text from the unified composer', () => {
     const composer = composerBox();
     composer.innerText = 'A keyboard-friendly bribe';

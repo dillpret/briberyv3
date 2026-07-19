@@ -233,6 +233,29 @@ describe('Prompt', () => {
     expect(element.textContent).not.toContain('Advance without offline players');
   });
 
+  it('shows when the prompt was submitted from an offline saved draft', () => {
+    gameState.setGameState({
+      phase: 'Prompt',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      promptRequiredCount: 1,
+      promptSubmittedCount: 1,
+      prompt: {
+        hasSubmittedPrompt: true,
+        completionKind: 'SavedDraft',
+        completedWhileOffline: true,
+      },
+    });
+
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.promptCompletionLabel()).toBe('Prompt submitted from saved draft while offline.');
+    expect(fixture.nativeElement.textContent).toContain('Prompt submitted from saved draft while offline.');
+  });
+
   async function clickIdeaButton() {
     const button = fixture.nativeElement.querySelector(
       '[aria-label="Give me an idea"]',

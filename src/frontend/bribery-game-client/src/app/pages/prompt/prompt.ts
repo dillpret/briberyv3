@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
-import { GameStateService } from '../../state/game-state.service';
+import { CompletionKind, GameStateService } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
 
@@ -88,6 +88,10 @@ export class Prompt implements OnDestroy {
 
   hasSubmittedPrompt(): boolean {
     return this.prompt()?.hasSubmittedPrompt ?? false;
+  }
+
+  promptCompletionLabel(): string | null {
+    return completionLabel(this.prompt()?.completionKind, this.prompt()?.completedWhileOffline, 'prompt');
   }
 
   pendingPromptCount(): number {
@@ -204,4 +208,16 @@ export class Prompt implements OnDestroy {
       .then(() => this.signalr.savePromptDraft(text, version))
       .catch(() => undefined);
   }
+}
+
+function completionLabel(kind?: CompletionKind | null, completedWhileOffline = false, noun = 'item'): string | null {
+  if (!completedWhileOffline && kind === 'PlayerSubmitted') return null;
+  if (kind === 'SavedDraft') return `${capitalize(noun)} submitted from saved draft${completedWhileOffline ? ' while offline' : ''}.`;
+  if (kind === 'Fallback') return `${capitalize(noun)} added automatically${completedWhileOffline ? ' while offline' : ''}.`;
+  if (completedWhileOffline) return `${capitalize(noun)} completed while offline.`;
+  return null;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

@@ -68,6 +68,9 @@
       <div class="waiting-mascot-layout text-center sm:text-left">
         <div class="space-y-2">
           <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine sm:mx-0">Prompt submitted</span>
+          @if (promptCompletionLabel(); as completionLabel) {
+            <span class="status-pill mx-auto border-sun/40 bg-sun/15 text-ink sm:mx-0">{{ completionLabel }}</span>
+          }
           <h2 class="text-lg font-semibold text-ink">You are all set.</h2>
           <p class="text-sm leading-6 text-ink/70">
             {{ waitingText() }}

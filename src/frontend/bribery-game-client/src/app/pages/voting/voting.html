@@ -63,6 +63,9 @@
       <div class="waiting-mascot-layout text-center sm:text-left">
         <div class="space-y-2">
           <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine sm:mx-0">Vote submitted</span>
+          @if (selectedVoteCompletionLabel(); as completionLabel) {
+            <span class="status-pill mx-auto border-sun/40 bg-sun/15 text-ink sm:mx-0">{{ completionLabel }}</span>
+          }
           <h2 class="text-lg font-semibold text-ink">Decision made.</h2>
           <p class="text-sm leading-6 text-ink/70">
             {{ waitingText() }}
@@ -82,6 +85,9 @@
       <blockquote class="text-xl font-bold leading-8 text-ink">
         {{ voting()?.promptText }}
       </blockquote>
+      @if (promptCompletionLabel(); as completionLabel) {
+        <p class="status-pill w-fit border-sun/40 bg-sun/15 text-ink">{{ completionLabel }}</p>
+      }
       <p class="text-sm leading-6 text-ink/70">
         Pick the bribe you like most.
       </p>
@@ -110,6 +116,9 @@
           [text]="bribe.text"
           [media]="bribe.media"
           label="Anonymous bribe" />
+        @if (bribeCompletionLabel(bribe); as completionLabel) {
+          <span class="status-pill w-fit border-sun/40 bg-sun/15 text-ink">{{ completionLabel }}</span>
+        }
       </label>
     }
 

@@ -97,6 +97,9 @@
         </div>
 
         <p class="nested-surface">{{ result.promptText }}</p>
+        @for (completionLabel of resultCompletionLabels(result); track completionLabel) {
+          <p class="status-pill w-fit border-sun/40 bg-sun/15 text-ink">{{ completionLabel }}</p>
+        }
 
         <app-bribe-display
           [kind]="result.winningBribeKind"

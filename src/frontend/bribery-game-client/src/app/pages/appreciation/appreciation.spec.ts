@@ -103,6 +103,33 @@ describe('Appreciation', () => {
     expect(fixture.nativeElement.textContent).toContain('Appreciation done');
     expect(fixture.nativeElement.textContent).toContain('Appreciation waiting tip');
   });
+
+  it('shows completion badges on results affected by offline fallbacks', () => {
+    gameState.appreciation.update((state) => ({
+      ...state!,
+      roundResults: [
+        result({
+          promptCompletionKind: 'Fallback',
+          promptCompletedWhileOffline: true,
+          winningBribeCompletionKind: 'SavedDraft',
+          winningBribeCompletedWhileOffline: true,
+          voteCompletionKind: 'Fallback',
+          voteCompletedWhileOffline: true,
+        }),
+      ],
+    }));
+    fixture.detectChanges();
+
+    const labels = component.resultCompletionLabels(gameState.appreciation()!.roundResults[0]);
+    expect(labels).toEqual([
+      'Prompt added automatically while offline.',
+      'Bribe submitted from saved draft while offline.',
+      'Vote selected automatically while offline.',
+    ]);
+    expect(fixture.nativeElement.textContent).toContain('Prompt added automatically while offline.');
+    expect(fixture.nativeElement.textContent).toContain('Bribe submitted from saved draft while offline.');
+    expect(fixture.nativeElement.textContent).toContain('Vote selected automatically while offline.');
+  });
 });
 
 function result(overrides: any) {

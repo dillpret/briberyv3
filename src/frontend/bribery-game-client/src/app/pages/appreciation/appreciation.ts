@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 import { SignalrService } from '../../core/signalr.service';
-import { GameStateService, RoundResult } from '../../state/game-state.service';
+import { CompletionKind, GameStateService, RoundResult } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
 
@@ -94,6 +94,14 @@ export class Appreciation {
     return `${result.promptOwnerName} picked ${result.winningPlayerName}'s bribe.`;
   }
 
+  resultCompletionLabels(result: RoundResult): string[] {
+    return [
+      completionLabel(result.promptCompletionKind, result.promptCompletedWhileOffline, 'prompt', 'added automatically'),
+      completionLabel(result.winningBribeCompletionKind, result.winningBribeCompletedWhileOffline, 'bribe', 'added automatically'),
+      completionLabel(result.voteCompletionKind, result.voteCompletedWhileOffline, 'vote', 'selected automatically'),
+    ].filter((label): label is string => !!label);
+  }
+
   coinButtonLabel(result: RoundResult): string {
     return result.hasCurrentPlayerAwardedCoin ? 'Coin given' : 'Give coin';
   }
@@ -126,4 +134,21 @@ export class Appreciation {
   private connectedPendingPlayers() {
     return this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
   }
+}
+
+function completionLabel(
+  kind?: CompletionKind | null,
+  completedWhileOffline = false,
+  noun = 'item',
+  fallbackText = 'added automatically',
+): string | null {
+  if (!completedWhileOffline && kind === 'PlayerSubmitted') return null;
+  if (kind === 'SavedDraft') return `${capitalize(noun)} submitted from saved draft${completedWhileOffline ? ' while offline' : ''}.`;
+  if (kind === 'Fallback') return `${capitalize(noun)} ${fallbackText}${completedWhileOffline ? ' while offline' : ''}.`;
+  if (completedWhileOffline) return `${capitalize(noun)} completed while offline.`;
+  return null;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

@@ -47,6 +47,8 @@ public class PromptPhaseDto
 {
     public bool HasSubmittedPrompt { get; set; }
     public string DraftText { get; set; } = "";
+    public CompletionKind? CompletionKind { get; set; }
+    public bool CompletedWhileOffline { get; set; }
 }
 
 public class SubmissionPhaseDto
@@ -60,15 +62,23 @@ public class SubmissionTargetDto
     public string PlayerId { get; set; } = "";
     public string Name { get; set; } = "";
     public string Prompt { get; set; } = "";
+    public CompletionKind PromptCompletionKind { get; set; } = CompletionKind.PlayerSubmitted;
+    public bool PromptCompletedWhileOffline { get; set; }
     public string DraftText { get; set; } = "";
     public BribeMedia? DraftMedia { get; set; }
+    public CompletionKind? SubmittedBribeCompletionKind { get; set; }
+    public bool SubmittedBribeCompletedWhileOffline { get; set; }
 }
 
 public class VotingPhaseDto
 {
     public string PromptText { get; set; } = "";
+    public CompletionKind PromptCompletionKind { get; set; } = CompletionKind.PlayerSubmitted;
+    public bool PromptCompletedWhileOffline { get; set; }
     public List<VotingBribeDto> Bribes { get; set; } = new();
     public string? SelectedBribeId { get; set; }
+    public CompletionKind? SelectedVoteCompletionKind { get; set; }
+    public bool SelectedVoteCompletedWhileOffline { get; set; }
     public string? DraftSelectedBribeId { get; set; }
 }
 
@@ -78,6 +88,8 @@ public class VotingBribeDto
     public BribeContentKind Kind { get; set; } = BribeContentKind.Text;
     public string Text { get; set; } = "";
     public BribeMedia? Media { get; set; }
+    public CompletionKind CompletionKind { get; set; } = CompletionKind.PlayerSubmitted;
+    public bool CompletedWhileOffline { get; set; }
 }
 
 public class AppreciationPhaseDto
@@ -106,6 +118,12 @@ public class RoundResultDto
     public string WinningPlayerId { get; set; } = "";
     public string WinningPlayerName { get; set; } = "";
     public string WinningBribeId { get; set; } = "";
+    public CompletionKind PromptCompletionKind { get; set; } = CompletionKind.PlayerSubmitted;
+    public bool PromptCompletedWhileOffline { get; set; }
+    public CompletionKind WinningBribeCompletionKind { get; set; } = CompletionKind.PlayerSubmitted;
+    public bool WinningBribeCompletedWhileOffline { get; set; }
+    public CompletionKind VoteCompletionKind { get; set; } = CompletionKind.PlayerSubmitted;
+    public bool VoteCompletedWhileOffline { get; set; }
     public bool IsCurrentPlayersPrompt { get; set; }
     public bool CurrentPlayerSubmittedBribe { get; set; }
     public bool CurrentPlayerSubmittedWinningBribe { get; set; }

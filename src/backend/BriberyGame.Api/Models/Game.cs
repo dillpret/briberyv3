@@ -104,7 +104,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null || player.Id != State.HostPlayerId)
             return Result<GameStateDto>.Fail("Player is not host and cannot update settings");
 
@@ -139,7 +139,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -153,7 +153,7 @@ public class Game
         if (!OfflineAdvancePhases.Contains(State.Phase))
             return Result<GameStateDto>.Fail("Cannot advance without offline players during this phase");
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
 
         if (player == null || player.Id != State.HostPlayerId)
             return Result<GameStateDto>.Fail("Player is not host and cannot advance the phase");
@@ -169,13 +169,7 @@ public class Game
             return Result<GameStateDto>.Fail(
                 $"Cannot advance without offline players because at least {MinimumActivePlayers} active connected players are required");
 
-        foreach (var skippedPlayer in blockingPlayers)
-        {
-            skippedPlayer.IsActive = false;
-            skippedPlayer.IsReady = false;
-        }
-
-        RemoveRoundDataForPlayers(blockingPlayers.Select(p => p.Id).ToHashSet());
+        CompleteMissingWorkForOfflineBlockingPlayers(blockingPlayers);
         AdvancePhaseIfComplete();
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
@@ -187,7 +181,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
 
         if (player == null || player.Id != State.HostPlayerId)
             return Result<GameStateDto>.Fail("Player is not host and cannot start game");
@@ -218,7 +212,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -240,7 +234,9 @@ public class Game
         {
             PlayerId = player.Id,
             Text = promptText,
-            SubmittedAt = _now()
+            SubmittedAt = _now(),
+            CompletionKind = CompletionKind.PlayerSubmitted,
+            CompletedWhileOffline = false
         };
 
         if (AllActivePlayersSubmittedPrompts())
@@ -270,7 +266,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -321,7 +317,9 @@ public class Game
             Kind = hasMedia ? BribeContentKind.Media : BribeContentKind.Text,
             Text = bribeText,
             Media = media,
-            SubmittedAt = _now()
+            SubmittedAt = _now(),
+            CompletionKind = CompletionKind.PlayerSubmitted,
+            CompletedWhileOffline = false
         };
 
         if (AllRequiredBribesSubmitted())
@@ -340,7 +338,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -357,7 +355,9 @@ public class Game
         {
             VoterPlayerId = player.Id,
             BribeId = bribeId,
-            SubmittedAt = _now()
+            SubmittedAt = _now(),
+            CompletionKind = CompletionKind.PlayerSubmitted,
+            CompletedWhileOffline = false
         };
 
         if (AllActivePlayersVoted())
@@ -378,7 +378,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -417,7 +417,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -465,7 +465,7 @@ public class Game
 
     public BribeMedia? GetBribeDraftMedia(string connectionId, string targetPlayerId)
     {
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return null;
 
@@ -480,7 +480,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -528,7 +528,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -559,7 +559,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
         if (player == null)
             return Result<GameStateDto>.Fail("Player not found");
 
@@ -586,7 +586,7 @@ public class Game
         if (!phaseResult.Success)
             return Result<GameStateDto>.Fail(phaseResult.Error!);
 
-        var player = FindPlayerByConnection(connectionId);
+        var player = FindConnectedPlayerByConnection(connectionId);
 
         if (player == null || player.Id != State.HostPlayerId)
             return Result<GameStateDto>.Fail("Player is not host and cannot start the next round");
@@ -679,6 +679,11 @@ public class Game
     private Player? FindPlayerByConnection(string connectionId)
     {
         return State.Players.FirstOrDefault(p => p.ConnectionId == connectionId);
+    }
+
+    private Player? FindConnectedPlayerByConnection(string connectionId)
+    {
+        return State.Players.FirstOrDefault(p => p.ConnectionId == connectionId && p.Connected);
     }
 
     private Result<object> RequirePhase(GamePhase expectedPhase, string error)
@@ -879,7 +884,13 @@ public class Game
                 WinningBribeKind = bribe.Kind,
                 WinningBribeText = bribe.Text,
                 WinningBribeMedia = bribe.Media,
-                WinningPlayerId = bribe.FromPlayerId
+                WinningPlayerId = bribe.FromPlayerId,
+                PromptCompletionKind = prompt.CompletionKind,
+                PromptCompletedWhileOffline = prompt.CompletedWhileOffline,
+                WinningBribeCompletionKind = bribe.CompletionKind,
+                WinningBribeCompletedWhileOffline = bribe.CompletedWhileOffline,
+                VoteCompletionKind = vote.CompletionKind,
+                VoteCompletedWhileOffline = vote.CompletedWhileOffline
             });
         }
     }
@@ -925,24 +936,7 @@ public class Game
             return false;
 
         foreach (var player in State.Players.Where(p => p.IsActive).ToList())
-        {
-            if (State.Prompts.ContainsKey(player.Id))
-                continue;
-
-            var draft = State.PromptDrafts.TryGetValue(player.Id, out var savedDraft)
-                ? savedDraft.Text.Trim()
-                : "";
-            var text = draft.Length > 0
-                ? draft
-                : PromptLibrary.RandomPrompt(_random);
-
-            State.Prompts[player.Id] = new PromptSubmission
-            {
-                PlayerId = player.Id,
-                Text = text,
-                SubmittedAt = _now()
-            };
-        }
+            CompleteMissingPrompt(player, completedWhileOffline: !player.Connected);
 
         GenerateTargetAssignments();
         TransitionTo(GamePhase.Submission);
@@ -955,25 +949,7 @@ public class Game
             return false;
 
         foreach (var key in GetRequiredBribeKeys())
-        {
-            if (HasSubmittedBribe(key.FromPlayerId, key.ToPlayerId))
-                continue;
-
-            var draftKey = BribeDraftKey(key.FromPlayerId, key.ToPlayerId);
-            State.BribeDrafts.TryGetValue(draftKey, out var draft);
-
-            var request = draft?.Media != null
-                ? new SubmitBribeRequest { TargetPlayerId = key.ToPlayerId, Media = draft.Media }
-                : new SubmitBribeRequest
-                {
-                    TargetPlayerId = key.ToPlayerId,
-                    Text = !string.IsNullOrWhiteSpace(draft?.Text)
-                        ? draft!.Text
-                        : "<didn't submit a bribe in time, for shame>"
-                };
-
-            AddBribeSubmission(key.FromPlayerId, request);
-        }
+            CompleteMissingBribe(key.FromPlayerId, key.ToPlayerId, completedWhileOffline: IsOffline(key.FromPlayerId));
 
         TransitionTo(GamePhase.Voting);
         return true;
@@ -985,30 +961,7 @@ public class Game
             return false;
 
         foreach (var player in State.Players.Where(p => p.IsActive).ToList())
-        {
-            if (State.Votes.ContainsKey(player.Id))
-                continue;
-
-            var validBribeIds = State.Bribes.Values
-                .Where(bribe => bribe.ToPlayerId == player.Id)
-                .Select(bribe => bribe.Id)
-                .ToList();
-
-            if (validBribeIds.Count == 0)
-                continue;
-
-            var draftBribeId = State.VoteDrafts.TryGetValue(player.Id, out var draft) &&
-                               validBribeIds.Contains(draft.BribeId)
-                ? draft.BribeId
-                : validBribeIds[_random.Next(validBribeIds.Count)];
-
-            State.Votes[player.Id] = new VoteSubmission
-            {
-                VoterPlayerId = player.Id,
-                BribeId = draftBribeId,
-                SubmittedAt = _now()
-            };
-        }
+            CompleteMissingVote(player, completedWhileOffline: !player.Connected);
 
         BuildRoundResults();
         TransitionTo(GamePhase.Appreciation);
@@ -1028,7 +981,130 @@ public class Game
         return true;
     }
 
-    private void AddBribeSubmission(string fromPlayerId, SubmitBribeRequest request)
+    private void CompleteMissingWorkForOfflineBlockingPlayers(List<Player> blockingPlayers)
+    {
+        foreach (var player in blockingPlayers)
+        {
+            player.IsReady = false;
+
+            switch (State.Phase)
+            {
+                case GamePhase.Prompt:
+                    CompleteMissingPrompt(player, completedWhileOffline: true);
+                    break;
+                case GamePhase.Submission:
+                    if (State.TargetAssignments.TryGetValue(player.Id, out var targets))
+                    {
+                        foreach (var targetPlayerId in targets)
+                            CompleteMissingBribe(player.Id, targetPlayerId, completedWhileOffline: true);
+                    }
+                    break;
+                case GamePhase.Voting:
+                    CompleteMissingVote(player, completedWhileOffline: true);
+                    break;
+                case GamePhase.Appreciation:
+                    State.AppreciationDonePlayerIds.Add(player.Id);
+                    break;
+            }
+        }
+    }
+
+    private void CompleteMissingPrompt(Player player, bool completedWhileOffline)
+    {
+        if (State.Prompts.ContainsKey(player.Id))
+            return;
+
+        var draft = State.PromptDrafts.TryGetValue(player.Id, out var savedDraft)
+            ? savedDraft.Text.Trim()
+            : "";
+        var completionKind = draft.Length > 0
+            ? CompletionKind.SavedDraft
+            : CompletionKind.Fallback;
+        var text = draft.Length > 0
+            ? draft
+            : PromptLibrary.RandomPrompt(_random);
+
+        State.Prompts[player.Id] = new PromptSubmission
+        {
+            PlayerId = player.Id,
+            Text = text,
+            SubmittedAt = _now(),
+            CompletionKind = completionKind,
+            CompletedWhileOffline = completedWhileOffline
+        };
+    }
+
+    private void CompleteMissingBribe(string fromPlayerId, string targetPlayerId, bool completedWhileOffline)
+    {
+        if (HasSubmittedBribe(fromPlayerId, targetPlayerId))
+            return;
+
+        var draftKey = BribeDraftKey(fromPlayerId, targetPlayerId);
+        State.BribeDrafts.TryGetValue(draftKey, out var draft);
+
+        if (draft?.Media != null)
+        {
+            AddBribeSubmission(
+                fromPlayerId,
+                new SubmitBribeRequest { TargetPlayerId = targetPlayerId, Media = draft.Media },
+                CompletionKind.SavedDraft,
+                completedWhileOffline);
+            return;
+        }
+
+        var hasDraftText = !string.IsNullOrWhiteSpace(draft?.Text);
+        AddBribeSubmission(
+            fromPlayerId,
+            new SubmitBribeRequest
+            {
+                TargetPlayerId = targetPlayerId,
+                Text = hasDraftText
+                    ? draft!.Text
+                    : "<didn't submit a bribe in time, for shame>"
+            },
+            hasDraftText ? CompletionKind.SavedDraft : CompletionKind.Fallback,
+            completedWhileOffline);
+    }
+
+    private void CompleteMissingVote(Player player, bool completedWhileOffline)
+    {
+        if (State.Votes.ContainsKey(player.Id))
+            return;
+
+        var validBribeIds = State.Bribes.Values
+            .Where(bribe => bribe.ToPlayerId == player.Id)
+            .Select(bribe => bribe.Id)
+            .ToList();
+
+        if (validBribeIds.Count == 0)
+            return;
+
+        var hasValidDraft = State.VoteDrafts.TryGetValue(player.Id, out var draft) &&
+                            validBribeIds.Contains(draft.BribeId);
+        var bribeId = hasValidDraft
+            ? draft!.BribeId
+            : validBribeIds[_random.Next(validBribeIds.Count)];
+
+        State.Votes[player.Id] = new VoteSubmission
+        {
+            VoterPlayerId = player.Id,
+            BribeId = bribeId,
+            SubmittedAt = _now(),
+            CompletionKind = hasValidDraft ? CompletionKind.SavedDraft : CompletionKind.Fallback,
+            CompletedWhileOffline = completedWhileOffline
+        };
+    }
+
+    private bool IsOffline(string playerId)
+    {
+        return State.Players.Any(player => player.Id == playerId && !player.Connected);
+    }
+
+    private void AddBribeSubmission(
+        string fromPlayerId,
+        SubmitBribeRequest request,
+        CompletionKind completionKind = CompletionKind.PlayerSubmitted,
+        bool completedWhileOffline = false)
     {
         var bribeText = request.Text?.Trim() ?? "";
         var media = request.Media;
@@ -1043,7 +1119,9 @@ public class Game
             Kind = hasMedia ? BribeContentKind.Media : BribeContentKind.Text,
             Text = hasMedia ? "" : bribeText,
             Media = media,
-            SubmittedAt = _now()
+            SubmittedAt = _now(),
+            CompletionKind = completionKind,
+            CompletedWhileOffline = completedWhileOffline
         };
     }
 
@@ -1129,6 +1207,10 @@ public class Game
         return new PromptPhaseDto
         {
             HasSubmittedPrompt = State.Prompts.ContainsKey(playerId),
+            CompletionKind = State.Prompts.TryGetValue(playerId, out var submittedPrompt)
+                ? submittedPrompt.CompletionKind
+                : null,
+            CompletedWhileOffline = submittedPrompt?.CompletedWhileOffline ?? false,
             DraftText = State.PromptDrafts.TryGetValue(playerId, out var draft)
                 ? draft.Text
                 : ""
@@ -1149,15 +1231,23 @@ public class Game
                 .Select(targetId =>
                 {
                     var target = State.Players.First(p => p.Id == targetId);
+                    var prompt = State.Prompts[target.Id];
                     State.BribeDrafts.TryGetValue(BribeDraftKey(playerId, target.Id), out var draft);
+                    var submittedBribe = State.Bribes.Values.FirstOrDefault(bribe =>
+                        bribe.FromPlayerId == playerId &&
+                        bribe.ToPlayerId == target.Id);
 
                     return new SubmissionTargetDto
                     {
                         PlayerId = target.Id,
                         Name = target.Name,
-                        Prompt = State.Prompts[target.Id].Text,
+                        Prompt = prompt.Text,
+                        PromptCompletionKind = prompt.CompletionKind,
+                        PromptCompletedWhileOffline = prompt.CompletedWhileOffline,
                         DraftText = draft?.Text ?? "",
-                        DraftMedia = draft?.Media
+                        DraftMedia = draft?.Media,
+                        SubmittedBribeCompletionKind = submittedBribe?.CompletionKind,
+                        SubmittedBribeCompletedWhileOffline = submittedBribe?.CompletedWhileOffline ?? false
                     };
                 })
                 .ToList(),
@@ -1178,6 +1268,8 @@ public class Game
             PromptText = State.Prompts.TryGetValue(playerId, out var prompt)
                 ? prompt.Text
                 : "",
+            PromptCompletionKind = prompt?.CompletionKind ?? CompletionKind.PlayerSubmitted,
+            PromptCompletedWhileOffline = prompt?.CompletedWhileOffline ?? false,
             Bribes = State.Bribes.Values
                 .Where(b => b.ToPlayerId == playerId)
                 .Select(b => new VotingBribeDto
@@ -1185,12 +1277,16 @@ public class Game
                     BribeId = b.Id,
                     Kind = b.Kind,
                     Text = b.Text,
-                    Media = b.Media
+                    Media = b.Media,
+                    CompletionKind = b.CompletionKind,
+                    CompletedWhileOffline = b.CompletedWhileOffline
                 })
                 .ToList(),
             SelectedBribeId = State.Votes.TryGetValue(playerId, out var vote)
                 ? vote.BribeId
                 : null,
+            SelectedVoteCompletionKind = vote?.CompletionKind,
+            SelectedVoteCompletedWhileOffline = vote?.CompletedWhileOffline ?? false,
             DraftSelectedBribeId = State.VoteDrafts.TryGetValue(playerId, out var draft)
                 ? draft.BribeId
                 : null
@@ -1229,6 +1325,12 @@ public class Game
                     WinningPlayerId = r.WinningPlayerId,
                     WinningPlayerName = winner.Name,
                     WinningBribeId = r.WinningBribeId,
+                    PromptCompletionKind = r.PromptCompletionKind,
+                    PromptCompletedWhileOffline = r.PromptCompletedWhileOffline,
+                    WinningBribeCompletionKind = r.WinningBribeCompletionKind,
+                    WinningBribeCompletedWhileOffline = r.WinningBribeCompletedWhileOffline,
+                    VoteCompletionKind = r.VoteCompletionKind,
+                    VoteCompletedWhileOffline = r.VoteCompletedWhileOffline,
                     IsCurrentPlayersPrompt = r.PromptOwnerPlayerId == playerId,
                     CurrentPlayerSubmittedBribe = submittedByCurrentPlayer,
                     CurrentPlayerSubmittedWinningBribe = r.WinningPlayerId == playerId,
@@ -1403,85 +1505,6 @@ public class Game
             GamePhase.Appreciation => !State.AppreciationDonePlayerIds.Contains(player.Id),
             _ => false
         };
-    }
-
-    private void RemoveRoundDataForPlayers(HashSet<string> playerIds)
-    {
-        foreach (var playerId in playerIds)
-        {
-            State.Prompts.Remove(playerId);
-            State.TargetAssignments.Remove(playerId);
-            State.Votes.Remove(playerId);
-            State.PromptDrafts.Remove(playerId);
-            State.VoteDrafts.Remove(playerId);
-            State.AppreciationDonePlayerIds.Remove(playerId);
-        }
-
-        foreach (var playerId in State.Votes
-                     .Where(v => playerIds.Contains(v.Value.VoterPlayerId))
-                     .Select(v => v.Key)
-                     .ToList())
-        {
-            State.Votes.Remove(playerId);
-        }
-
-        foreach (var bribeId in State.Bribes
-                     .Where(b => playerIds.Contains(b.Value.FromPlayerId) ||
-                                 playerIds.Contains(b.Value.ToPlayerId))
-                     .Select(b => b.Key)
-                     .ToList())
-        {
-            State.Bribes.Remove(bribeId);
-            State.AppreciationCoins.Remove(bribeId);
-        }
-
-        foreach (var coinEntry in State.AppreciationCoins.ToList())
-        {
-            coinEntry.Value.RemoveWhere(playerIds.Contains);
-            if (coinEntry.Value.Count == 0)
-                State.AppreciationCoins.Remove(coinEntry.Key);
-        }
-
-        foreach (var roundResult in State.RoundResults
-                     .Where(result => playerIds.Contains(result.PromptOwnerPlayerId) ||
-                                      playerIds.Contains(result.WinningPlayerId))
-                     .ToList())
-        {
-            State.RoundResults.Remove(roundResult);
-            State.AppreciationCoins.Remove(roundResult.WinningBribeId);
-        }
-
-        foreach (var assignment in State.TargetAssignments.ToList())
-        {
-            if (playerIds.Contains(assignment.Key))
-            {
-                State.TargetAssignments.Remove(assignment.Key);
-                continue;
-            }
-
-            assignment.Value.RemoveAll(playerIds.Contains);
-        }
-
-        foreach (var draftKey in State.BribeDrafts.Keys
-                     .Where(key => playerIds.Any(playerId => key.StartsWith($"{playerId}\u001f") ||
-                                                             key.EndsWith($"\u001f{playerId}")))
-                     .ToList())
-        {
-            State.BribeDrafts.Remove(draftKey);
-        }
-
-        RemoveInvalidVotes();
-    }
-
-    private void RemoveInvalidVotes()
-    {
-        foreach (var vote in State.Votes
-                     .Where(v => !State.Bribes.ContainsKey(v.Value.BribeId))
-                     .Select(v => v.Key)
-                     .ToList())
-        {
-            State.Votes.Remove(vote);
-        }
     }
 
     private List<RequiredBribeKey> GetRequiredBribeKeys()
