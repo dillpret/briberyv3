@@ -9,7 +9,7 @@ describe('Submission', () => {
   let fixture: ComponentFixture<Submission>;
   let component: Submission;
   let gameState: GameStateService;
-  let signalr: Pick<SignalrService, 'submitBribe' | 'uploadBribeMedia' | 'advancePhaseWithoutOfflinePlayers'>;
+  let signalr: Pick<SignalrService, 'submitBribe' | 'uploadBribeMedia' | 'saveBribeDraft' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -27,6 +27,7 @@ describe('Submission', () => {
         contentType: 'image/png',
         byteSize: 10,
       }),
+      saveBribeDraft: vi.fn().mockResolvedValue(undefined),
       advancePhaseWithoutOfflinePlayers: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -92,6 +93,38 @@ describe('Submission', () => {
     composer.dispatchEvent(new Event('input', { bubbles: true }));
 
     expect(component.draftFor('p2')).toBe('A keyboard-friendly bribe');
+  });
+
+  it('does not restore a stale server draft after the local composer is cleared', () => {
+    const composer = composerBox();
+    composer.innerText = 'A keyboard-friendly bribe';
+    composer.dispatchEvent(new Event('input', { bubbles: true }));
+
+    composer.innerText = '';
+    composer.dispatchEvent(new Event('input', { bubbles: true }));
+
+    gameState.setGameState({
+      phase: 'Submission',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      bribeSubmittedCount: 0,
+      bribeRequiredCount: 1,
+      players: [{ id: 'p1', name: 'Player 1', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Pending', phaseStatusLabel: 'Needs bribes' }],
+      submission: {
+        targets: [{
+          playerId: 'p2',
+          name: 'Player 2',
+          prompt: 'A useful prompt',
+          draftText: 'A keyboard-friendly bribe',
+        }],
+        submittedTargetPlayerIds: [],
+      },
+    });
+    fixture.detectChanges();
+
+    expect(component.draftFor('p2')).toBe('');
+    expect(composer.textContent).toBe('');
   });
 
   it('selects pasted image media and clears existing text', () => {

@@ -32,6 +32,7 @@ export class Submission implements OnDestroy {
   private draftTimers = new Map<string, number>();
   private draftSaves = new Map<string, Promise<void>>();
   private hydratedDraftTargets = new Set<string>();
+  private locallyControlledDraftTargets = new Set<string>();
 
   constructor(
     private signalr: SignalrService,
@@ -51,7 +52,12 @@ export class Submission implements OnDestroy {
 
     effect(() => {
       for (const target of this.submission()?.targets ?? []) {
-        if (!this.hasSubmitted(target.playerId) && target.draftText && !this.draftFor(target.playerId)) {
+        if (
+          !this.hasSubmitted(target.playerId) &&
+          target.draftText &&
+          !this.locallyControlledDraftTargets.has(target.playerId)
+        ) {
+          this.locallyControlledDraftTargets.add(target.playerId);
           this.setDraft(target.playerId, target.draftText, false);
           this.hydrateComposerDraft(target.playerId, target.draftText);
         }
@@ -84,6 +90,8 @@ export class Submission implements OnDestroy {
   }
 
   setDraft(targetPlayerId: string, value: string, scheduleSave = true) {
+    if (scheduleSave) this.locallyControlledDraftTargets.add(targetPlayerId);
+
     this.drafts.update((drafts) => ({
       ...drafts,
       [targetPlayerId]: value,
