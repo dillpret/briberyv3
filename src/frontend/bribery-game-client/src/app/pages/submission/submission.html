@@ -150,9 +150,9 @@
             }
           </div>
 
-          <div class="flex items-center justify-between gap-3 pr-14 text-xs text-ink/60 sm:pr-0">
-            <span>Write up to 500 characters, or add an image or GIF.</span>
-            <span>{{ remainingCharacters(target.playerId) }} left</span>
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-xs text-ink/60">
+            <span class="min-w-0">Write up to 500 characters, or add an image or GIF.</span>
+            <span class="shrink-0 text-right tabular-nums">{{ remainingCharacters(target.playerId) }} left</span>
           </div>
 
           <button

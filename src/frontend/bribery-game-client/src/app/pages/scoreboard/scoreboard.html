@@ -77,15 +77,18 @@
         <p class="text-sm leading-6 text-ink/70">
           Waiting for the host to start the next round.
         </p>
-        <img
-          src="/brand/bribery-mascot.png"
-          alt=""
-          aria-hidden="true"
-          width="192"
-          height="192"
-          loading="lazy"
-          decoding="async"
-          class="mascot-waiting mascot-rocking" />
+        <picture>
+          <source srcset="/brand/bribery-mascot.webp" type="image/webp" />
+          <img
+            src="/brand/bribery-mascot.png"
+            alt=""
+            aria-hidden="true"
+            width="192"
+            height="192"
+            loading="lazy"
+            decoding="async"
+            class="mascot-waiting mascot-rocking" />
+        </picture>
       </div>
       <app-waiting-tips />
     }
