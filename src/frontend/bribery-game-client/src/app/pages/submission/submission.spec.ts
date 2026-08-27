@@ -127,6 +127,40 @@ describe('Submission', () => {
     expect(composer.textContent).toBe('');
   });
 
+  it('does not run delayed draft hydration after the local composer is cleared', () => {
+    vi.useFakeTimers();
+    gameState.setGameState({
+      phase: 'Submission',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      bribeSubmittedCount: 0,
+      bribeRequiredCount: 1,
+      players: [{ id: 'p1', name: 'Player 1', connected: true, isReady: false, isActive: true, score: 0, phaseStatus: 'Pending', phaseStatusLabel: 'Needs bribes' }],
+      submission: {
+        targets: [{
+          playerId: 'p2',
+          name: 'Player 2',
+          prompt: 'A useful prompt',
+          draftText: 'Server draft',
+        }],
+        submittedTargetPlayerIds: [],
+      },
+    });
+    fixture.detectChanges();
+
+    const composer = composerBox();
+    composer.innerText = '';
+    composer.dispatchEvent(new Event('input', { bubbles: true }));
+
+    vi.runOnlyPendingTimers();
+    fixture.detectChanges();
+
+    expect(component.draftFor('p2')).toBe('');
+    expect(composer.textContent).toBe('');
+    vi.useRealTimers();
+  });
+
   it('selects pasted image media and clears existing text', () => {
     component.setDraft('p2', 'Replace me');
     const file = new File(['image'], 'pasted.gif', { type: 'image/gif' });

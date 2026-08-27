@@ -9,13 +9,14 @@ describe('Prompt', () => {
   let fixture: ComponentFixture<Prompt>;
   let component: Prompt;
   let gameState: GameStateService;
-  let signalr: Pick<SignalrService, 'submitPrompt' | 'advancePhaseWithoutOfflinePlayers'>;
+  let signalr: Pick<SignalrService, 'submitPrompt' | 'savePromptDraft' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
     localStorage.clear();
 
     signalr = {
       submitPrompt: vi.fn().mockResolvedValue(undefined),
+      savePromptDraft: vi.fn().mockResolvedValue(undefined),
       advancePhaseWithoutOfflinePlayers: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -159,6 +160,27 @@ describe('Prompt', () => {
     await clickIdeaButton();
 
     expect(component.promptText).toBe('Keep my draft');
+  });
+
+  it('does not restore a stale server prompt draft after the player clears it', () => {
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.setPromptText('Player draft');
+    component.setPromptText('');
+
+    gameState.setGameState({
+      currentRound: 1,
+      phase: 'Prompt',
+      isCurrentPlayerActive: true,
+      promptRequiredCount: 1,
+      promptSubmittedCount: 0,
+      prompt: { hasSubmittedPrompt: false, draftText: 'Player draft' },
+    });
+    fixture.detectChanges();
+
+    expect(component.promptText).toBe('');
   });
 
   it('explains prompts and the idea button replacement behavior', () => {

@@ -418,7 +418,13 @@ export class Submission implements OnDestroy {
     window.setTimeout(() => {
       const composer = this.host.nativeElement
         .querySelector(`[data-composer-target="${targetPlayerId}"]`);
-      if (composer instanceof HTMLElement && !composer.textContent) {
+      if (
+        composer instanceof HTMLElement &&
+        !this.hasSubmitted(targetPlayerId) &&
+        !this.mediaDraftFor(targetPlayerId) &&
+        this.draftFor(targetPlayerId) === text &&
+        !composer.textContent
+      ) {
         composer.textContent = text;
       }
     });

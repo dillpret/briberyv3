@@ -31,6 +31,7 @@ export class Prompt implements OnDestroy {
   private draftVersion = 0;
   private draftTimer: number | null = null;
   private draftSave: Promise<void> = Promise.resolve();
+  private hasLocalPromptEdit = false;
 
   constructor(
     private signalr: SignalrService,
@@ -51,7 +52,7 @@ export class Prompt implements OnDestroy {
 
     effect(() => {
       const draftText = this.prompt()?.draftText ?? '';
-      if (!this.hasSubmittedPrompt() && !this.promptText && draftText) {
+      if (!this.hasSubmittedPrompt() && !this.hasLocalPromptEdit && !this.promptText && draftText) {
         this.promptText = draftText;
         this.changeDetector.detectChanges();
       }
@@ -78,6 +79,7 @@ export class Prompt implements OnDestroy {
   }
 
   setPromptText(value: string) {
+    this.hasLocalPromptEdit = true;
     this.promptText = value;
     this.schedulePromptDraftSave();
   }
