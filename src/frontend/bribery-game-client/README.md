@@ -54,6 +54,15 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+This repository also has a self-contained Playwright verification harness:
+
+```bash
+npm run inspect:ui
+npm run verify:ui
+```
+
+Both commands build and run a temporary same-origin copy of the Angular app and ASP.NET API on an OS-assigned port, then clean it up. `inspect:ui` captures desktop/mobile landing-page artifacts. `verify:ui` additionally drives a four-player game and captures dynamic states. Results are written to `output/playwright/ui-verification/` at the repository root.
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const baseUrl = process.env.SMOKE_BASE_URL ?? 'http://localhost:5080';
+const artifactDir = process.env.UI_ARTIFACT_DIR;
 const headless = process.env.HEADED !== '1';
 const players = ['Alice', 'Bob', 'Carol', 'Dana'];
 const notes = [];
@@ -28,6 +29,13 @@ async function waitForVisible(page, text) {
 async function closeIntroIfVisible(page) {
   const closeButton = page.getByRole('button', { name: 'Close help' });
   if ((await closeButton.count()) > 0 && (await closeButton.isVisible())) await closeButton.click();
+}
+
+async function capture(page, name) {
+  if (!artifactDir) return;
+  await fs.mkdir(artifactDir, { recursive: true });
+  await page.screenshot({ path: path.join(artifactDir, `flow-${name}-viewport.png`) });
+  await page.screenshot({ path: path.join(artifactDir, `flow-${name}-full.png`), fullPage: true });
 }
 
 async function waitForAnyText(page, texts, timeout = 15000) {
@@ -65,18 +73,12 @@ async function toggleReady(player) {
   await expect(player.page.getByRole('button', { name: 'I need a moment' })).toBeVisible({ timeout: 10000 });
 }
 
-async function enableTimers(host) {
+async function enablePromptTimer(host) {
   await host.page.getByText('Game settings', { exact: true }).click();
-
-  const timerLabels = host.page.getByText('Time limit', { exact: true });
-  await expect(timerLabels).toHaveCount(4, { timeout: 10000 });
-  const timerCount = await timerLabels.count();
-  for (let index = 0; index < timerCount; index += 1) await timerLabels.nth(index).click();
-
-  const durationInputs = host.page.locator('input[type="number"]');
-  await expect(durationInputs).toHaveCount(4, { timeout: 10000 });
-  const inputCount = await durationInputs.count();
-  for (let index = 0; index < inputCount; index += 1) await durationInputs.nth(index).fill('20');
+  const toggle = host.page.getByRole('checkbox', { name: 'Prompt time limit', exact: true });
+  await host.page.getByText('Time limit', { exact: true }).first().click();
+  await expect(toggle).toBeChecked({ timeout: 10000 });
+  await expect(host.page.locator('input[type="number"]:enabled')).toHaveCount(1, { timeout: 10000 });
 }
 
 async function expectCountdown(player) {
@@ -172,6 +174,7 @@ async function main() {
 
     await Promise.all(roster.slice(1).map((player) => joinGame(player, gameId)));
     console.log('Joined four isolated browser contexts.');
+    await capture(roster[0].page, 'lobby');
 
     const duplicate = await makePlayer(browser, 'Duplicate Alice');
     await duplicate.page.goto(baseUrl);
@@ -183,8 +186,8 @@ async function main() {
     await duplicate.context.close();
     console.log('Verified duplicate-name join error flow.');
 
-    await enableTimers(roster[0]);
-    console.log('Enabled all phase timers from the host lobby.');
+    await enablePromptTimer(roster[0]);
+    console.log('Enabled and verified the prompt timer from the host lobby.');
 
     await Promise.all(roster.map(toggleReady));
     await roster[0].page.getByRole('button', { name: 'Start game' }).click();
@@ -192,25 +195,27 @@ async function main() {
     await expectCountdown(roster[0]);
     console.log('Started the game from the host lobby.');
 
-    await Promise.all(
-      roster.map((player, index) =>
-        submitPrompt(player, [
-          'best snack for a secret meeting',
-          'most dramatic excuse for being late',
-          'least suspicious disguise',
-          'best bribe for a tired judge',
-        ][index]),
-      ),
-    );
+    const prompts = [
+      'best snack for a secret meeting',
+      'most dramatic excuse for being late',
+      'least suspicious disguise',
+      'best bribe for a tired judge',
+    ];
+    await submitPrompt(roster[0], prompts[0]);
+    await capture(roster[0].page, 'prompt-waiting');
+    await Promise.all(roster.slice(1).map((player, index) => submitPrompt(player, prompts[index + 1])));
     console.log('Submitted prompts for all players.');
 
     await submitMixedBribes(roster[0], imagePath);
+    await capture(roster[0].page, 'bribe-waiting');
     await Promise.all(roster.slice(1).map(submitTextBribes));
     console.log('Submitted bribes, including one image upload.');
 
     await Promise.all(roster.map(submitVotes));
+    await capture(roster[0].page, 'appreciation');
     await Promise.all(roster.map(submitAppreciation));
     await waitForVisible(roster[0].page, 'Scoreboard');
+    await capture(roster[0].page, 'scoreboard');
     console.log('Completed voting and reached results.');
 
     await roster[0].page.getByRole('button', { name: 'Start next round' }).click();

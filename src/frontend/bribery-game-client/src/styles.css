@@ -211,6 +211,15 @@
     @apply flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between;
   }
 
+  .waiting-tip-surface {
+    display: flex;
+    min-height: 12rem;
+    max-height: clamp(12rem, 28dvh, 14rem);
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
   .game-layout {
     @apply mx-auto grid min-h-screen w-full max-w-7xl gap-4 px-4 pb-20 pt-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-6 lg:py-6 xl:gap-6;
   }
@@ -302,7 +311,17 @@
   }
 }
 
+@media (min-width: 640px) {
+  .waiting-tip-surface {
+    min-height: 8.25rem;
+  }
+}
+
 @media (min-width: 1024px) {
+  .waiting-tip-surface {
+    min-height: 7.5rem;
+  }
+
   .media-bribe,
   .media-bribe img {
     max-height: 420px;

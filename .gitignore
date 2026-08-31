@@ -68,6 +68,7 @@ src/backend/BriberyGame.Api/wwwroot/
 # Test results
 ############################################
 TestResults/
+/output/playwright/
 
 ############################################
 # NuGet
