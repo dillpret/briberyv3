@@ -69,8 +69,19 @@ public class MediaStore
         if (stored.IsReferenced && stored.ReferenceKey != referenceKey)
             return Result<BribeMedia>.Fail("Uploaded media has already been submitted");
 
-        if (!stored.IsReferenced && ActiveSubmittedBytes(gameId) + stored.ByteSize > activeMediaBudgetBytes)
-            return Result<BribeMedia>.Fail("This game has reached its current media limit");
+        if (!stored.IsReferenced)
+        {
+            var replacedBytes = referenceKey == null
+                ? 0
+                : _media.Values
+                    .Where(candidate => candidate.GameId == gameId &&
+                                        candidate.IsReferenced &&
+                                        candidate.ReferenceKey == referenceKey)
+                    .Sum(candidate => candidate.ByteSize);
+
+            if (ActiveSubmittedBytes(gameId) - replacedBytes + stored.ByteSize > activeMediaBudgetBytes)
+                return Result<BribeMedia>.Fail("This game has reached its current media limit");
+        }
 
         stored.IsReferenced = true;
         stored.ReferenceKey = referenceKey;

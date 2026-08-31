@@ -130,6 +130,22 @@ public class GameHub : Hub
             await SendFailure("save_prompt_draft", "ActionFailed", result.Error);
     }
 
+    public async Task EditPrompt()
+    {
+        var (gameId, result) = _gameService.EditPrompt(Context.ConnectionId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await SendFailure("edit_prompt", "ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
+    }
+
     public async Task SubmitBribe(SubmitBribeRequest request)
     {
         var (gameId, result) =
@@ -157,6 +173,22 @@ public class GameHub : Hub
 
         if (!result.Success)
             await SendFailure("save_bribe_draft", "ActionFailed", result.Error);
+    }
+
+    public async Task EditBribe(string targetPlayerId)
+    {
+        var (gameId, result) = _gameService.EditBribe(Context.ConnectionId, targetPlayerId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await SendFailure("edit_bribe", "ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
     }
 
     public async Task SubmitVote(string bribeId)

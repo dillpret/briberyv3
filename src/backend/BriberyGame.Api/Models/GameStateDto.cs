@@ -46,7 +46,9 @@ public class PlayerDto
 public class PromptPhaseDto
 {
     public bool HasSubmittedPrompt { get; set; }
+    public string? SubmittedText { get; set; }
     public string DraftText { get; set; } = "";
+    public long DraftVersion { get; set; }
 }
 
 public class SubmissionPhaseDto
@@ -62,6 +64,15 @@ public class SubmissionTargetDto
     public string Prompt { get; set; } = "";
     public string DraftText { get; set; } = "";
     public BribeMedia? DraftMedia { get; set; }
+    public long DraftVersion { get; set; }
+    public SubmittedBribeDto? SubmittedBribe { get; set; }
+}
+
+public class SubmittedBribeDto
+{
+    public BribeContentKind Kind { get; set; } = BribeContentKind.Text;
+    public string Text { get; set; } = "";
+    public BribeMedia? Media { get; set; }
 }
 
 public class VotingPhaseDto

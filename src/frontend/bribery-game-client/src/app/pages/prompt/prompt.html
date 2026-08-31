@@ -71,14 +71,22 @@
       <app-waiting-tips />
     </section>
   } @else if (hasSubmittedPrompt()) {
-    <section class="soft-panel">
+    <section class="soft-panel space-y-4">
       <div class="waiting-mascot-layout text-center sm:text-left">
         <div class="space-y-2">
           <span class="status-pill mx-auto border-pine/30 bg-pine/10 text-pine sm:mx-0">Prompt submitted</span>
           <h2 class="text-lg font-semibold text-ink">You are all set.</h2>
+          @if (changesSaved) {
+            <p class="text-sm font-semibold text-pine" aria-live="polite">Changes saved.</p>
+          }
+          <blockquote class="nested-surface text-left text-base leading-7 text-ink">
+            {{ prompt()?.submittedText }}
+          </blockquote>
           <p class="text-sm leading-6 text-ink/70">
             {{ waitingText() }}
           </p>
+          <p class="text-xs leading-5 text-ink/60">Editing marks your prompt as pending again.</p>
+          <button type="button" class="secondary-button" (click)="editPrompt()">Edit prompt</button>
         </div>
         <picture>
           <source srcset="/brand/writing.webp" type="image/webp" />
@@ -127,7 +135,7 @@
         (click)="submitPrompt()"
         [disabled]="!promptText.trim()"
         class="primary-button">
-        Submit prompt
+        {{ submitButtonLabel() }}
       </button>
     </section>
   }

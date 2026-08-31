@@ -5,11 +5,12 @@ import { SignalrService } from '../../core/signalr.service';
 import { BribeMedia, GameStateService, SubmissionTarget } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 import { PhaseCountdown } from '../../components/phase-countdown/phase-countdown';
+import { BribeDisplay } from '../../components/bribe-display/bribe-display';
 
 @Component({
   selector: 'app-submission',
   standalone: true,
-  imports: [CommonModule, FormsModule, WaitingTips, PhaseCountdown],
+  imports: [CommonModule, FormsModule, WaitingTips, PhaseCountdown, BribeDisplay],
   templateUrl: './submission.html',
 })
 export class Submission implements OnDestroy {
@@ -33,6 +34,8 @@ export class Submission implements OnDestroy {
   private draftSaves = new Map<string, Promise<void>>();
   private hydratedDraftTargets = new Set<string>();
   private locallyControlledDraftTargets = new Set<string>();
+  private revisingTargets = new Set<string>();
+  savedTargets = new Set<string>();
 
   constructor(
     private signalr: SignalrService,
@@ -52,6 +55,10 @@ export class Submission implements OnDestroy {
 
     effect(() => {
       for (const target of this.submission()?.targets ?? []) {
+        this.draftVersions.set(
+          target.playerId,
+          Math.max(this.draftVersions.get(target.playerId) ?? 0, target.draftVersion ?? 0),
+        );
         if (
           !this.hasSubmitted(target.playerId) &&
           target.draftText &&
@@ -62,7 +69,12 @@ export class Submission implements OnDestroy {
           this.hydrateComposerDraft(target.playerId, target.draftText);
         }
 
-        if (!this.hasSubmitted(target.playerId) && target.draftMedia && !this.mediaDraftFor(target.playerId)) {
+        if (
+          !this.hasSubmitted(target.playerId) &&
+          target.draftMedia &&
+          !this.mediaDraftFor(target.playerId) &&
+          !this.locallyControlledDraftTargets.has(target.playerId)
+        ) {
           this.setMediaDraft(target.playerId, {
             file: this.fileFromUploadedMedia(target.draftMedia),
             uploadedMedia: target.draftMedia,
@@ -101,6 +113,7 @@ export class Submission implements OnDestroy {
   }
 
   async submitBribe(target: SubmissionTarget) {
+    const wasRevision = this.revisingTargets.has(target.playerId);
     const mediaDraft = this.mediaDraftFor(target.playerId);
 
     if (mediaDraft?.uploadedMedia) {
@@ -109,6 +122,7 @@ export class Submission implements OnDestroy {
         targetPlayerId: target.playerId,
         media: mediaDraft.uploadedMedia,
       });
+      this.markRevisionSaved(target.playerId, wasRevision);
       return;
     }
 
@@ -129,6 +143,7 @@ export class Submission implements OnDestroy {
           targetPlayerId: target.playerId,
           media,
         });
+        this.markRevisionSaved(target.playerId, wasRevision);
       } catch (error) {
         this.setMediaDraft(target.playerId, {
           ...mediaDraft,
@@ -145,6 +160,38 @@ export class Submission implements OnDestroy {
       targetPlayerId: target.playerId,
       text: this.draftFor(target.playerId),
     });
+    this.markRevisionSaved(target.playerId, wasRevision);
+  }
+
+  async editBribe(target: SubmissionTarget) {
+    this.savedTargets.delete(target.playerId);
+    await this.signalr.editBribe(target.playerId);
+    if (this.hasSubmitted(target.playerId)) return;
+
+    this.revisingTargets.add(target.playerId);
+    const reopened = this.submission()?.targets.find((candidate) => candidate.playerId === target.playerId);
+    this.draftVersions.set(
+      target.playerId,
+      Math.max(this.draftVersions.get(target.playerId) ?? 0, reopened?.draftVersion ?? 0),
+    );
+
+    if (reopened?.draftMedia && !this.mediaDraftFor(target.playerId)) {
+      this.setMediaDraft(target.playerId, {
+        file: this.fileFromUploadedMedia(reopened.draftMedia),
+        uploadedMedia: reopened.draftMedia,
+        previewUrl: reopened.draftMedia.url,
+        error: null,
+        uploading: false,
+      });
+    } else if (reopened) {
+      this.setDraft(target.playerId, reopened.draftText ?? '', false);
+      this.hydratedDraftTargets.delete(target.playerId);
+      this.hydrateComposerDraft(target.playerId, reopened.draftText ?? '');
+    }
+  }
+
+  submitButtonLabel(targetPlayerId: string): string {
+    return this.revisingTargets.has(targetPlayerId) ? 'Resubmit bribe' : 'Submit bribe';
   }
 
   async advanceWithoutOfflinePlayers() {
@@ -264,6 +311,7 @@ export class Submission implements OnDestroy {
   }
 
   clearMedia(targetPlayerId: string) {
+    this.locallyControlledDraftTargets.add(targetPlayerId);
     const existing = this.mediaDraftFor(targetPlayerId);
     if (existing?.previewUrl && !existing.uploadedMedia) URL.revokeObjectURL(existing.previewUrl);
 
@@ -327,6 +375,12 @@ export class Submission implements OnDestroy {
 
   private connectedPendingPlayers() {
     return this.players().filter((player) => player.phaseStatus === 'Pending' && player.connected);
+  }
+
+  private markRevisionSaved(targetPlayerId: string, wasRevision: boolean) {
+    if (!wasRevision || !this.hasSubmitted(targetPlayerId)) return;
+    this.revisingTargets.delete(targetPlayerId);
+    this.savedTargets.add(targetPlayerId);
   }
 
   private selectMedia(targetPlayerId: string, file: File) {

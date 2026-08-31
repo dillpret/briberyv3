@@ -181,4 +181,15 @@ describe('SignalrService', () => {
     handlers['StartFailed']('Need more players');
     expect(errors.message()).toBe('Need more players');
   });
+
+  it('invokes the prompt and target-specific bribe edit actions', async () => {
+    await joinAndReceiveState();
+    connection.invoke.mockClear();
+
+    await service.editPrompt();
+    await service.editBribe('p2');
+
+    expect(connection.invoke).toHaveBeenNthCalledWith(2, 'EditPrompt');
+    expect(connection.invoke).toHaveBeenNthCalledWith(4, 'EditBribe', 'p2');
+  });
 });

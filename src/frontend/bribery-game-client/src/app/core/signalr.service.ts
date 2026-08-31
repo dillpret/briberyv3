@@ -201,6 +201,11 @@ export class SignalrService {
     await this.connection!.invoke('SubmitPrompt', text);
   }
 
+  async editPrompt(): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('EditPrompt');
+  }
+
   async savePromptDraft(text: string, clientDraftVersion: number): Promise<void> {
     await this.ensureReadyForAction();
     await this.connection!.invoke('SavePromptDraft', text, clientDraftVersion);
@@ -209,6 +214,11 @@ export class SignalrService {
   async submitBribe(request: SubmitBribeRequest): Promise<void> {
     await this.ensureReadyForAction();
     await this.connection!.invoke('SubmitBribe', request);
+  }
+
+  async editBribe(targetPlayerId: string): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('EditBribe', targetPlayerId);
   }
 
   async saveBribeDraft(request: SaveBribeDraftRequest): Promise<void> {

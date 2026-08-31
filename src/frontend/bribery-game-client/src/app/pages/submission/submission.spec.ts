@@ -9,7 +9,7 @@ describe('Submission', () => {
   let fixture: ComponentFixture<Submission>;
   let component: Submission;
   let gameState: GameStateService;
-  let signalr: Pick<SignalrService, 'submitBribe' | 'uploadBribeMedia' | 'saveBribeDraft' | 'advancePhaseWithoutOfflinePlayers'>;
+  let signalr: Pick<SignalrService, 'submitBribe' | 'editBribe' | 'uploadBribeMedia' | 'saveBribeDraft' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -21,6 +21,7 @@ describe('Submission', () => {
 
     signalr = {
       submitBribe: vi.fn().mockResolvedValue(undefined),
+      editBribe: vi.fn().mockResolvedValue(undefined),
       uploadBribeMedia: vi.fn().mockResolvedValue({
         mediaId: 'media-1',
         url: '/api/media/media-1',
@@ -511,6 +512,106 @@ describe('Submission', () => {
     expect(element.textContent).toContain('If they pick yours, you score.');
     expect(element.textContent).toContain("Player 2's prompt");
     expect(element.textContent).toContain('Write your bribe, paste a GIF, or add an image');
+  });
+
+  it('previews and reopens only the selected submitted text bribe', async () => {
+    gameState.setGameState({
+      phase: 'Submission',
+      currentPlayerId: 'p1',
+      hostPlayerId: 'p1',
+      isCurrentPlayerActive: true,
+      bribeSubmittedCount: 1,
+      bribeRequiredCount: 2,
+      players: [],
+      submission: {
+        targets: [
+          {
+            playerId: 'p2',
+            name: 'Player 2',
+            prompt: 'A useful prompt',
+            submittedBribe: { kind: 'Text', text: 'Original bribe', media: null },
+          },
+          { playerId: 'p3', name: 'Player 3', prompt: 'Another prompt' },
+        ],
+        submittedTargetPlayerIds: ['p2'],
+      },
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Original bribe');
+
+    vi.mocked(signalr.editBribe).mockImplementation(async () => {
+      gameState.setGameState({
+        phase: 'Submission',
+        currentPlayerId: 'p1',
+        isCurrentPlayerActive: true,
+        bribeSubmittedCount: 0,
+        bribeRequiredCount: 2,
+        players: [],
+        submission: {
+          targets: [
+            { playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt', draftText: 'Original bribe', draftVersion: 9 },
+            { playerId: 'p3', name: 'Player 3', prompt: 'Another prompt' },
+          ],
+          submittedTargetPlayerIds: [],
+        },
+      });
+    });
+    await component.editBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
+    fixture.detectChanges();
+
+    expect(signalr.editBribe).toHaveBeenCalledWith('p2');
+    expect(component.draftFor('p2')).toBe('Original bribe');
+    expect(component.hasSubmitted('p3')).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Resubmit bribe');
+  });
+
+  it('previews submitted media and confirms a successful text replacement', async () => {
+    const media = { mediaId: 'media-1', url: '/api/media/media-1', contentType: 'image/png', byteSize: 10 };
+    gameState.setGameState({
+      phase: 'Submission', currentPlayerId: 'p1', isCurrentPlayerActive: true,
+      bribeSubmittedCount: 1, bribeRequiredCount: 1, players: [],
+      submission: {
+        targets: [{
+          playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt',
+          submittedBribe: { kind: 'Media', text: '', media },
+        }],
+        submittedTargetPlayerIds: ['p2'],
+      },
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-bribe-display')).not.toBeNull();
+
+    vi.mocked(signalr.editBribe).mockImplementation(async () => {
+      gameState.setGameState({
+        phase: 'Submission', currentPlayerId: 'p1', isCurrentPlayerActive: true,
+        bribeSubmittedCount: 0, bribeRequiredCount: 1, players: [],
+        submission: {
+          targets: [{ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt', draftMedia: media, draftVersion: 4 }],
+          submittedTargetPlayerIds: [],
+        },
+      });
+    });
+    await component.editBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
+    component.clearMedia('p2');
+    component.setDraft('p2', 'Replacement text');
+    vi.mocked(signalr.submitBribe).mockImplementation(async () => {
+      gameState.setGameState({
+        phase: 'Submission', currentPlayerId: 'p1', isCurrentPlayerActive: true,
+        bribeSubmittedCount: 1, bribeRequiredCount: 1, players: [],
+        submission: {
+          targets: [{
+            playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt',
+            submittedBribe: { kind: 'Text', text: 'Replacement text', media: null },
+          }],
+          submittedTargetPlayerIds: ['p2'],
+        },
+      });
+    });
+    await component.submitBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Replacement text');
+    expect(fixture.nativeElement.textContent).toContain('Changes saved.');
   });
 
   it('keeps phase waiting tips below primary work until all assigned bribes are sent', () => {

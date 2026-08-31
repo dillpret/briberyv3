@@ -32,6 +32,8 @@ export class Prompt implements OnDestroy {
   private draftTimer: number | null = null;
   private draftSave: Promise<void> = Promise.resolve();
   private hasLocalPromptEdit = false;
+  private isRevisingSubmittedPrompt = false;
+  changesSaved = false;
 
   constructor(
     private signalr: SignalrService,
@@ -51,6 +53,7 @@ export class Prompt implements OnDestroy {
     this.currentPlayerId = this.gameState.currentPlayerId;
 
     effect(() => {
+      this.draftVersion = Math.max(this.draftVersion, this.prompt()?.draftVersion ?? 0);
       const draftText = this.prompt()?.draftText ?? '';
       if (!this.hasSubmittedPrompt() && !this.hasLocalPromptEdit && !this.promptText && draftText) {
         this.promptText = draftText;
@@ -66,8 +69,25 @@ export class Prompt implements OnDestroy {
   }
 
   async submitPrompt() {
+    const wasRevision = this.isRevisingSubmittedPrompt;
     await this.flushPromptDraft();
     await this.signalr.submitPrompt(this.promptText);
+    if (wasRevision && this.hasSubmittedPrompt()) {
+      this.isRevisingSubmittedPrompt = false;
+      this.changesSaved = true;
+    }
+  }
+
+  async editPrompt() {
+    this.changesSaved = false;
+    await this.signalr.editPrompt();
+    if (!this.hasSubmittedPrompt()) {
+      this.isRevisingSubmittedPrompt = true;
+      this.hasLocalPromptEdit = true;
+      this.promptText = this.prompt()?.draftText ?? this.promptText;
+      this.draftVersion = Math.max(this.draftVersion, this.prompt()?.draftVersion ?? 0);
+      this.changeDetector.detectChanges();
+    }
   }
 
   async giveMeAnIdea() {
@@ -103,6 +123,10 @@ export class Prompt implements OnDestroy {
 
   remainingCharacters(): number {
     return 200 - this.promptText.length;
+  }
+
+  submitButtonLabel(): string {
+    return this.isRevisingSubmittedPrompt ? 'Resubmit prompt' : 'Submit prompt';
   }
 
   waitingText(): string {

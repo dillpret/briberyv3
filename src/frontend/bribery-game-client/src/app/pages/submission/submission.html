@@ -86,7 +86,22 @@
           <blockquote class="nested-surface py-2 text-sm">
             {{ target.prompt }}
           </blockquote>
-          <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely.</p>
+          <div class="nested-surface space-y-2" aria-label="Your submitted bribe">
+            @if (target.submittedBribe; as submittedBribe) {
+              <app-bribe-display
+                [kind]="submittedBribe.kind"
+                [text]="submittedBribe.text"
+                [media]="submittedBribe.media"
+                label="Your submitted bribe" />
+            }
+          </div>
+          @if (savedTargets.has(target.playerId)) {
+            <p class="text-sm font-semibold text-pine" aria-live="polite">Changes saved.</p>
+          } @else {
+            <p class="text-sm font-semibold text-pine">Your bribe is tucked away safely.</p>
+          }
+          <p class="text-xs leading-5 text-ink/60">Editing marks this bribe as pending again.</p>
+          <button type="button" class="secondary-button" (click)="editBribe(target)">Edit bribe</button>
         } @else {
           <blockquote class="nested-surface">
             {{ target.prompt }}
@@ -159,7 +174,7 @@
             (click)="submitBribe(target)"
             [disabled]="!canSubmit(target.playerId)"
             class="primary-button">
-            Submit bribe
+            {{ submitButtonLabel(target.playerId) }}
           </button>
         }
       </section>

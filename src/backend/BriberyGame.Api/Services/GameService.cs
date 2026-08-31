@@ -232,6 +232,20 @@ public class GameService
         return (gameId, result);
     }
 
+    public (string? gameId, Result<GameStateDto>? result) EditPrompt(string connectionId)
+    {
+        var (gameId, session) = ResolveSession(connectionId);
+        if (session == null) return (null, null);
+
+        Result<GameStateDto> result;
+        lock (session.SyncRoot)
+        {
+            result = session.Game.EditPrompt(connectionId);
+        }
+
+        return (gameId, result);
+    }
+
     public (string? gameId, Result<GameStateDto>? result) SubmitBribe(
         string connectionId,
         string targetPlayerId,
@@ -353,6 +367,22 @@ public class GameService
                 newMediaReserved &&
                 request.Media != null)
                 _mediaStore.ReleaseReference(request.Media.MediaId, referenceKey);
+        }
+
+        return (gameId, result);
+    }
+
+    public (string? gameId, Result<GameStateDto>? result) EditBribe(
+        string connectionId,
+        string targetPlayerId)
+    {
+        var (gameId, session) = ResolveSession(connectionId);
+        if (session == null) return (null, null);
+
+        Result<GameStateDto> result;
+        lock (session.SyncRoot)
+        {
+            result = session.Game.EditBribe(connectionId, targetPlayerId);
         }
 
         return (gameId, result);

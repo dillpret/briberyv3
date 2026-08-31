@@ -6,6 +6,19 @@ using BriberyGame.Api.Services;
 public class MediaStoreTests
 {
     [Fact]
+    public void ReplacementMediaAtCapacityExcludesTheExistingSameReference()
+    {
+        var store = new MediaStore();
+        var original = store.Store("TEST", "p1", "image/png", 10, new byte[10]).Data!;
+        var replacement = store.Store("TEST", "p1", "image/png", 10, new byte[10]).Data!;
+
+        Assert.True(store.ReserveForBribe("TEST", "p1", original, 10, "bribe:p1:p2").Success);
+        var result = store.ReserveForBribe("TEST", "p1", replacement, 10, "bribe:p1:p2");
+
+        Assert.True(result.Success, result.Error);
+    }
+
+    [Fact]
     public void StoreRejectsUnsupportedTypesAndOversizedFiles()
     {
         var store = new MediaStore();

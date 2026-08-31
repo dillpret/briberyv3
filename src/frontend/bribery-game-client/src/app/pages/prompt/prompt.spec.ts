@@ -9,13 +9,14 @@ describe('Prompt', () => {
   let fixture: ComponentFixture<Prompt>;
   let component: Prompt;
   let gameState: GameStateService;
-  let signalr: Pick<SignalrService, 'submitPrompt' | 'savePromptDraft' | 'advancePhaseWithoutOfflinePlayers'>;
+  let signalr: Pick<SignalrService, 'submitPrompt' | 'editPrompt' | 'savePromptDraft' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
     localStorage.clear();
 
     signalr = {
       submitPrompt: vi.fn().mockResolvedValue(undefined),
+      editPrompt: vi.fn().mockResolvedValue(undefined),
       savePromptDraft: vi.fn().mockResolvedValue(undefined),
       advancePhaseWithoutOfflinePlayers: vi.fn().mockResolvedValue(undefined),
     };
@@ -195,6 +196,81 @@ describe('Prompt', () => {
     expect(element.textContent).toContain('Give me an idea');
     expect(element.querySelector('textarea')?.getAttribute('placeholder')).toBe('Best excuse for being late');
     expect(element.querySelector('[aria-label="Give me an idea"]')).not.toBeNull();
+  });
+
+  it('previews a submitted prompt and reopens it as a versioned draft', async () => {
+    gameState.setGameState({
+      currentRound: 1,
+      phase: 'Prompt',
+      isCurrentPlayerActive: true,
+      promptRequiredCount: 3,
+      promptSubmittedCount: 1,
+      prompt: { hasSubmittedPrompt: true, submittedText: 'Original submitted prompt' },
+    });
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Original submitted prompt');
+    expect(fixture.nativeElement.textContent).toContain('Editing marks your prompt as pending again.');
+
+    vi.mocked(signalr.editPrompt).mockImplementation(async () => {
+      gameState.setGameState({
+        currentRound: 1,
+        phase: 'Prompt',
+        isCurrentPlayerActive: true,
+        promptRequiredCount: 3,
+        promptSubmittedCount: 0,
+        prompt: { hasSubmittedPrompt: false, draftText: 'Original submitted prompt', draftVersion: 7 },
+      });
+    });
+    await component.editPrompt();
+    fixture.detectChanges();
+
+    expect(signalr.editPrompt).toHaveBeenCalledOnce();
+    expect(component.promptText).toBe('Original submitted prompt');
+    expect(fixture.nativeElement.textContent).toContain('Resubmit prompt');
+  });
+
+  it('shows inline confirmation after a reopened prompt is resubmitted', async () => {
+    gameState.setGameState({
+      currentRound: 1,
+      phase: 'Prompt',
+      isCurrentPlayerActive: true,
+      promptRequiredCount: 3,
+      promptSubmittedCount: 1,
+      prompt: { hasSubmittedPrompt: true, submittedText: 'Original' },
+    });
+    fixture = TestBed.createComponent(Prompt);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    vi.mocked(signalr.editPrompt).mockImplementation(async () => {
+      gameState.setGameState({
+        phase: 'Prompt',
+        isCurrentPlayerActive: true,
+        promptRequiredCount: 3,
+        promptSubmittedCount: 0,
+        prompt: { hasSubmittedPrompt: false, draftText: 'Original', draftVersion: 3 },
+      });
+    });
+    await component.editPrompt();
+    component.setPromptText('Edited prompt');
+    vi.mocked(signalr.submitPrompt).mockImplementation(async () => {
+      gameState.setGameState({
+        phase: 'Prompt',
+        isCurrentPlayerActive: true,
+        promptRequiredCount: 3,
+        promptSubmittedCount: 1,
+        prompt: { hasSubmittedPrompt: true, submittedText: 'Edited prompt' },
+      });
+    });
+
+    await component.submitPrompt();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Edited prompt');
+    expect(fixture.nativeElement.textContent).toContain('Changes saved.');
   });
 
   it('keeps offline copy hidden while connected players are still pending', () => {

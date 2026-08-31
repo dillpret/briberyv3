@@ -255,6 +255,36 @@ public class Game
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
     }
 
+    public Result<GameStateDto> EditPrompt(string connectionId)
+    {
+        var phaseResult = RequireEditablePhase(GamePhase.Prompt, "Cannot edit prompt outside prompt phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot edit prompts");
+
+        if (!State.Prompts.Remove(player.Id, out var submittedPrompt))
+            return Result<GameStateDto>.Fail("Prompt has not been submitted");
+
+        var nextVersion = State.PromptDrafts.TryGetValue(player.Id, out var existingDraft)
+            ? existingDraft.Version + 1
+            : 1;
+
+        State.PromptDrafts[player.Id] = new TextDraft
+        {
+            Text = submittedPrompt.Text,
+            Version = nextVersion,
+            UpdatedAt = _now()
+        };
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
     public Result<GameStateDto> SubmitBribe(string connectionId, string targetPlayerId, string text)
     {
         return SubmitBribe(connectionId, new SubmitBribeRequest
@@ -330,6 +360,45 @@ public class Game
             if (!transitionResult.Success)
                 return Result<GameStateDto>.Fail(transitionResult.Error!);
         }
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> EditBribe(string connectionId, string targetPlayerId)
+    {
+        var phaseResult = RequireEditablePhase(GamePhase.Submission, "Cannot edit bribe outside submission phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot edit bribes");
+
+        if (!State.TargetAssignments.TryGetValue(player.Id, out var targets) ||
+            !targets.Contains(targetPlayerId))
+            return Result<GameStateDto>.Fail("Cannot edit a bribe for an unassigned target");
+
+        var submittedBribe = State.Bribes.Values.FirstOrDefault(bribe =>
+            bribe.FromPlayerId == player.Id && bribe.ToPlayerId == targetPlayerId);
+        if (submittedBribe == null)
+            return Result<GameStateDto>.Fail("Bribe has not been submitted for this target");
+
+        var draftKey = BribeDraftKey(player.Id, targetPlayerId);
+        var nextVersion = State.BribeDrafts.TryGetValue(draftKey, out var existingDraft)
+            ? existingDraft.Version + 1
+            : 1;
+
+        State.BribeDrafts[draftKey] = new BribeDraft
+        {
+            Text = submittedBribe.Text,
+            Media = submittedBribe.Media,
+            Version = nextVersion,
+            UpdatedAt = _now()
+        };
+        State.Bribes.Remove(submittedBribe.Id);
 
         return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
     }
@@ -686,6 +755,17 @@ public class Game
         return State.Phase == expectedPhase
             ? Result<object>.Ok(new object())
             : Result<object>.Fail(error);
+    }
+
+    private Result<object> RequireEditablePhase(GamePhase expectedPhase, string error)
+    {
+        if (State.Phase != expectedPhase)
+            return Result<object>.Fail(error);
+
+        if (State.PhaseEndsAtUtc is { } endsAt && endsAt <= _now())
+            return Result<object>.Fail("Cannot edit after the phase timer has expired");
+
+        return Result<object>.Ok(new object());
     }
 
     private Result<object> TransitionTo(GamePhase nextPhase)
@@ -1129,9 +1209,13 @@ public class Game
         return new PromptPhaseDto
         {
             HasSubmittedPrompt = State.Prompts.ContainsKey(playerId),
+            SubmittedText = State.Prompts.TryGetValue(playerId, out var submittedPrompt)
+                ? submittedPrompt.Text
+                : null,
             DraftText = State.PromptDrafts.TryGetValue(playerId, out var draft)
                 ? draft.Text
-                : ""
+                : "",
+            DraftVersion = draft?.Version ?? 0
         };
     }
 
@@ -1150,6 +1234,8 @@ public class Game
                 {
                     var target = State.Players.First(p => p.Id == targetId);
                     State.BribeDrafts.TryGetValue(BribeDraftKey(playerId, target.Id), out var draft);
+                    var submittedBribe = State.Bribes.Values.FirstOrDefault(bribe =>
+                        bribe.FromPlayerId == playerId && bribe.ToPlayerId == target.Id);
 
                     return new SubmissionTargetDto
                     {
@@ -1157,7 +1243,16 @@ public class Game
                         Name = target.Name,
                         Prompt = State.Prompts[target.Id].Text,
                         DraftText = draft?.Text ?? "",
-                        DraftMedia = draft?.Media
+                        DraftMedia = draft?.Media,
+                        DraftVersion = draft?.Version ?? 0,
+                        SubmittedBribe = submittedBribe == null
+                            ? null
+                            : new SubmittedBribeDto
+                            {
+                                Kind = submittedBribe.Kind,
+                                Text = submittedBribe.Text,
+                                Media = submittedBribe.Media
+                            }
                     };
                 })
                 .ToList(),

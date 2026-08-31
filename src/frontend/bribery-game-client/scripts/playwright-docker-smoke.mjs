@@ -38,6 +38,14 @@ async function capture(page, name) {
   await page.screenshot({ path: path.join(artifactDir, `flow-${name}-full.png`), fullPage: true });
 }
 
+async function captureResponsive(page, name) {
+  await capture(page, name);
+  const originalViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await capture(page, `${name}-mobile`);
+  if (originalViewport) await page.setViewportSize(originalViewport);
+}
+
 async function waitForAnyText(page, texts, timeout = 15000) {
   await expect
     .poll(async () => {
@@ -202,13 +210,53 @@ async function main() {
       'best bribe for a tired judge',
     ];
     await submitPrompt(roster[0], prompts[0]);
-    await capture(roster[0].page, 'prompt-waiting');
+    await captureResponsive(roster[0].page, 'prompt-submitted');
+    await roster[0].page.getByRole('button', { name: 'Edit prompt' }).click();
+    await expect(roster[0].page.getByRole('button', { name: 'Resubmit prompt' })).toBeVisible({ timeout: 10000 });
+    await expect(roster[0].page.getByPlaceholder('Best excuse for being late')).toHaveValue(prompts[0]);
+    await captureResponsive(roster[0].page, 'prompt-editing');
+
     await Promise.all(roster.slice(1).map((player, index) => submitPrompt(player, prompts[index + 1])));
+    await expect(roster[0].page.getByText('3 of 4 prompts in', { exact: true })).toBeVisible({ timeout: 10000 });
+    const editedPrompt = 'best snack for an edited secret meeting';
+    await roster[0].page.getByPlaceholder('Best excuse for being late').fill(editedPrompt);
+    await roster[0].page.getByRole('button', { name: 'Resubmit prompt' }).click();
+    await waitForVisible(roster[0].page, 'Send your bribes');
+    await expect.poll(async () => {
+      const bodies = await Promise.all(roster.slice(1).map((player) => player.page.locator('body').innerText()));
+      return bodies.some((body) => body.includes(editedPrompt));
+    }, { timeout: 10000 }).toBe(true);
     console.log('Submitted prompts for all players.');
 
     await submitMixedBribes(roster[0], imagePath);
-    await capture(roster[0].page, 'bribe-waiting');
+    const firstSubmittedCard = roster[0].page.locator('section.soft-card').first();
+    const firstSubmittedCardText = await firstSubmittedCard.innerText();
+    const editedTarget = roster.find((player) =>
+      firstSubmittedCardText.toUpperCase().includes(`${player.name.toUpperCase()}'S PROMPT`));
+    if (!editedTarget) throw new Error('Could not identify the recipient of the edited bribe.');
+
+    await captureResponsive(roster[0].page, 'bribe-submitted');
+    await roster[0].page.getByRole('button', { name: 'Edit bribe' }).first().click();
+    await expect(roster[0].page.getByRole('button', { name: 'Resubmit bribe' })).toBeVisible({ timeout: 10000 });
+    await roster[0].page.getByRole('button', { name: 'Remove' }).click();
+    const firstEditedComposer = roster[0].page.getByRole('textbox').first();
+    await firstEditedComposer.fill('First edited bribe from Alice');
+    await captureResponsive(roster[0].page, 'bribe-editing');
+    await roster[0].page.getByRole('button', { name: 'Resubmit bribe' }).click();
+    await expect(roster[0].page.getByText('Changes saved.', { exact: true })).toBeVisible({ timeout: 10000 });
+    await capture(roster[0].page, 'bribe-edit-saved');
+
+    await roster[0].page.getByRole('button', { name: 'Edit bribe' }).first().click();
+    await expect(roster[0].page.getByRole('button', { name: 'Resubmit bribe' })).toBeVisible({ timeout: 10000 });
     await Promise.all(roster.slice(1).map(submitTextBribes));
+    await expect(roster[0].page.getByText('7 of 8 bribes sent', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(roster[0].page.getByText('Send your bribes', { exact: true })).toBeVisible();
+
+    const finalEditedBribe = 'Final edited bribe that blocks progression';
+    await roster[0].page.getByRole('textbox').first().fill(finalEditedBribe);
+    await roster[0].page.getByRole('button', { name: 'Resubmit bribe' }).click();
+    await waitForVisible(roster[0].page, 'Pick your favourite');
+    await expect(editedTarget.page.locator('body')).toContainText(finalEditedBribe, { timeout: 10000 });
     console.log('Submitted bribes, including one image upload.');
 
     await Promise.all(roster.map(submitVotes));

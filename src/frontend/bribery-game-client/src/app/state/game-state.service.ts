@@ -14,7 +14,15 @@ export interface Player {
 
 export interface PromptPhaseState {
   hasSubmittedPrompt: boolean;
+  submittedText?: string | null;
   draftText?: string;
+  draftVersion?: number;
+}
+
+export interface SubmittedBribe {
+  kind: BribeKind;
+  text: string;
+  media: BribeMedia | null;
 }
 
 export interface SubmissionTarget {
@@ -23,6 +31,8 @@ export interface SubmissionTarget {
   prompt: string;
   draftText?: string;
   draftMedia?: BribeMedia | null;
+  draftVersion?: number;
+  submittedBribe?: SubmittedBribe | null;
 }
 
 export interface SubmissionPhaseState {
