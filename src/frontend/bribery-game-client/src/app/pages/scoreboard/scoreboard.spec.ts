@@ -172,6 +172,19 @@ describe('Scoreboard', () => {
     expect(component.canStartNextRound()).toBe(false);
     expect(button.disabled).toBe(true);
   });
+
+  it('uses the configured prompt count for the next-round minimum', () => {
+    gameState.settings.update((settings) => ({ ...settings, promptsAnsweredPerPlayer: 3 }));
+    fixture.detectChanges();
+
+    const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find((candidate) => candidate.textContent?.includes('Start next round')) as HTMLButtonElement;
+
+    expect(component.minimumPlayersRequired()).toBe(4);
+    expect(component.canStartNextRound()).toBe(false);
+    expect(component.nextRoundHint()).toBe('At least 4 connected players are needed to start the next round.');
+    expect(button.disabled).toBe(true);
+  });
 });
 
 function score(overrides: any) {

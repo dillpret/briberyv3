@@ -57,7 +57,8 @@ describe('Lobby', () => {
     expect(component.readyCount()).toBe(1);
     expect(component.pendingReadyCount()).toBe(1);
     expect(component.readyPercent()).toBe(50);
-    expect(component.canStartHint()).toBe('Waiting for at least three connected players.');
+    expect(component.canStartHint()).toBe('Waiting for at least 3 connected players.');
+    expect(component.canStart()).toBe(false);
   });
 
   it('updates the start hint when enough players are connected', () => {
@@ -68,6 +69,7 @@ describe('Lobby', () => {
     ]);
 
     expect(component.canStartHint()).toBe('Everyone is ready.');
+    expect(component.canStart()).toBe(true);
   });
 
   it('renders current-player ready state and host controls', () => {
@@ -85,17 +87,47 @@ describe('Lobby', () => {
     const durationInputs = element.querySelectorAll<HTMLInputElement>('input[type="number"]');
 
     expect(element.textContent).toContain('Game settings');
-    expect(element.textContent).toContain('Timers off');
+    expect(element.textContent).toContain('2 prompts each · Timers off');
+    expect(element.textContent).toContain('Round format');
+    expect(element.textContent).toContain('Prompts answered per player');
+    expect(element.textContent).toContain('Requires at least 3 connected players');
     expect(element.textContent).toContain('Round timers');
     expect(element.textContent).toContain('Time limit');
     expect(timerToggles).toHaveLength(4);
     expect(durationInputs).toHaveLength(4);
     expect(Array.from(durationInputs).every((input) => input.disabled)).toBe(true);
     expect(Array.from(durationInputs).map((input) => input.value)).toEqual(['120', '300', '90', '120']);
+    expect(element.querySelector<HTMLSelectElement>('select[aria-label="Prompts answered per player"]')?.value).toBe('2');
+  });
+
+  it('updates prompts answered per player through SignalR', async () => {
+    await component.updatePromptsAnsweredPerPlayer(5);
+
+    expect(signalr.updateGameSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ promptsAnsweredPerPlayer: 5 }),
+    );
+  });
+
+  it('uses the configured prompt count for the start requirement', () => {
+    gameState.settings.update((settings) => ({ ...settings, promptsAnsweredPerPlayer: 3 }));
+    component.players.set([
+      { id: 'p1', name: 'Player 1', connected: true, isReady: true, isActive: true, score: 0, phaseStatus: 'Ready', phaseStatusLabel: 'Ready' },
+      { id: 'p2', name: 'Player 2', connected: true, isReady: true, isActive: true, score: 0, phaseStatus: 'Ready', phaseStatusLabel: 'Ready' },
+      { id: 'p3', name: 'Player 3', connected: true, isReady: true, isActive: true, score: 0, phaseStatus: 'Ready', phaseStatusLabel: 'Ready' },
+    ]);
+    fixture.detectChanges();
+
+    const startButton = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find((button) => button.textContent?.includes('Start game'))!;
+
+    expect(component.minimumPlayersRequired()).toBe(4);
+    expect(component.canStartHint()).toBe('Waiting for at least 4 connected players.');
+    expect(startButton.disabled).toBe(true);
   });
 
   it('enables the seconds input and avoids duplicate duration text when a host timer is on', async () => {
     gameState.settings.set({
+      promptsAnsweredPerPlayer: 2,
       promptTimer: { enabled: true, durationSeconds: 120 },
       submissionTimer: { enabled: false, durationSeconds: 300 },
       votingTimer: { enabled: false, durationSeconds: 90 },
@@ -108,7 +140,7 @@ describe('Lobby', () => {
     const element = fixture.nativeElement as HTMLElement;
     const durationInputs = element.querySelectorAll<HTMLInputElement>('input[type="number"]');
 
-    expect(component.settingsSummary()).toBe('1 timer enabled');
+    expect(component.settingsSummary()).toBe('2 prompts each · 1 timer enabled');
     expect(durationInputs[0].disabled).toBe(false);
     expect(durationInputs[0].value).toBe('120');
     expect(element.textContent).not.toContain('120 seconds');
@@ -133,6 +165,7 @@ describe('Lobby', () => {
 
   it('renders read-only timer summaries for non-host players', () => {
     gameState.settings.set({
+      promptsAnsweredPerPlayer: 4,
       promptTimer: { enabled: true, durationSeconds: 120 },
       submissionTimer: { enabled: false, durationSeconds: 300 },
       votingTimer: { enabled: false, durationSeconds: 90 },
@@ -144,7 +177,9 @@ describe('Lobby', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.textContent).toContain('120 seconds');
+    expect(element.textContent).toContain('4 prompts');
     expect(element.textContent).toContain('Off');
+    expect(element.querySelectorAll('select')).toHaveLength(0);
     expect(element.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
     expect(element.querySelectorAll('input[type="number"]')).toHaveLength(0);
   });

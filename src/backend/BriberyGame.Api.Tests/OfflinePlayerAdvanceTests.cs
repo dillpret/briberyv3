@@ -50,6 +50,25 @@ public class OfflinePlayerAdvanceTests
     }
 
     [Fact]
+    public void OfflineAdvanceUsesConfiguredMinimumPlayerCount()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(5, 3);
+        harness.Game.SubmitPrompt("c1", "Prompt 1");
+        harness.Game.SubmitPrompt("c2", "Prompt 2");
+        harness.Game.SubmitPrompt("c3", "Prompt 3");
+        harness.Game.SubmitPrompt("c4", "Prompt 4");
+        harness.Game.Disconnect("c5");
+
+        var state = harness.GetPlayerState("p1");
+        var result = harness.Game.AdvancePhaseWithoutOfflinePlayers("c1");
+
+        Assert.True(state.CanHostAdvanceWithoutOfflinePlayers);
+        Assert.True(result.Success, result.Error);
+        Assert.All(harness.Game.State.TargetAssignments.Values, targets => Assert.Equal(3, targets.Count));
+    }
+
+    [Fact]
     public void NonHostCannotAdvanceWithoutOfflinePlayers()
     {
         var harness = new GameTestHarness();
@@ -153,6 +172,24 @@ public class OfflinePlayerAdvanceTests
         var result = harness.Game.StartNextRound("c1");
 
         Assert.False(result.Success);
+        Assert.Equal(GamePhase.Scoreboard, harness.Game.State.Phase);
+    }
+
+    [Fact]
+    public void NextRoundUsesConfiguredMinimumPlayerCount()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(4, 3);
+        harness.SubmitPromptsForActivePlayers();
+        harness.SubmitAllAssignedBribes();
+        harness.SubmitAllVotes();
+        harness.SubmitAllAppreciationDone();
+        harness.Game.Disconnect("c4");
+
+        var result = harness.Game.StartNextRound("c1");
+
+        Assert.False(result.Success);
+        Assert.Contains("at least 4", result.Error);
         Assert.Equal(GamePhase.Scoreboard, harness.Game.State.Phase);
     }
 

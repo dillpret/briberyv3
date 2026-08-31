@@ -81,12 +81,28 @@ async function toggleReady(player) {
   await expect(player.page.getByRole('button', { name: 'I need a moment' })).toBeVisible({ timeout: 10000 });
 }
 
+async function openGameSettings(host) {
+  const settings = host.page.locator('details').filter({ hasText: 'Game settings' });
+  if (!(await settings.evaluate((element) => element.hasAttribute('open')))) {
+    await settings.getByText('Game settings', { exact: true }).click();
+  }
+  return settings;
+}
+
 async function enablePromptTimer(host) {
-  await host.page.getByText('Game settings', { exact: true }).click();
+  await openGameSettings(host);
   const toggle = host.page.getByRole('checkbox', { name: 'Prompt time limit', exact: true });
   await host.page.getByText('Time limit', { exact: true }).first().click();
   await expect(toggle).toBeChecked({ timeout: 10000 });
   await expect(host.page.locator('input[type="number"]:enabled')).toHaveCount(1, { timeout: 10000 });
+}
+
+async function setPromptsAnsweredPerPlayer(host, count) {
+  await openGameSettings(host);
+  const selector = host.page.getByRole('combobox', { name: 'Prompts answered per player' });
+  await selector.selectOption({ label: String(count) });
+  await expect(selector).toHaveValue(String(count), { timeout: 10000 });
+  await expect(host.page.getByText(`${count} prompts each`, { exact: false })).toBeVisible({ timeout: 10000 });
 }
 
 async function expectCountdown(player) {
@@ -149,6 +165,7 @@ async function submitMixedBribes(player, imagePath) {
 async function submitVotes(player) {
   await waitForVisible(player.page, 'Pick your favourite');
 
+  await expect(player.page.locator('label.soft-card')).toHaveCount(3, { timeout: 10000 });
   const option = player.page.locator('label.soft-card').first();
   if ((await option.count()) > 0) {
     await option.click();
@@ -194,8 +211,10 @@ async function main() {
     await duplicate.context.close();
     console.log('Verified duplicate-name join error flow.');
 
+    await setPromptsAnsweredPerPlayer(roster[0], 3);
+    await captureResponsive(roster[0].page, 'lobby-settings-three-prompts');
     await enablePromptTimer(roster[0]);
-    console.log('Enabled and verified the prompt timer from the host lobby.');
+    console.log('Configured three prompts per player and enabled the prompt timer from the host lobby.');
 
     await Promise.all(roster.map(toggleReady));
     await roster[0].page.getByRole('button', { name: 'Start game' }).click();
@@ -222,6 +241,7 @@ async function main() {
     await roster[0].page.getByPlaceholder('Best excuse for being late').fill(editedPrompt);
     await roster[0].page.getByRole('button', { name: 'Resubmit prompt' }).click();
     await waitForVisible(roster[0].page, 'Send your bribes');
+    await expect(roster[0].page.getByRole('textbox')).toHaveCount(3, { timeout: 10000 });
     await expect.poll(async () => {
       const bodies = await Promise.all(roster.slice(1).map((player) => player.page.locator('body').innerText()));
       return bodies.some((body) => body.includes(editedPrompt));
@@ -249,7 +269,7 @@ async function main() {
     await roster[0].page.getByRole('button', { name: 'Edit bribe' }).first().click();
     await expect(roster[0].page.getByRole('button', { name: 'Resubmit bribe' })).toBeVisible({ timeout: 10000 });
     await Promise.all(roster.slice(1).map(submitTextBribes));
-    await expect(roster[0].page.getByText('7 of 8 bribes sent', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(roster[0].page.getByText('11 of 12 bribes sent', { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(roster[0].page.getByText('Send your bribes', { exact: true })).toBeVisible();
 
     const finalEditedBribe = 'Final edited bribe that blocks progression';
@@ -257,7 +277,9 @@ async function main() {
     await roster[0].page.getByRole('button', { name: 'Resubmit bribe' }).click();
     await waitForVisible(roster[0].page, 'Pick your favourite');
     await expect(editedTarget.page.locator('body')).toContainText(finalEditedBribe, { timeout: 10000 });
-    console.log('Submitted bribes, including one image upload.');
+    await Promise.all(roster.map((player) => expect(player.page.locator('label.soft-card')).toHaveCount(3, { timeout: 10000 })));
+    await captureResponsive(roster[0].page, 'voting-three-bribes');
+    console.log('Submitted 12 bribes, including one image upload, and verified three choices per player.');
 
     await Promise.all(roster.map(submitVotes));
     await capture(roster[0].page, 'appreciation');

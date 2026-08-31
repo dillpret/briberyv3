@@ -69,6 +69,7 @@ export interface PhaseTimerSettings {
 }
 
 export interface GameSettings {
+  promptsAnsweredPerPlayer: number;
   promptTimer: PhaseTimerSettings;
   submissionTimer: PhaseTimerSettings;
   votingTimer: PhaseTimerSettings;
@@ -128,6 +129,7 @@ export class GameStateService {
   currentRound = signal(0);
   isCurrentPlayerActive = signal(false);
   settings = signal<GameSettings>({
+    promptsAnsweredPerPlayer: 2,
     promptTimer: { enabled: false, durationSeconds: 120 },
     submissionTimer: { enabled: false, durationSeconds: 300 },
     votingTimer: { enabled: false, durationSeconds: 90 },

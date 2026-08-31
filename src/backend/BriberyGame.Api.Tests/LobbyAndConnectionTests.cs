@@ -15,6 +15,43 @@ public class LobbyAndConnectionTests
         Assert.Single(state.Players);
         Assert.True(state.Players[0].IsActive);
         Assert.Equal(GamePhase.Lobby, state.Phase);
+        Assert.Equal(2, state.Settings.PromptsAnsweredPerPlayer);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(6)]
+    public void PromptsAnsweredPerPlayerMustBeBetweenTwoAndFive(int count)
+    {
+        var harness = new GameTestHarness();
+        harness.JoinPlayer(1);
+        var settings = harness.Game.State.Settings.Clone();
+        settings.PromptsAnsweredPerPlayer = count;
+
+        var result = harness.Game.UpdateGameSettings("c1", settings);
+
+        Assert.False(result.Success);
+        Assert.Equal(2, harness.Game.State.Settings.PromptsAnsweredPerPlayer);
+    }
+
+    [Fact]
+    public void ConfiguredPromptCountRaisesMinimumPlayersRequiredToStart()
+    {
+        var harness = new GameTestHarness();
+        harness.JoinPlayers(5);
+        harness.ConfigurePromptsAnsweredPerPlayer(5);
+        harness.ReadyPlayers(5);
+
+        var tooFew = harness.Game.StartGame("c1");
+
+        Assert.False(tooFew.Success);
+        Assert.Contains("at least 6", tooFew.Error);
+
+        harness.JoinPlayer(6);
+        harness.Game.ToggleReady("c6");
+        var enough = harness.Game.StartGame("c1");
+
+        Assert.True(enough.Success, enough.Error);
     }
 
     [Fact]

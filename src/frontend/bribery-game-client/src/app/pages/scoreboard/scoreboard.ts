@@ -18,6 +18,7 @@ export class Scoreboard {
   hostPlayerId;
   currentRound;
   currentPlayerId;
+  settings;
   selectedView = signal<ScoreboardView>('round');
   showAllRoundScores = signal(false);
   showAllOverallScores = signal(false);
@@ -31,6 +32,7 @@ export class Scoreboard {
     this.hostPlayerId = this.gameState.hostPlayerId;
     this.currentRound = this.gameState.currentRound;
     this.currentPlayerId = this.gameState.currentPlayerId;
+    this.settings = this.gameState.settings;
   }
 
   async startNextRound() {
@@ -99,12 +101,16 @@ export class Scoreboard {
   }
 
   canStartNextRound(): boolean {
-    return this.players().filter((player) => player.connected).length >= 3;
+    return this.players().filter((player) => player.connected).length >= this.minimumPlayersRequired();
   }
 
   nextRoundHint(): string {
     if (this.canStartNextRound()) return 'Start another round when everyone is ready.';
-    return 'At least three connected players are needed to start the next round.';
+    return `At least ${this.minimumPlayersRequired()} connected players are needed to start the next round.`;
+  }
+
+  minimumPlayersRequired(): number {
+    return this.settings().promptsAnsweredPerPlayer + 1;
   }
 
   roundRankClasses(score: RoundScore): string {

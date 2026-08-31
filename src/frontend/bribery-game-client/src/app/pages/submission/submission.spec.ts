@@ -64,6 +64,21 @@ describe('Submission', () => {
     vi.restoreAllMocks();
   });
 
+  it('renders five configured prompt targets', () => {
+    gameState.submission.set({
+      targets: Array.from({ length: 5 }, (_, index) => ({
+        playerId: `p${index + 2}`,
+        name: `Player ${index + 2}`,
+        prompt: `Prompt ${index + 1}`,
+      })),
+      submittedTargetPlayerIds: [],
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('section.soft-card')).toHaveLength(5);
+    expect(fixture.nativeElement.querySelectorAll('[role="textbox"]')).toHaveLength(5);
+  });
+
   it('enables submit for a valid selected image', () => {
     const file = new File(['image'], 'bribe.png', { type: 'image/png' });
 

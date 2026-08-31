@@ -59,6 +59,7 @@
     @if (isHost()) {
       <button
         (click)="startGame()"
+        [disabled]="!canStart()"
         class="primary-button">
         Start game
       </button>
@@ -78,6 +79,43 @@
 
       <div class="mt-4 space-y-3 border-t border-ink/10 pt-4">
         <div>
+          <p class="font-black text-ink">Round format</p>
+          <p class="text-sm leading-6 text-ink/70">
+            Each player submits one prompt, answers this many other prompts, and receives the same number of bribes.
+          </p>
+        </div>
+
+        <section class="rounded-[var(--radius-nested)] border border-ink/10 bg-surface/60 p-3">
+          <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div class="min-w-0">
+              <p class="font-bold text-ink">Prompts answered per player</p>
+              <p class="text-sm leading-6 text-ink/65">
+                Requires at least {{ minimumPlayersRequired() }} connected players.
+              </p>
+            </div>
+
+            @if (isHost()) {
+              <label class="grid gap-1 text-sm font-bold text-ink sm:w-32">
+                <span class="sr-only">Prompts answered per player</span>
+                <select
+                  class="soft-input py-2"
+                  aria-label="Prompts answered per player"
+                  [ngModel]="settings().promptsAnsweredPerPlayer"
+                  (ngModelChange)="updatePromptsAnsweredPerPlayer($event)">
+                  @for (option of promptsAnsweredOptions; track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              </label>
+            } @else {
+              <span class="status-pill border-ink/15 bg-surface text-ink/70">
+                {{ settings().promptsAnsweredPerPlayer }} prompts
+              </span>
+            }
+          </div>
+        </section>
+
+        <div class="border-t border-ink/10 pt-3">
           <p class="font-black text-ink">Round timers</p>
           <p class="text-sm leading-6 text-ink/70">
             Timers are off by default. Enable a time limit for each phase before starting.

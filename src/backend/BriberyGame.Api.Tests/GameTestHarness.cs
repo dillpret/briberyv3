@@ -51,10 +51,20 @@ internal sealed class GameTestHarness
         return result.Data!;
     }
 
-    public void StartPromptPhaseWithPlayers(int count)
+    public void StartPromptPhaseWithPlayers(int count, int promptsAnsweredPerPlayer = Game.DefaultPromptsAnsweredPerPlayer)
     {
-        JoinAndReadyPlayers(count);
+        JoinPlayers(count);
+        ConfigurePromptsAnsweredPerPlayer(promptsAnsweredPerPlayer);
+        ReadyPlayers(count);
         StartGame();
+    }
+
+    public void ConfigurePromptsAnsweredPerPlayer(int count)
+    {
+        var settings = Game.State.Settings.Clone();
+        settings.PromptsAnsweredPerPlayer = count;
+        var result = Game.UpdateGameSettings(ConnectionId(1), settings);
+        Assert.True(result.Success, result.Error);
     }
 
     public void SubmitPromptsForActivePlayers()

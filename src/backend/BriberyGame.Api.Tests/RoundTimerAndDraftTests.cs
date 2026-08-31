@@ -93,6 +93,31 @@ public class RoundTimerAndDraftTests
     }
 
     [Fact]
+    public void SubmissionExpiryFillsEveryConfiguredAssignment()
+    {
+        var game = new Game("TEST", () => _now);
+        for (var i = 1; i <= 4; i++)
+        {
+            Assert.True(game.Join($"c{i}", $"p{i}", $"Player {i}").Success);
+            Assert.True(game.ToggleReady($"c{i}").Success);
+        }
+
+        var settings = Settings(submissionSeconds: 300);
+        settings.PromptsAnsweredPerPlayer = 3;
+        Assert.True(game.UpdateGameSettings("c1", settings).Success);
+        Assert.True(game.StartGame("c1").Success);
+        for (var i = 1; i <= 4; i++)
+            Assert.True(game.SubmitPrompt($"c{i}", $"Prompt {i}").Success);
+
+        _now = _now.AddSeconds(301);
+        Assert.True(game.ExpireCurrentPhaseIfDue(_now));
+
+        Assert.Equal(GamePhase.Voting, game.State.Phase);
+        Assert.Equal(12, game.State.Bribes.Count);
+        Assert.All(game.GetConnectedPlayerStates(), state => Assert.Equal(3, state.State.Voting!.Bribes.Count));
+    }
+
+    [Fact]
     public void VotingExpiryUsesDraftOrRandomVoteAndBuildsResults()
     {
         var game = StartVotingWithTimers();

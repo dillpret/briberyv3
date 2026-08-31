@@ -5,6 +5,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
 
+type TimerName = 'promptTimer' | 'submissionTimer' | 'votingTimer' | 'appreciationTimer';
+
 @Component({
   selector: 'app-lobby',
   standalone: true,
@@ -19,7 +21,8 @@ export class Lobby {
   currentPlayerId;
   settings;
   copyMessage = '';
-  timerNames: (keyof GameSettings)[] = [
+  readonly promptsAnsweredOptions = [2, 3, 4, 5];
+  timerNames: TimerName[] = [
     'promptTimer',
     'submissionTimer',
     'votingTimer',
@@ -45,7 +48,7 @@ export class Lobby {
   }
 
   async updateTimer(
-    timerName: keyof GameSettings,
+    timerName: TimerName,
     changes: Partial<{ enabled: boolean; durationSeconds: number }>,
   ) {
     const current = this.settings();
@@ -61,8 +64,16 @@ export class Lobby {
     });
   }
 
-  timerLabel(timerName: keyof GameSettings): string {
-    const labels: Record<keyof GameSettings, string> = {
+  async updatePromptsAnsweredPerPlayer(value: number) {
+    const promptsAnsweredPerPlayer = Math.min(Math.max(Math.round(Number(value) || 2), 2), 5);
+    await this.signalr.updateGameSettings({
+      ...this.settings(),
+      promptsAnsweredPerPlayer,
+    });
+  }
+
+  timerLabel(timerName: TimerName): string {
+    const labels: Record<TimerName, string> = {
       promptTimer: 'Prompt',
       submissionTimer: 'Submission',
       votingTimer: 'Voting',
@@ -71,7 +82,7 @@ export class Lobby {
     return labels[timerName];
   }
 
-  timerSummary(timerName: keyof GameSettings): string {
+  timerSummary(timerName: TimerName): string {
     const timer = this.settings()[timerName];
     return timer.enabled ? `${timer.durationSeconds} seconds` : 'Off';
   }
@@ -82,13 +93,16 @@ export class Lobby {
 
   settingsSummary(): string {
     const count = this.enabledTimerCount();
-    if (count === 0) return 'Timers off';
-    if (count === 1) return '1 timer enabled';
-    return `${count} timers enabled`;
+    const timerSummary = count === 0
+      ? 'Timers off'
+      : count === 1
+        ? '1 timer enabled'
+        : `${count} timers enabled`;
+    return `${this.settings().promptsAnsweredPerPlayer} prompts each · ${timerSummary}`;
   }
 
-  timerDescription(timerName: keyof GameSettings): string {
-    const descriptions: Record<keyof GameSettings, string> = {
+  timerDescription(timerName: TimerName): string {
+    const descriptions: Record<TimerName, string> = {
       promptTimer: 'Auto-submits the prompt draft when time runs out.',
       submissionTimer: 'Auto-submits saved bribe drafts when time runs out.',
       votingTimer: 'Auto-submits the saved vote when time runs out.',
@@ -97,11 +111,11 @@ export class Lobby {
     return descriptions[timerName];
   }
 
-  timerStatusLabel(timerName: keyof GameSettings): string {
+  timerStatusLabel(timerName: TimerName): string {
     return this.settings()[timerName].enabled ? 'On' : 'Off';
   }
 
-  timerInputClasses(timerName: keyof GameSettings): Record<string, boolean> {
+  timerInputClasses(timerName: TimerName): Record<string, boolean> {
     const enabled = this.settings()[timerName].enabled;
     return {
       'border-ink/10 bg-ink/5 text-ink/45 shadow-none': !enabled,
@@ -134,8 +148,18 @@ export class Lobby {
     return this.currentPlayerId() === this.hostPlayerId();
   }
 
+  minimumPlayersRequired(): number {
+    return this.settings().promptsAnsweredPerPlayer + 1;
+  }
+
+  canStart(): boolean {
+    return this.connectedCount() >= this.minimumPlayersRequired() && this.pendingReadyCount() === 0;
+  }
+
   canStartHint(): string {
-    if (this.connectedCount() < 3) return 'Waiting for at least three connected players.';
+    if (this.connectedCount() < this.minimumPlayersRequired()) {
+      return `Waiting for at least ${this.minimumPlayersRequired()} connected players.`;
+    }
     if (this.pendingReadyCount() > 0) return `Waiting for ${this.pendingReadyCount()} player(s) to ready up.`;
     return 'Everyone is ready.';
   }

@@ -62,6 +62,21 @@ describe('Voting', () => {
     expect(element.textContent).not.toContain('Player 2');
   });
 
+  it('renders five incoming voting choices', () => {
+    gameState.voting.update((voting) => ({
+      ...voting!,
+      bribes: Array.from({ length: 5 }, (_, index) => ({
+        bribeId: `b${index + 1}`,
+        kind: 'Text' as const,
+        text: `Bribe ${index + 1}`,
+        media: null,
+      })),
+    }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('label.soft-card')).toHaveLength(5);
+  });
+
   it('submits the selected bribe id', async () => {
     component.selectedBribeId.set('b2');
 

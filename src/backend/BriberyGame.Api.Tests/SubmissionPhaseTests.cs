@@ -4,6 +4,32 @@ using BriberyGame.Api.Models;
 
 public class SubmissionPhaseTests
 {
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void ConfiguredPromptCountCreatesBalancedDistinctAssignments(int promptsAnsweredPerPlayer)
+    {
+        var playerCount = promptsAnsweredPerPlayer + 2;
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(playerCount, promptsAnsweredPerPlayer);
+        harness.SubmitPromptsForActivePlayers();
+
+        foreach (var player in harness.ActivePlayers())
+        {
+            var targets = harness.Game.State.TargetAssignments[player.Id];
+            var incoming = harness.Game.State.TargetAssignments.Values.Count(assigned => assigned.Contains(player.Id));
+
+            Assert.Equal(promptsAnsweredPerPlayer, targets.Count);
+            Assert.Equal(promptsAnsweredPerPlayer, targets.Distinct().Count());
+            Assert.DoesNotContain(player.Id, targets);
+            Assert.Equal(promptsAnsweredPerPlayer, incoming);
+        }
+
+        Assert.Equal(playerCount * promptsAnsweredPerPlayer, harness.GetPlayerState("p1").BribeRequiredCount);
+    }
+
     [Fact]
     public void EachActivePlayerReceivesTwoDistinctNonSelfTargetsWithPrompts()
     {

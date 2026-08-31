@@ -5,6 +5,18 @@ using BriberyGame.Api.Models;
 public class VotingAndResultsTests
 {
     [Fact]
+    public void VotingProjectionContainsConfiguredNumberOfIncomingBribes()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(6, 5);
+        harness.SubmitPromptsForActivePlayers();
+        harness.SubmitAllAssignedBribes();
+
+        Assert.All(harness.ActivePlayers(), player =>
+            Assert.Equal(5, harness.GetPlayerState(player.Id).Voting!.Bribes.Count));
+    }
+
+    [Fact]
     public void VotingProjectionOnlyContainsBribesSentToCurrentPlayer()
     {
         var harness = new GameTestHarness();

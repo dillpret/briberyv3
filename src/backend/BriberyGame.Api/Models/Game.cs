@@ -6,8 +6,9 @@ public class Game
     private const int MaxPromptLength = 200;
     private const int MaxBribeLength = 500;
     public const long MaxMediaBribeBytes = 8 * 1024 * 1024;
-    private const int TargetsPerPlayer = 2;
-    private const int MinimumActivePlayers = 3;
+    public const int MinimumPromptsAnsweredPerPlayer = 2;
+    public const int DefaultPromptsAnsweredPerPlayer = 2;
+    public const int MaximumPromptsAnsweredPerPlayer = 5;
 
     private static readonly IReadOnlyDictionary<GamePhase, GamePhase[]> AllowedTransitions =
         new Dictionary<GamePhase, GamePhase[]>
@@ -165,9 +166,9 @@ public class Game
         var remainingActiveConnectedPlayers = State.Players
             .Count(p => p.IsActive && p.Connected && blockingPlayers.All(blocker => blocker.Id != p.Id));
 
-        if (remainingActiveConnectedPlayers < MinimumActivePlayers)
+        if (remainingActiveConnectedPlayers < MinimumPlayersRequired())
             return Result<GameStateDto>.Fail(
-                $"Cannot advance without offline players because at least {MinimumActivePlayers} active connected players are required");
+                $"Cannot advance without offline players because at least {MinimumPlayersRequired()} active connected players are required");
 
         foreach (var skippedPlayer in blockingPlayers)
         {
@@ -193,7 +194,8 @@ public class Game
             return Result<GameStateDto>.Fail("Player is not host and cannot start game");
 
         if (!CanStart())
-            return Result<GameStateDto>.Fail("Cannot start game before at least three connected players are ready");
+            return Result<GameStateDto>.Fail(
+                $"Cannot start game before at least {MinimumPlayersRequired()} connected players are ready");
 
         State.CurrentRound = 1;
         ClearRoundState();
@@ -660,9 +662,9 @@ public class Game
         if (player == null || player.Id != State.HostPlayerId)
             return Result<GameStateDto>.Fail("Player is not host and cannot start the next round");
 
-        if (State.Players.Count(p => p.Connected) < MinimumActivePlayers)
+        if (State.Players.Count(p => p.Connected) < MinimumPlayersRequired())
             return Result<GameStateDto>.Fail(
-                $"Cannot start the next round before at least {MinimumActivePlayers} players are connected");
+                $"Cannot start the next round before at least {MinimumPlayersRequired()} players are connected");
 
         State.CurrentRound += 1;
         ClearRoundState();
@@ -724,12 +726,21 @@ public class Game
     {
         var connectedPlayers = State.Players.Where(p => p.Connected).ToList();
 
-        return connectedPlayers.Count >= 3 &&
+        return connectedPlayers.Count >= MinimumPlayersRequired() &&
                connectedPlayers.All(p => p.IsReady);
+    }
+
+    private int MinimumPlayersRequired()
+    {
+        return State.Settings.PromptsAnsweredPerPlayer + 1;
     }
 
     private static Result<object> ValidateSettings(GameSettings settings)
     {
+        if (settings.PromptsAnsweredPerPlayer is < MinimumPromptsAnsweredPerPlayer or > MaximumPromptsAnsweredPerPlayer)
+            return Result<object>.Fail(
+                $"Prompts answered per player must be between {MinimumPromptsAnsweredPerPlayer} and {MaximumPromptsAnsweredPerPlayer}");
+
         foreach (var timer in new[]
                  {
                      settings.PromptTimer,
@@ -831,7 +842,7 @@ public class Game
         if (availableTargetCount <= 0)
             return [];
 
-        var targetCount = Math.Min(TargetsPerPlayer, availableTargetCount);
+        var targetCount = Math.Min(State.Settings.PromptsAnsweredPerPlayer, availableTargetCount);
         var firstOffset = ((State.CurrentRound - 1) * targetCount) % availableTargetCount;
 
         return Enumerable.Range(0, targetCount)
@@ -1186,10 +1197,10 @@ public class Game
         state.OfflineBlockingPlayerNames = offlineBlockingPlayers.Select(p => p.Name).ToList();
         state.CanHostAdvanceWithoutOfflinePlayers =
             offlineBlockingPlayers.Count > 0 &&
-            State.Players.Count(p => p.IsActive && p.Connected) >= MinimumActivePlayers;
+            State.Players.Count(p => p.IsActive && p.Connected) >= MinimumPlayersRequired();
         state.AdvanceWithoutOfflinePlayersBlockedReason =
             offlineBlockingPlayers.Count > 0 && !state.CanHostAdvanceWithoutOfflinePlayers
-                ? $"At least {MinimumActivePlayers} active connected players are required to continue."
+                ? $"At least {MinimumPlayersRequired()} active connected players are required to continue."
                 : null;
 
         state.Prompt = BuildPromptPhaseForPlayer(playerId);

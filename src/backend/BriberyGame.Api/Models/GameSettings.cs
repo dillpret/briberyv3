@@ -2,6 +2,7 @@ namespace BriberyGame.Api.Models;
 
 public class GameSettings
 {
+    public int PromptsAnsweredPerPlayer { get; set; } = Game.DefaultPromptsAnsweredPerPlayer;
     public PhaseTimerSettings PromptTimer { get; set; } = new() { DurationSeconds = 120 };
     public PhaseTimerSettings SubmissionTimer { get; set; } = new() { DurationSeconds = 300 };
     public PhaseTimerSettings VotingTimer { get; set; } = new() { DurationSeconds = 90 };
@@ -23,6 +24,7 @@ public class GameSettings
     {
         return new GameSettings
         {
+            PromptsAnsweredPerPlayer = PromptsAnsweredPerPlayer,
             PromptTimer = PromptTimer.Clone(),
             SubmissionTimer = SubmissionTimer.Clone(),
             VotingTimer = VotingTimer.Clone(),
