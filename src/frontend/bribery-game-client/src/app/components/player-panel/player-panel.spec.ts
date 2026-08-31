@@ -40,8 +40,8 @@ describe('PlayerPanel', () => {
     document.documentElement.removeAttribute('style');
   });
 
-  it('sorts the current player first and then other players by name', () => {
-    expect(component.sortedPlayers().map((candidate) => candidate.id)).toEqual(['p2', 'p1', 'p3', 'p4']);
+  it('sorts players by score and then by name', () => {
+    expect(component.sortedPlayers().map((candidate) => candidate.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
   });
 
   it('renders host, disconnected, next-round, and current-player badges', () => {
@@ -51,6 +51,17 @@ describe('PlayerPanel', () => {
     expect(text).toContain('Host');
     expect(text).toContain('Disconnected');
     expect(text).toContain('Next round');
+  });
+
+  it('subtly highlights the current player row', () => {
+    const rows = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.player-list-item'));
+    const currentPlayerRow = rows
+      .find((row) => row.textContent?.includes('Bob')) as HTMLElement | undefined;
+
+    expect(currentPlayerRow?.classList.contains('!border-pine/35')).toBe(true);
+    expect(currentPlayerRow?.classList.contains('!bg-pine/10')).toBe(true);
+    expect(currentPlayerRow?.classList.contains('ring-2')).toBe(true);
+    expect(currentPlayerRow?.textContent).toContain('(you)');
   });
 
   it('maps player status classes', () => {

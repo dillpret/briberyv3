@@ -63,9 +63,7 @@ export class PlayerPanel implements OnDestroy {
 
   sortedPlayers(): Player[] {
     return [...this.players()].sort((a, b) => {
-      if (a.id === this.currentPlayerId()) return -1;
-      if (b.id === this.currentPlayerId()) return 1;
-      return a.name.localeCompare(b.name);
+      return b.score - a.score || a.name.localeCompare(b.name);
     });
   }
 

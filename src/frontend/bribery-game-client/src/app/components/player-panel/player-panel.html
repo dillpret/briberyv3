@@ -28,7 +28,12 @@
 
   <div class="space-y-2">
     @for (player of sortedPlayers(); track player.id) {
-      <article class="player-list-item">
+      <article
+        class="player-list-item border-2 border-transparent"
+        [class.!border-pine/35]="isCurrentPlayer(player)"
+        [class.!bg-pine/10]="isCurrentPlayer(player)"
+        [class.ring-2]="isCurrentPlayer(player)"
+        [class.ring-pine/10]="isCurrentPlayer(player)">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <p class="truncate font-semibold text-ink">
