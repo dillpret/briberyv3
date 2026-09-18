@@ -3,13 +3,14 @@ import { Component, signal } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService, RoundScore } from '../../state/game-state.service';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
+import { GameSettingsPanel } from '../../components/game-settings/game-settings';
 
 type ScoreboardView = 'round' | 'overall';
 
 @Component({
   selector: 'app-scoreboard',
   standalone: true,
-  imports: [CommonModule, WaitingTips],
+  imports: [CommonModule, WaitingTips, GameSettingsPanel],
   templateUrl: './scoreboard.html',
 })
 export class Scoreboard {

@@ -72,13 +72,13 @@ async function createGame(player) {
   return gameId;
 }
 
-async function joinGame(player, gameId) {
+async function joinGame(player, gameId, expectedScreen = 'Room code') {
   await player.page.goto(baseUrl);
   await closeIntroIfVisible(player.page);
   await player.page.getByPlaceholder('Enter your name').fill(player.name);
   await player.page.getByPlaceholder('AB12').fill(gameId);
   await player.page.getByRole('button', { name: 'Join game' }).click();
-  await waitForVisible(player.page, 'Room code');
+  await waitForVisible(player.page, expectedScreen);
 }
 
 async function toggleReady(player) {
@@ -100,6 +100,18 @@ async function enablePromptTimer(host) {
   await host.page.getByText('Time limit', { exact: true }).first().click();
   await expect(toggle).toBeChecked({ timeout: 10000 });
   await expect(host.page.locator('input[type="number"]:enabled')).toHaveCount(1, { timeout: 10000 });
+}
+
+async function disablePromptTimer(host) {
+  const settings = await openGameSettings(host);
+  const toggle = settings.getByRole('checkbox', { name: 'Prompt time limit', exact: true });
+  if (await toggle.isChecked()) {
+    const promptSection = settings.locator('section').filter({
+      has: host.page.getByText('Prompt', { exact: true }),
+    }).first();
+    await promptSection.getByText('Time limit', { exact: true }).click();
+  }
+  await expect(toggle).not.toBeChecked({ timeout: 10000 });
 }
 
 async function setPromptsAnsweredPerPlayer(host, count) {
@@ -352,11 +364,46 @@ async function main() {
     await capture(roster[0].page, 'scoreboard');
     console.log('Completed voting and reached results.');
 
+    const nextRoundButton = roster[0].page.getByRole('button', { name: 'Start next round' });
+    await setPromptsAnsweredPerPlayer(roster[0], 4);
+    await expect(nextRoundButton).toBeDisabled();
+    await expect(roster[0].page.getByText('At least 5 connected players are needed')).toBeVisible();
+
+    const latePlayer = await makePlayer(browser, 'Evan');
+    roster.push(latePlayer);
+    await joinGame(latePlayer, gameId, 'Scoreboard');
+    await waitForVisible(latePlayer.page, 'Scoreboard');
+    await expect(latePlayer.page.getByText('Waiting next round', { exact: true })).toBeVisible();
+    await expect(latePlayer.page.getByText('4 prompts each', { exact: false }).first()).toBeVisible();
+    await expect(nextRoundButton).toBeEnabled({ timeout: 10000 });
+
+    const disconnectedPlayer = roster[3];
+    await disconnectedPlayer.context.close();
+    await expect(nextRoundButton).toBeDisabled({ timeout: 10000 });
+    const disconnectedRosterEntry = roster[0].page
+      .getByRole('complementary')
+      .locator('article')
+      .filter({ hasText: 'Dana' });
+    await expect(disconnectedRosterEntry.getByText('Dana', { exact: true })).toBeVisible();
+    await expect(disconnectedRosterEntry.getByText('Disconnected', { exact: true })).toBeVisible();
+
+    await setPromptsAnsweredPerPlayer(roster[0], 3);
+    await disablePromptTimer(roster[0]);
+    await expect(nextRoundButton).toBeEnabled({ timeout: 10000 });
+    await expect(latePlayer.page.getByText('3 prompts each', { exact: false }).first()).toBeVisible();
+    await roster[0].page.evaluate(() => window.scrollTo(0, 0));
+    await captureResponsive(roster[0].page, 'scoreboard-settings-between-rounds');
+    console.log('Verified between-round settings with a waiting player and a disconnected player.');
+
     await roster[0].page.getByRole('button', { name: 'Start next round' }).click();
     await waitForVisible(roster[0].page, 'Round 2');
+    await waitForVisible(latePlayer.page, 'Round 2');
+    await expect(roster[0].page.getByRole('textbox')).toHaveCount(1);
+    await expect(roster[0].page.getByText('Time remaining', { exact: true })).toHaveCount(0);
+    await expect(latePlayer.page.getByPlaceholder('Best excuse for being late')).toBeVisible();
     console.log('Started round 2 from results.');
 
-    for (const player of roster) {
+    for (const player of roster.filter((candidate) => candidate !== disconnectedPlayer)) {
       await expect(player.page.locator('body')).toContainText(player.name, { timeout: 10000 });
     }
 

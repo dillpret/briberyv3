@@ -8,12 +8,8 @@
         </p>
       </div>
       <div class="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" (click)="copyCode()" class="secondary-button py-2 text-sm">
-          Copy code
-        </button>
-        <button type="button" (click)="copyLink()" class="secondary-button py-2 text-sm">
-          Copy link
-        </button>
+        <button type="button" (click)="copyCode()" class="secondary-button py-2 text-sm">Copy code</button>
+        <button type="button" (click)="copyLink()" class="secondary-button py-2 text-sm">Copy link</button>
       </div>
       @if (copyMessage) {
         <p class="mt-3 text-sm font-semibold text-pine">{{ copyMessage }}</p>
@@ -50,160 +46,16 @@
   </section>
 
   <section class="soft-panel space-y-4">
-    <button
-      (click)="toggleReady()"
-      class="secondary-button">
+    <button (click)="toggleReady()" class="secondary-button">
       {{ isCurrentPlayerReady() ? 'I need a moment' : 'I am ready' }}
     </button>
 
     @if (isHost()) {
-      <button
-        (click)="startGame()"
-        [disabled]="!canStart()"
-        class="primary-button">
-        Start game
-      </button>
+      <button (click)="startGame()" [disabled]="!canStart()" class="primary-button">Start game</button>
     } @else {
       <p class="text-center text-sm text-ink/60">The host will start once everyone is ready.</p>
     }
 
-    <details class="nested-surface group text-left">
-      <summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-ink">
-        <span>
-          <span class="block text-sm font-black uppercase tracking-wide text-pine">Game settings</span>
-          <span class="block text-sm leading-6 text-ink/70">{{ settingsSummary() }}</span>
-        </span>
-        <span class="status-pill border-plum/25 bg-surface text-plum group-open:hidden">Open</span>
-        <span class="status-pill hidden border-plum/25 bg-surface text-plum group-open:inline-flex">Close</span>
-      </summary>
-
-      <div class="mt-4 space-y-3 border-t border-ink/10 pt-4">
-        <div>
-          <p class="font-black text-ink">Round format</p>
-          <p class="text-sm leading-6 text-ink/70">
-            Each player submits one prompt, answers this many other prompts, and receives the same number of bribes.
-          </p>
-        </div>
-
-        <section class="rounded-[var(--radius-nested)] border border-ink/10 bg-surface/60 p-3">
-          <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div class="min-w-0">
-              <p class="font-bold text-ink">Prompts answered per player</p>
-              <p class="text-sm leading-6 text-ink/65">
-                Requires at least {{ minimumPlayersRequired() }} connected players.
-              </p>
-            </div>
-
-            @if (isHost()) {
-              <label class="grid gap-1 text-sm font-bold text-ink sm:w-32">
-                <span class="sr-only">Prompts answered per player</span>
-                <select
-                  class="soft-input py-2"
-                  aria-label="Prompts answered per player"
-                  [ngModel]="settings().promptsAnsweredPerPlayer"
-                  (ngModelChange)="updatePromptsAnsweredPerPlayer($event)">
-                  @for (option of promptsAnsweredOptions; track option) {
-                    <option [value]="option">{{ option }}</option>
-                  }
-                </select>
-              </label>
-            } @else {
-              <span class="status-pill border-ink/15 bg-surface text-ink/70">
-                {{ settings().promptsAnsweredPerPlayer }} prompts
-              </span>
-            }
-          </div>
-        </section>
-
-        <section class="rounded-[var(--radius-nested)] border border-ink/10 bg-surface/60 p-3">
-          <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div class="min-w-0">
-              <p class="font-bold text-ink">Missed bribes</p>
-              <p class="text-sm leading-6 text-ink/65">
-                Auto-fill creates a playful fallback that cannot score. No fallback shows a disabled missing entry.
-              </p>
-            </div>
-
-            @if (isHost()) {
-              <label class="grid gap-1 text-sm font-bold text-ink sm:w-40">
-                <span class="sr-only">Missed bribe handling</span>
-                <select
-                  class="soft-input py-2"
-                  aria-label="Missed bribe handling"
-                  [ngModel]="settings().bribeFallbackMode"
-                  (ngModelChange)="updateBribeFallbackMode($event)">
-                  <option value="AutoFill">Auto-fill</option>
-                  <option value="NoFallback">No fallback</option>
-                </select>
-              </label>
-            } @else {
-              <span class="status-pill border-ink/15 bg-surface text-ink/70">{{ bribeFallbackLabel() }}</span>
-            }
-          </div>
-        </section>
-
-        <div class="border-t border-ink/10 pt-3">
-          <p class="font-black text-ink">Round timers</p>
-          <p class="text-sm leading-6 text-ink/70">
-            Timers are off by default. Enable a time limit for each phase before starting.
-          </p>
-        </div>
-
-        @for (timerName of timerNames; track timerName) {
-          <section class="rounded-[var(--radius-nested)] border border-ink/10 bg-surface/60 p-3">
-            <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                  <p class="font-bold text-ink">{{ timerLabel(timerName) }}</p>
-                  <span
-                    class="status-pill"
-                    [ngClass]="settings()[timerName].enabled
-                      ? 'border-pine/30 bg-pine/10 text-pine'
-                      : 'border-ink/15 bg-ink/5 text-ink/55'">
-                    {{ timerStatusLabel(timerName) }}
-                  </span>
-                </div>
-                <p class="text-sm leading-6 text-ink/65">{{ timerDescription(timerName) }}</p>
-              </div>
-
-              @if (isHost()) {
-                <label class="flex items-center justify-between gap-3 text-sm font-bold text-ink sm:min-w-36">
-                  <span>Time limit</span>
-                  <input
-                    type="checkbox"
-                    class="peer sr-only"
-                    [attr.aria-label]="timerLabel(timerName) + ' time limit'"
-                    [ngModel]="settings()[timerName].enabled"
-                    (ngModelChange)="updateTimer(timerName, { enabled: $event })" />
-                  <span class="relative h-7 w-12 shrink-0 rounded-full border-2 border-ink/20 bg-ink/10 transition peer-checked:border-pine peer-checked:bg-pine">
-                    <span
-                      class="absolute left-1 top-1 h-4 w-4 rounded-full bg-surface shadow transition"
-                      [ngClass]="{ 'translate-x-5': settings()[timerName].enabled }"></span>
-                  </span>
-                </label>
-
-                <label class="grid gap-1 text-sm font-bold text-ink sm:w-32">
-                  <span>Seconds</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="600"
-                    class="soft-input py-2"
-                    [ngClass]="timerInputClasses(timerName)"
-                    [disabled]="!settings()[timerName].enabled"
-                    [ngModel]="settings()[timerName].durationSeconds"
-                    (change)="updateTimer(timerName, { durationSeconds: $any($event.target).valueAsNumber })" />
-                </label>
-              } @else {
-                <span class="status-pill border-ink/15 bg-surface text-ink/70 sm:col-span-2">
-                  {{ timerSummary(timerName) }}
-                </span>
-              }
-            </div>
-          </section>
-        }
-      </div>
-    </details>
+    <app-game-settings [settings]="settings()" [editable]="isHost()" />
   </section>
-
 </main>

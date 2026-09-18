@@ -64,6 +64,8 @@
   </section>
 
   <section class="soft-panel space-y-3 text-center">
+    <app-game-settings [settings]="settings()" [editable]="isHost()" />
+
     @if (isHost()) {
       <p class="text-sm text-ink/70">{{ nextRoundHint() }}</p>
       <button

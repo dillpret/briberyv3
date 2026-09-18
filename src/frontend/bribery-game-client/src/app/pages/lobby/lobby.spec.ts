@@ -100,14 +100,6 @@ describe('Lobby', () => {
     expect(element.querySelector<HTMLSelectElement>('select[aria-label="Prompts answered per player"]')?.value).toBe('2');
   });
 
-  it('updates prompts answered per player through SignalR', async () => {
-    await component.updatePromptsAnsweredPerPlayer(5);
-
-    expect(signalr.updateGameSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ promptsAnsweredPerPlayer: 5 }),
-    );
-  });
-
   it('uses the configured prompt count for the start requirement', () => {
     gameState.settings.update((settings) => ({ ...settings, promptsAnsweredPerPlayer: 3 }));
     component.players.set([
@@ -141,28 +133,10 @@ describe('Lobby', () => {
     const element = fixture.nativeElement as HTMLElement;
     const durationInputs = element.querySelectorAll<HTMLInputElement>('input[type="number"]');
 
-    expect(component.settingsSummary()).toBe('2 prompts each · Auto-fill · 1 timer enabled');
+    expect(element.textContent).toContain('2 prompts each · Auto-fill · 1 timer enabled');
     expect(durationInputs[0].disabled).toBe(false);
     expect(durationInputs[0].value).toBe('120');
     expect(element.textContent).not.toContain('120 seconds');
-  });
-
-  it('sends clamped timer updates through SignalR', async () => {
-    await component.updateTimer('promptTimer', { enabled: true, durationSeconds: 999 });
-
-    expect(signalr.updateGameSettings).toHaveBeenCalledWith(
-      expect.objectContaining({
-        promptTimer: { enabled: true, durationSeconds: 600 },
-      }),
-    );
-  });
-
-  it('lets the host select no fallback handling for missed bribes', async () => {
-    await component.updateBribeFallbackMode('NoFallback');
-
-    expect(signalr.updateGameSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ bribeFallbackMode: 'NoFallback' }),
-    );
   });
 
   it('renders waiting copy for non-host players', () => {

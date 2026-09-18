@@ -15,7 +15,10 @@ describe('Scoreboard', () => {
       imports: [Scoreboard],
       providers: [{
         provide: SignalrService,
-        useValue: { startNextRound: vi.fn().mockResolvedValue(undefined) },
+        useValue: {
+          startNextRound: vi.fn().mockResolvedValue(undefined),
+          updateGameSettings: vi.fn().mockResolvedValue(undefined),
+        },
       }, {
         provide: WaitingTipsService,
         useValue: { currentTip: signal('Scoreboard waiting tip') },
@@ -184,6 +187,26 @@ describe('Scoreboard', () => {
     expect(component.canStartNextRound()).toBe(false);
     expect(component.nextRoundHint()).toBe('At least 4 connected players are needed to start the next round.');
     expect(button.disabled).toBe(true);
+  });
+
+  it('shows editable game settings to the host before the next-round action', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    const settingsPanel = element.querySelector('app-game-settings')!;
+    const startButton = Array.from(element.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Start next round'))!;
+
+    expect(settingsPanel.textContent).toContain('Game settings');
+    expect(settingsPanel.querySelectorAll('select')).toHaveLength(2);
+    expect(settingsPanel.compareDocumentPosition(startButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows read-only game settings to non-host players', () => {
+    gameState.hostPlayerId.set('p2');
+    fixture.detectChanges();
+
+    const settingsPanel = fixture.nativeElement.querySelector('app-game-settings') as HTMLElement;
+    expect(settingsPanel.textContent).toContain('2 prompts each · Auto-fill · Timers off');
+    expect(settingsPanel.querySelectorAll('select, input')).toHaveLength(0);
   });
 });
 

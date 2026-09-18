@@ -13,7 +13,7 @@ This briefing outlines every observable behaviour, rule, and player-facing capab
 - Other players join by providing a name and the game code (case-insensitive). Joining responds with their persistent player identifier, host status, and the game's current phase so the UI can transition appropriately.
 - The lobby lists every player with connection status, identifies the host, and shows live player counts. It must surface the current game configuration, including round timer settings, to everyone.
 - Host-only controls in the lobby include:
-  - Editing game settings before the first round. Current settings cover optional time limits for Prompt, Submission, Voting, and Appreciation.
+  - Editing game settings before the first round and between rounds from the scoreboard. Current settings cover the round format, missed-bribe handling, and optional time limits for Prompt, Submission, Voting, and Appreciation.
   - Each phase timer is off by default and can be enabled independently. Disabled timers still show their default duration so the host can enable them quickly.
   - Enabled timer durations are configured in seconds, clamped to 1-600 seconds.
   - A start button that remains disabled until at least three connected players are active.
@@ -85,7 +85,7 @@ Progression rules:
   - Each bonus coin awarded by another player adds 1 point.
   - A player with multiple chosen bribes earns the base chunk once per chosen bribe.
 - The scoreboard shows a round board with points earned this round and a breakdown of chosen-bribe points plus bonus-coin points. From round 2 onward, it also shows an overall board with cumulative scores after adding the round. Both boards highlight the top three with gold, silver, and bronze treatments.
-- Scoreboard is not timed. Only the host sees controls to continue to the next round.
+- Scoreboard is not timed. The current host can change the game settings before continuing; changes are shared with everyone and apply to the next round. Only the host sees controls to continue to the next round.
 
 ## 9. Game Completion & Post-Game Options
 - After the final round, the game enters `finished` and announces podium placements for the top three scores with celebratory visuals.

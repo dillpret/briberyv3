@@ -101,9 +101,8 @@ public class Game
 
     public Result<GameStateDto> UpdateGameSettings(string connectionId, GameSettings settings)
     {
-        var phaseResult = RequirePhase(GamePhase.Lobby, "Cannot update settings after the game has started");
-        if (!phaseResult.Success)
-            return Result<GameStateDto>.Fail(phaseResult.Error!);
+        if (State.Phase is not (GamePhase.Lobby or GamePhase.Scoreboard))
+            return Result<GameStateDto>.Fail("Cannot update settings during an active round");
 
         var player = FindPlayerByConnection(connectionId);
         if (player == null || player.Id != State.HostPlayerId)
