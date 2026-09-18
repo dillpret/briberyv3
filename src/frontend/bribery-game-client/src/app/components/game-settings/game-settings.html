@@ -31,6 +31,7 @@
             <select
               class="soft-input py-2"
               aria-label="Prompts answered per player"
+              [disabled]="settingsUpdatePending()"
               [ngModel]="settings.promptsAnsweredPerPlayer"
               (ngModelChange)="updatePromptsAnsweredPerPlayer($event)">
               @for (option of promptsAnsweredOptions; track option) {

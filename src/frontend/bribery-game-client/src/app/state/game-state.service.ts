@@ -145,6 +145,7 @@ export class GameStateService {
     votingTimer: { enabled: false, durationSeconds: 90 },
     appreciationTimer: { enabled: false, durationSeconds: 120 },
   });
+  settingsUpdatePending = signal(false);
   serverNowUtc = signal<string | null>(null);
   phaseStartedAtUtc = signal<string | null>(null);
   phaseEndsAtUtc = signal<string | null>(null);

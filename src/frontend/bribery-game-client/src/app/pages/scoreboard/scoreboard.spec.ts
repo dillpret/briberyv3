@@ -176,8 +176,12 @@ describe('Scoreboard', () => {
     expect(button.disabled).toBe(true);
   });
 
-  it('uses the configured prompt count for the next-round minimum', () => {
-    gameState.settings.update((settings) => ({ ...settings, promptsAnsweredPerPlayer: 3 }));
+  it('immediately uses a newly selected prompt count for the next-round minimum', async () => {
+    const selector = fixture.nativeElement.querySelector(
+      'select[aria-label="Prompts answered per player"]',
+    ) as HTMLSelectElement;
+    selector.value = '3';
+    selector.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
     const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
@@ -186,7 +190,19 @@ describe('Scoreboard', () => {
     expect(component.minimumPlayersRequired()).toBe(4);
     expect(component.canStartNextRound()).toBe(false);
     expect(component.nextRoundHint()).toBe('At least 4 connected players are needed to start the next round.');
+    expect(fixture.nativeElement.textContent).toContain('Requires at least 4 connected players.');
     expect(button.disabled).toBe(true);
+
+    await fixture.whenStable();
+  });
+
+  it('does not invoke the next round action while the player requirement is not met', async () => {
+    gameState.settings.update((settings) => ({ ...settings, promptsAnsweredPerPlayer: 3 }));
+
+    await component.startNextRound();
+
+    const signalr = TestBed.inject(SignalrService);
+    expect(signalr.startNextRound).not.toHaveBeenCalled();
   });
 
   it('shows editable game settings to the host before the next-round action', () => {

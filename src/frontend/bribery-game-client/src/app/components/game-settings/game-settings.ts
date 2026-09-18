@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
-import { BribeFallbackMode, GameSettings } from '../../state/game-state.service';
+import { BribeFallbackMode, GameSettings, GameStateService } from '../../state/game-state.service';
 
 type TimerName = 'promptTimer' | 'submissionTimer' | 'votingTimer' | 'appreciationTimer';
 
@@ -23,8 +23,14 @@ export class GameSettingsPanel {
     'votingTimer',
     'appreciationTimer',
   ];
+  settingsUpdatePending;
 
-  constructor(private signalr: SignalrService) {}
+  constructor(
+    private signalr: SignalrService,
+    private gameState: GameStateService,
+  ) {
+    this.settingsUpdatePending = this.gameState.settingsUpdatePending;
+  }
 
   async updateTimer(
     timerName: TimerName,
@@ -32,7 +38,7 @@ export class GameSettingsPanel {
   ) {
     const timer = this.settings[timerName];
     const nextDuration = changes.durationSeconds ?? timer.durationSeconds;
-    await this.signalr.updateGameSettings({
+    await this.persistSettings({
       ...this.settings,
       [timerName]: {
         ...timer,
@@ -44,14 +50,14 @@ export class GameSettingsPanel {
 
   async updatePromptsAnsweredPerPlayer(value: number) {
     const promptsAnsweredPerPlayer = Math.min(Math.max(Math.round(Number(value) || 2), 2), 5);
-    await this.signalr.updateGameSettings({
+    await this.persistSettings({
       ...this.settings,
       promptsAnsweredPerPlayer,
-    });
+    }, true);
   }
 
   async updateBribeFallbackMode(bribeFallbackMode: BribeFallbackMode) {
-    await this.signalr.updateGameSettings({
+    await this.persistSettings({
       ...this.settings,
       bribeFallbackMode,
     });
@@ -118,5 +124,31 @@ export class GameSettingsPanel {
 
   private clampDuration(value: number): number {
     return Math.min(Math.max(Math.round(Number(value) || 1), 1), 600);
+  }
+
+  private async persistSettings(nextSettings: GameSettings, optimistic = false) {
+    const previousSettings = this.settings;
+    const previousSharedSettings = this.gameState.settings();
+
+    if (optimistic) {
+      this.settings = nextSettings;
+      this.gameState.settings.set(nextSettings);
+    }
+
+    this.gameState.settingsUpdatePending.set(true);
+
+    try {
+      await this.signalr.updateGameSettings(nextSettings);
+    } catch (error) {
+      if (optimistic && this.settings === nextSettings) {
+        this.settings = previousSettings;
+      }
+      if (optimistic && this.gameState.settings() === nextSettings) {
+        this.gameState.settings.set(previousSharedSettings);
+      }
+      throw error;
+    } finally {
+      this.gameState.settingsUpdatePending.set(false);
+    }
   }
 }

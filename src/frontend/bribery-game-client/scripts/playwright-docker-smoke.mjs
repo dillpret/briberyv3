@@ -115,11 +115,13 @@ async function disablePromptTimer(host) {
 }
 
 async function setPromptsAnsweredPerPlayer(host, count) {
-  await openGameSettings(host);
-  const selector = host.page.getByRole('combobox', { name: 'Prompts answered per player' });
+  const settings = await openGameSettings(host);
+  const selector = settings.getByRole('combobox', { name: 'Prompts answered per player' });
   await selector.selectOption({ label: String(count) });
   await expect(selector).toHaveValue(String(count), { timeout: 10000 });
-  await expect(host.page.getByText(`${count} prompts each`, { exact: false })).toBeVisible({ timeout: 10000 });
+  await expect(settings.getByText(`${count} prompts each`, { exact: false })).toBeVisible({ timeout: 10000 });
+  await expect(settings.getByText(
+    `Requires at least ${count + 1} connected players.`, { exact: true })).toBeVisible({ timeout: 10000 });
 }
 
 async function configureMissingBribes(host, mode) {
@@ -275,6 +277,9 @@ async function main() {
 
     await Promise.all(roster.slice(1).map((player) => joinGame(player, gameId)));
     console.log('Joined four isolated browser contexts.');
+    const nonHostLobbySettings = roster[1].page.locator('details').filter({ hasText: 'Game settings' });
+    await expect(nonHostLobbySettings.getByText('Game settings', { exact: true })).toBeVisible();
+    await expect(nonHostLobbySettings.locator('select, input')).toHaveCount(0);
     await capture(roster[0].page, 'lobby');
 
     const duplicate = await makePlayer(browser, 'Duplicate Alice');
@@ -393,10 +398,15 @@ async function main() {
     await capture(roster[0].page, 'scoreboard');
     console.log('Completed voting and reached results.');
 
+    const nonHostScoreboardSettings = roster[1].page.locator('details').filter({ hasText: 'Game settings' });
+    await expect(nonHostScoreboardSettings.getByText('Game settings', { exact: true })).toBeVisible();
+    await expect(nonHostScoreboardSettings.locator('select, input')).toHaveCount(0);
+
     const nextRoundButton = roster[0].page.getByRole('button', { name: 'Start next round' });
     await setPromptsAnsweredPerPlayer(roster[0], 4);
     await expect(nextRoundButton).toBeDisabled();
     await expect(roster[0].page.getByText('At least 5 connected players are needed')).toBeVisible();
+    await captureResponsive(roster[0].page, 'scoreboard-insufficient-players');
 
     const latePlayer = await makePlayer(browser, 'Evan');
     roster.push(latePlayer);

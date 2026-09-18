@@ -17,6 +17,7 @@ export class Lobby {
   hostPlayerId;
   currentPlayerId;
   settings;
+  settingsUpdatePending;
   copyMessage = '';
 
   constructor(
@@ -27,6 +28,7 @@ export class Lobby {
     this.hostPlayerId = this.gameState.hostPlayerId;
     this.currentPlayerId = this.gameState.currentPlayerId;
     this.settings = this.gameState.settings;
+    this.settingsUpdatePending = this.gameState.settingsUpdatePending;
   }
 
   async toggleReady() {
@@ -67,13 +69,16 @@ export class Lobby {
   }
 
   canStart(): boolean {
-    return this.connectedCount() >= this.minimumPlayersRequired() && this.pendingReadyCount() === 0;
+    return !this.settingsUpdatePending() &&
+      this.connectedCount() >= this.minimumPlayersRequired() &&
+      this.pendingReadyCount() === 0;
   }
 
   canStartHint(): string {
     if (this.connectedCount() < this.minimumPlayersRequired()) {
       return `Waiting for at least ${this.minimumPlayersRequired()} connected players.`;
     }
+    if (this.settingsUpdatePending()) return 'Saving game settings...';
     if (this.pendingReadyCount() > 0) return `Waiting for ${this.pendingReadyCount()} player(s) to ready up.`;
     return 'Everyone is ready.';
   }

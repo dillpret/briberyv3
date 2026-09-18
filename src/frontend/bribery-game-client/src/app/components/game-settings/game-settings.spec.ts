@@ -1,12 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SignalrService } from '../../core/signalr.service';
-import { GameSettings } from '../../state/game-state.service';
+import { GameSettings, GameStateService } from '../../state/game-state.service';
 import { GameSettingsPanel } from './game-settings';
 
 describe('GameSettingsPanel', () => {
   let fixture: ComponentFixture<GameSettingsPanel>;
   let component: GameSettingsPanel;
   let signalr: Pick<SignalrService, 'updateGameSettings'>;
+  let gameState: GameStateService;
 
   const settings = (): GameSettings => ({
     promptsAnsweredPerPlayer: 2,
@@ -24,6 +25,7 @@ describe('GameSettingsPanel', () => {
       providers: [{ provide: SignalrService, useValue: signalr }],
     }).compileComponents();
 
+    gameState = TestBed.inject(GameStateService);
     fixture = TestBed.createComponent(GameSettingsPanel);
     component = fixture.componentInstance;
     component.settings = settings();
@@ -66,8 +68,40 @@ describe('GameSettingsPanel', () => {
     );
     expect(signalr.updateGameSettings).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ promptsAnsweredPerPlayer: 2, bribeFallbackMode: 'NoFallback' }),
+      expect.objectContaining({ promptsAnsweredPerPlayer: 5, bribeFallbackMode: 'NoFallback' }),
     );
+  });
+
+  it('updates the connected-player requirement immediately when the prompt count changes', async () => {
+    const selector = fixture.nativeElement.querySelector(
+      'select[aria-label="Prompts answered per player"]',
+    ) as HTMLSelectElement;
+
+    for (const promptsAnsweredPerPlayer of [3, 4, 5]) {
+      selector.value = String(promptsAnsweredPerPlayer);
+      selector.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain(
+        `Requires at least ${promptsAnsweredPerPlayer + 1} connected players.`,
+      );
+      expect(gameState.settings().promptsAnsweredPerPlayer).toBe(promptsAnsweredPerPlayer);
+
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+  });
+
+  it('rolls back an optimistic prompt-count change when saving fails', async () => {
+    vi.mocked(signalr.updateGameSettings).mockRejectedValueOnce(new Error('Connection lost'));
+
+    await expect(component.updatePromptsAnsweredPerPlayer(5)).rejects.toThrow('Connection lost');
+    fixture.detectChanges();
+
+    expect(component.settings.promptsAnsweredPerPlayer).toBe(2);
+    expect(gameState.settings().promptsAnsweredPerPlayer).toBe(2);
+    expect(gameState.settingsUpdatePending()).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Requires at least 3 connected players.');
   });
 
   it('clamps timer durations and preserves the other settings', async () => {
