@@ -4,10 +4,10 @@ public class GameSettings
 {
     public int PromptsAnsweredPerPlayer { get; set; } = Game.DefaultPromptsAnsweredPerPlayer;
     public BribeFallbackMode BribeFallbackMode { get; set; } = BribeFallbackMode.AutoFill;
-    public PhaseTimerSettings PromptTimer { get; set; } = new() { DurationSeconds = 120 };
-    public PhaseTimerSettings SubmissionTimer { get; set; } = new() { DurationSeconds = 300 };
-    public PhaseTimerSettings VotingTimer { get; set; } = new() { DurationSeconds = 90 };
-    public PhaseTimerSettings AppreciationTimer { get; set; } = new() { DurationSeconds = 120 };
+    public PhaseTimerSettings PromptTimer { get; set; } = new() { DurationSeconds = 60 };
+    public PhaseTimerSettings SubmissionTimer { get; set; } = new() { DurationSeconds = 120 };
+    public PhaseTimerSettings VotingTimer { get; set; } = new() { DurationSeconds = 60 };
+    public PhaseTimerSettings AppreciationTimer { get; set; } = new() { DurationSeconds = 180 };
 
     public PhaseTimerSettings TimerFor(GamePhase phase)
     {
