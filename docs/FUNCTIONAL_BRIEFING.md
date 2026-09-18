@@ -19,7 +19,7 @@ This briefing outlines every observable behaviour, rule, and player-facing capab
   - A start button that remains disabled until at least three connected players are active.
 - The landing page also offers a "How To Play" overlay so new participants can read the rules without leaving the flow.
 - Any player may leave and rejoin. Rejoining prefers a stored player identifier, falls back to case-insensitive username matching, and keeps prior scores and state. Duplicate stale sockets are cleaned up automatically.
-- Hosts may remove non-host players from the lobby or mid-game. Kicked players receive a notice and are redirected to the home screen; remaining players are notified and the roster updates.
+- Hosts may mark connected non-host players offline from the lobby or mid-game. The retained player record keeps its score and round work so the player can explicitly rejoin; the affected client receives a notice and returns to the home screen, while the roster updates for everyone else.
 - Attempts to join finished or unknown games show dedicated banners guiding the user back home.
 
 ## 3. Round Lifecycle Overview
@@ -100,7 +100,7 @@ Progression rules:
 
 ## 11. Player List Panel & Moderation
 - A collapsible player list is available throughout the game and pinned open on larger screens. It shows usernames, host badges, connection status, current scores, and per-phase submission status icons (submitted vs. pending) when relevant.
-- Hosts see "Kick" actions next to non-hosts. Confirming a kick emits notifications to all players and updates the list immediately.
+- Hosts can open a compact contextual menu for connected non-hosts and choose "Mark offline." Confirming the action updates the list immediately without permanently removing or banning the player.
 
 ## 12. Content Sources & Default Assets
 - Prompt suggestions originate from the curated prompt library bundled with the experience. The backend uses the same library when it must provide a timeout fallback prompt.

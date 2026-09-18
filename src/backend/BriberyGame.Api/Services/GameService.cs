@@ -531,6 +531,35 @@ public class GameService
         return (gameId, result);
     }
 
+    public (string? gameId, Result<string>? result) MarkPlayerOffline(
+        string connectionId,
+        string targetPlayerId)
+    {
+        var (gameId, session) = ResolveSession(connectionId);
+        if (gameId == null || session == null) return (null, null);
+
+        Result<string> result;
+        var beforePhase = session.Game.State.Phase;
+        var beforeRound = session.Game.State.CurrentRound;
+        lock (session.SyncRoot)
+        {
+            result = session.Game.MarkPlayerOffline(connectionId, targetPlayerId);
+            if (result.Success)
+            {
+                _connectionToGame.TryRemove(result.Data!, out _);
+                MarkActivity(gameId, session.Game);
+            }
+        }
+
+        if (result.Success)
+        {
+            RecordPhaseTelemetry(session.Game, beforePhase, beforeRound);
+            UpdateActiveTelemetry();
+        }
+
+        return (gameId, result);
+    }
+
     public List<ConnectionGameStateDto> GetConnectedPlayerStates(string gameId)
     {
         var session = GetSession(gameId);

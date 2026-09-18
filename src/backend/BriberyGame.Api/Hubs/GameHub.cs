@@ -304,6 +304,28 @@ public class GameHub : Hub
         await SendGameStateUpdates(gameId);
     }
 
+    public async Task MarkPlayerOffline(string targetPlayerId)
+    {
+        var (gameId, result) =
+            _gameService.MarkPlayerOffline(Context.ConnectionId, targetPlayerId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await SendFailure("mark_player_offline", "ActionFailed", result.Error);
+            return;
+        }
+
+        var targetConnectionId = result.Data!;
+        await Clients.Client(targetConnectionId).SendAsync(
+            "PlayerMarkedOffline",
+            "The host marked you offline. You can rejoin the room when you're ready.");
+        await Groups.RemoveFromGroupAsync(targetConnectionId, gameId);
+        await SendGameStateUpdates(gameId);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var (gameId, state) =

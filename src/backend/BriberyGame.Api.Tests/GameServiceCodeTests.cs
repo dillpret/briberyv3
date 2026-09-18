@@ -67,6 +67,27 @@ public class GameServiceCodeTests
     }
 
     [Fact]
+    public void MarkPlayerOfflineInvalidatesTheOldConnectionMapping()
+    {
+        var service = new GameService();
+        var gameId = service.CreateGame();
+        service.Join(gameId, "c1", "p1", "Host");
+        service.Join(gameId, "c2", "p2", "Player 2");
+
+        var (_, result) = service.MarkPlayerOffline("c1", "p2");
+        var (oldConnectionGameId, oldConnectionResult) = service.ToggleReady("c2");
+        var (_, rejoinResult) = service.Join(gameId, "c2-new", "p2-new", "Player 2");
+
+        Assert.NotNull(result);
+        Assert.True(result.Success, result.Error);
+        Assert.Null(oldConnectionGameId);
+        Assert.Null(oldConnectionResult);
+        Assert.NotNull(rejoinResult);
+        Assert.True(rejoinResult.Success, rejoinResult.Error);
+        Assert.Equal("p2", rejoinResult.Data!.CurrentPlayerId);
+    }
+
+    [Fact]
     public void CleanupInactiveGamesRetainsEmptyGamesBeforeTtl()
     {
         var now = DateTimeOffset.UtcNow;

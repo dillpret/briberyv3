@@ -29,7 +29,7 @@
   <div class="space-y-2">
     @for (player of sortedPlayers(); track player.id) {
       <article
-        class="player-list-item border-2 border-transparent"
+        class="player-list-item relative border-2 border-transparent"
         [class.!border-pine/35]="isCurrentPlayer(player)"
         [class.!bg-pine/10]="isCurrentPlayer(player)"
         [class.ring-2]="isCurrentPlayer(player)"
@@ -44,10 +44,39 @@
             </p>
             <p class="text-xs text-ink/60">{{ player.score }} point(s)</p>
           </div>
-          <span class="status-pill shrink-0" [ngClass]="statusClasses(player)">
-            {{ player.phaseStatusLabel }}
-          </span>
+          <div class="flex shrink-0 items-center gap-1">
+            <span class="status-pill" [ngClass]="statusClasses(player)">
+              {{ player.phaseStatusLabel }}
+            </span>
+            @if (canMarkOffline(player)) {
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-full text-xl font-bold leading-none text-ink/60 transition hover:bg-ink/10 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine"
+                [attr.aria-label]="'Actions for ' + player.name"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="openPlayerMenuId() === player.id"
+                [attr.aria-controls]="'player-actions-' + player.id"
+                (click)="togglePlayerMenu($event, player.id)">
+                <span aria-hidden="true">&#8942;</span>
+              </button>
+            }
+          </div>
         </div>
+        @if (openPlayerMenuId() === player.id) {
+          <div
+            role="menu"
+            [id]="'player-actions-' + player.id"
+            class="absolute bottom-10 right-2 z-20 min-w-36 rounded-xl border border-ink/15 bg-surface p-1 shadow-xl shadow-ink/15"
+            (click)="$event.stopPropagation()">
+            <button
+              type="button"
+              role="menuitem"
+              class="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-error transition hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-error"
+              (click)="markOffline($event, player)">
+              Mark offline
+            </button>
+          </div>
+        }
         <div class="mt-2 flex flex-wrap gap-1.5">
           @if (player.id === hostPlayerId()) {
             <span class="status-pill border-plum/30 bg-plum/10 text-plum">Host</span>

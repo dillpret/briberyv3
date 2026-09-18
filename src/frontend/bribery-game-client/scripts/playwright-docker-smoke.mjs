@@ -287,6 +287,35 @@ async function main() {
     await duplicate.context.close();
     console.log('Verified duplicate-name join error flow.');
 
+    const markedOfflinePlayer = roster[3];
+    await roster[0].page.getByRole('button', { name: `Actions for ${markedOfflinePlayer.name}` }).click();
+    await expect(roster[0].page.getByRole('menuitem', { name: 'Mark offline' })).toBeVisible();
+    await capture(roster[0].page, 'lobby-player-actions');
+
+    const hostViewport = roster[0].page.viewportSize();
+    await roster[0].page.setViewportSize({ width: 390, height: 844 });
+    await roster[0].page.getByRole('button', { name: 'Players' }).click();
+    await roster[0].page.getByRole('button', { name: `Actions for ${markedOfflinePlayer.name}` }).click();
+    await expect(roster[0].page.getByRole('menuitem', { name: 'Mark offline' })).toBeVisible();
+    await capture(roster[0].page, 'lobby-player-actions-mobile');
+    await roster[0].page.getByRole('button', { name: 'Close' }).click();
+    if (hostViewport) await roster[0].page.setViewportSize(hostViewport);
+
+    await roster[0].page.getByRole('button', { name: `Actions for ${markedOfflinePlayer.name}` }).click();
+    roster[0].page.once('dialog', (dialog) => dialog.accept());
+    await roster[0].page.getByRole('menuitem', { name: 'Mark offline' }).click();
+
+    await waitForVisible(markedOfflinePlayer.page, 'The host marked you offline');
+    const markedOfflineRosterEntry = roster[0].page
+      .getByRole('complementary')
+      .locator('article')
+      .filter({ hasText: markedOfflinePlayer.name });
+    await expect(markedOfflineRosterEntry.getByText('Disconnected', { exact: true })).toBeVisible();
+    await markedOfflinePlayer.page.getByRole('button', { name: 'Join game' }).click();
+    await waitForVisible(markedOfflinePlayer.page, 'Room code');
+    await expect(markedOfflineRosterEntry.getByText('Disconnected', { exact: true })).toHaveCount(0);
+    console.log('Verified host mark-offline and explicit same-browser rejoin flow.');
+
     await setPromptsAnsweredPerPlayer(roster[0], 3);
     await captureResponsive(roster[0].page, 'lobby-settings-three-prompts');
     await enablePromptTimer(roster[0]);

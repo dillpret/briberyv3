@@ -133,6 +133,32 @@ public class Game
         return BuildStateForPlayer(player?.Id ?? "");
     }
 
+    public Result<string> MarkPlayerOffline(string connectionId, string targetPlayerId)
+    {
+        var requester = FindPlayerByConnection(connectionId);
+        if (requester == null || requester.Id != State.HostPlayerId)
+            return Result<string>.Fail("Player is not host and cannot mark players offline");
+
+        var target = State.Players.FirstOrDefault(player => player.Id == targetPlayerId);
+        if (target == null)
+            return Result<string>.Fail("Player not found");
+
+        if (target.Id == requester.Id || target.Id == State.HostPlayerId)
+            return Result<string>.Fail("The host cannot be marked offline");
+
+        if (!target.Connected)
+            return Result<string>.Fail("Player is already offline");
+
+        var targetConnectionId = target.ConnectionId;
+        target.Connected = false;
+        target.ConnectionId = "";
+
+        ReassignHost();
+        AdvancePhaseIfComplete();
+
+        return Result<string>.Ok(targetConnectionId);
+    }
+
     public Result<GameStateDto> ToggleReady(string connectionId)
     {
         var phaseResult = RequirePhase(GamePhase.Lobby, "Cannot toggle ready outside lobby");

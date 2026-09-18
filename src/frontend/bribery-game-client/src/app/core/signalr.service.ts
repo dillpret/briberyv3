@@ -3,6 +3,7 @@ import * as signalR from '@microsoft/signalr';
 import { GameStateService } from '../state/game-state.service';
 import { BribeMedia, GameSettings } from '../state/game-state.service';
 import { ErrorMessageService } from './error-message.service';
+import { Router } from '@angular/router';
 
 export interface SubmitBribeRequest {
   targetPlayerId: string;
@@ -42,6 +43,7 @@ export class SignalrService {
   constructor(
     private gameState: GameStateService,
     private errors: ErrorMessageService,
+    private router: Router,
   ) {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
@@ -122,6 +124,11 @@ export class SignalrService {
 
     this.connection.on('StartFailed', (message: string) => {
       this.errors.show(message);
+    });
+
+    this.connection.on('PlayerMarkedOffline', (message: string) => {
+      this.activeSession = undefined;
+      void this.router.navigate(['/'], { state: { message } });
     });
 
     this.connection.onreconnecting(() => {
@@ -274,6 +281,11 @@ export class SignalrService {
   async advancePhaseWithoutOfflinePlayers(): Promise<void> {
     await this.ensureReadyForAction();
     await this.connection!.invoke('AdvancePhaseWithoutOfflinePlayers');
+  }
+
+  async markPlayerOffline(targetPlayerId: string): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('MarkPlayerOffline', targetPlayerId);
   }
 
   private async ensureReadyForAction(): Promise<void> {

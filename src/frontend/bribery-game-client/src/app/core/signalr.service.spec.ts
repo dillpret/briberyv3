@@ -3,6 +3,7 @@ import { SignalrService } from './signalr.service';
 import { GameStateService } from '../state/game-state.service';
 import * as signalR from '@microsoft/signalr';
 import { ErrorMessageService } from './error-message.service';
+import { Router } from '@angular/router';
 
 type Handler = (...args: any[]) => void;
 
@@ -58,6 +59,7 @@ vi.mock('@microsoft/signalr', () => {
 
 describe('SignalrService', () => {
   let service: SignalrService;
+  let router: { navigate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     handlers = {};
@@ -84,8 +86,13 @@ describe('SignalrService', () => {
         onClose = handler;
       }),
     };
+    router = { navigate: vi.fn().mockResolvedValue(true) };
     TestBed.configureTestingModule({
-      providers: [SignalrService, GameStateService],
+      providers: [
+        SignalrService,
+        GameStateService,
+        { provide: Router, useValue: router },
+      ],
     });
     service = TestBed.inject(SignalrService);
   });
@@ -191,5 +198,29 @@ describe('SignalrService', () => {
 
     expect(connection.invoke).toHaveBeenNthCalledWith(2, 'EditPrompt');
     expect(connection.invoke).toHaveBeenNthCalledWith(4, 'EditBribe', 'p2');
+  });
+
+  it('invokes the mark-player-offline action', async () => {
+    await joinAndReceiveState();
+    connection.invoke.mockClear();
+
+    await service.markPlayerOffline('p2');
+
+    expect(connection.invoke).toHaveBeenCalledWith('MarkPlayerOffline', 'p2');
+  });
+
+  it('stops automatic session restoration and returns home when marked offline', async () => {
+    await joinAndReceiveState();
+    connection.invoke.mockClear();
+
+    handlers['PlayerMarkedOffline']('The host marked you offline.');
+    expect(router.navigate).toHaveBeenCalledWith(['/'], {
+      state: { message: 'The host marked you offline.' },
+    });
+
+    connection.state = signalR.HubConnectionState.Connected;
+    onReconnected?.('new-connection-id');
+    await Promise.resolve();
+    expect(connection.invoke).not.toHaveBeenCalledWith('JoinLobby', expect.anything(), expect.anything(), expect.anything());
   });
 });

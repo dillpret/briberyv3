@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { GameStateService, Player } from '../../state/game-state.service';
 import { PlayerPanel } from './player-panel';
+import { SignalrService } from '../../core/signalr.service';
 
 describe('PlayerPanel', () => {
   let fixture: ComponentFixture<PlayerPanel>;
   let component: PlayerPanel;
+  let signalr: { markPlayerOffline: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     localStorage.clear();
@@ -12,8 +14,11 @@ describe('PlayerPanel', () => {
     document.body.removeAttribute('style');
     document.documentElement.removeAttribute('style');
 
+    signalr = { markPlayerOffline: vi.fn().mockResolvedValue(undefined) };
+
     await TestBed.configureTestingModule({
       imports: [PlayerPanel],
+      providers: [{ provide: SignalrService, useValue: signalr }],
     }).compileComponents();
 
     const gameState = TestBed.inject(GameStateService);
@@ -69,6 +74,83 @@ describe('PlayerPanel', () => {
     expect(component.statusClasses(player({ phaseStatus: 'Done' }))).toContain('text-pine');
     expect(component.statusClasses(player({ phaseStatus: 'Pending' }))).toContain('text-ink');
     expect(component.statusClasses(player({ phaseStatus: 'Waiting' }))).toContain('text-plum');
+  });
+
+  it('shows contextual actions only for connected non-host players when viewed by the host', () => {
+    const gameState = TestBed.inject(GameStateService);
+    gameState.currentPlayerId.set('p1');
+    fixture.detectChanges();
+
+    const actionButtons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('[aria-haspopup="menu"]'),
+    );
+
+    expect(actionButtons.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Actions for Bob',
+      'Actions for Charlie',
+    ]);
+  });
+
+  it('keeps only one contextual menu open and closes it with Escape or an outside click', () => {
+    const gameState = TestBed.inject(GameStateService);
+    gameState.currentPlayerId.set('p1');
+    fixture.detectChanges();
+    const actionButtons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('[aria-haspopup="menu"]'),
+    );
+
+    actionButtons[0].click();
+    fixture.detectChanges();
+    expect(component.openPlayerMenuId()).toBe('p2');
+
+    actionButtons[1].click();
+    fixture.detectChanges();
+    expect(component.openPlayerMenuId()).toBe('p3');
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('[role="menu"]')).toHaveLength(1);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(component.openPlayerMenuId()).toBeNull();
+
+    actionButtons[0].click();
+    document.body.click();
+    fixture.detectChanges();
+    expect(component.openPlayerMenuId()).toBeNull();
+  });
+
+  it('confirms before marking the selected player offline', async () => {
+    const gameState = TestBed.inject(GameStateService);
+    gameState.currentPlayerId.set('p1');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    fixture.detectChanges();
+
+    const action = (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[aria-label="Actions for Bob"]')!;
+    action.click();
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[role="menuitem"]')!.click();
+    await fixture.whenStable();
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Mark Bob offline? They can rejoin, and their score and submitted work will be kept.',
+    );
+    expect(signalr.markPlayerOffline).toHaveBeenCalledWith('p2');
+  });
+
+  it('does not mark the player offline when confirmation is cancelled', async () => {
+    const gameState = TestBed.inject(GameStateService);
+    gameState.currentPlayerId.set('p1');
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    fixture.detectChanges();
+
+    const action = (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[aria-label="Actions for Bob"]')!;
+    action.click();
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[role="menuitem"]')!.click();
+    await fixture.whenStable();
+
+    expect(signalr.markPlayerOffline).not.toHaveBeenCalled();
   });
 
   it('opens and closes the mobile panel state', () => {

@@ -106,6 +106,73 @@ public class LobbyAndConnectionTests
     }
 
     [Fact]
+    public void HostCanMarkPlayerOfflineWithoutRemovingRoundState()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(3);
+        Assert.True(harness.Game.SubmitPrompt("c2", "Keep this prompt").Success);
+        harness.Game.State.Players.Single(player => player.Id == "p2").Score = 7;
+
+        var result = harness.Game.MarkPlayerOffline("c1", "p2");
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal("c2", result.Data);
+        var player = harness.Game.State.Players.Single(candidate => candidate.Id == "p2");
+        Assert.False(player.Connected);
+        Assert.True(player.IsActive);
+        Assert.Equal(7, player.Score);
+        Assert.Equal("Keep this prompt", harness.Game.State.Prompts["p2"].Text);
+    }
+
+    [Theory]
+    [InlineData("c2", "p3", "Player is not host and cannot mark players offline")]
+    [InlineData("c1", "p1", "The host cannot be marked offline")]
+    [InlineData("c1", "missing", "Player not found")]
+    public void MarkPlayerOfflineRejectsInvalidRequests(
+        string requesterConnectionId,
+        string targetPlayerId,
+        string expectedError)
+    {
+        var harness = new GameTestHarness();
+        harness.JoinPlayers(3);
+
+        var result = harness.Game.MarkPlayerOffline(requesterConnectionId, targetPlayerId);
+
+        Assert.False(result.Success);
+        Assert.Equal(expectedError, result.Error);
+        Assert.All(harness.Game.State.Players, player => Assert.True(player.Connected));
+    }
+
+    [Fact]
+    public void MarkPlayerOfflineRejectsAnAlreadyOfflinePlayer()
+    {
+        var harness = new GameTestHarness();
+        harness.JoinPlayers(3);
+        Assert.True(harness.Game.MarkPlayerOffline("c1", "p2").Success);
+
+        var result = harness.Game.MarkPlayerOffline("c1", "p2");
+
+        Assert.False(result.Success);
+        Assert.Equal("Player is already offline", result.Error);
+    }
+
+    [Fact]
+    public void PlayerMarkedOfflineCanResumeCurrentRoundByName()
+    {
+        var harness = new GameTestHarness();
+        harness.StartPromptPhaseWithPlayers(3);
+        Assert.True(harness.Game.SubmitPrompt("c2", "Resume me").Success);
+        Assert.True(harness.Game.MarkPlayerOffline("c1", "p2").Success);
+
+        var state = harness.JoinPlayer("c2-new-browser", "brand-new-id", " player 2 ");
+
+        Assert.Equal("p2", state.CurrentPlayerId);
+        Assert.True(state.IsCurrentPlayerActive);
+        Assert.True(state.Prompt!.HasSubmittedPrompt);
+        Assert.Equal("Resume me", state.Prompt.SubmittedText);
+    }
+
+    [Fact]
     public void ReconnectWithSamePlayerIdRestoresExistingPlayerRecord()
     {
         var harness = new GameTestHarness();
