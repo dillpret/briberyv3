@@ -48,6 +48,8 @@ export class Voting {
   }
 
   selectBribe(bribeId: string) {
+    const bribe = this.voting()?.bribes.find((candidate) => candidate.bribeId === bribeId);
+    if (!bribe?.isSelectable) return;
     this.selectedBribeId.set(bribeId);
     const version = ++this.draftVersion;
     this.draftSave = this.draftSave
@@ -62,6 +64,10 @@ export class Voting {
 
     await this.draftSave;
     await this.signalr.submitVote(bribeId);
+  }
+
+  async acknowledgeNoBribes() {
+    await this.signalr.acknowledgeNoBribes();
   }
 
   async advanceWithoutOfflinePlayers() {

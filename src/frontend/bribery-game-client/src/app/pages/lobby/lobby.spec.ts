@@ -87,7 +87,7 @@ describe('Lobby', () => {
     const durationInputs = element.querySelectorAll<HTMLInputElement>('input[type="number"]');
 
     expect(element.textContent).toContain('Game settings');
-    expect(element.textContent).toContain('2 prompts each · Timers off');
+    expect(element.textContent).toContain('2 prompts each · Auto-fill · Timers off');
     expect(element.textContent).toContain('Round format');
     expect(element.textContent).toContain('Prompts answered per player');
     expect(element.textContent).toContain('Requires at least 3 connected players');
@@ -128,6 +128,7 @@ describe('Lobby', () => {
   it('enables the seconds input and avoids duplicate duration text when a host timer is on', async () => {
     gameState.settings.set({
       promptsAnsweredPerPlayer: 2,
+      bribeFallbackMode: 'AutoFill',
       promptTimer: { enabled: true, durationSeconds: 120 },
       submissionTimer: { enabled: false, durationSeconds: 300 },
       votingTimer: { enabled: false, durationSeconds: 90 },
@@ -140,7 +141,7 @@ describe('Lobby', () => {
     const element = fixture.nativeElement as HTMLElement;
     const durationInputs = element.querySelectorAll<HTMLInputElement>('input[type="number"]');
 
-    expect(component.settingsSummary()).toBe('2 prompts each · 1 timer enabled');
+    expect(component.settingsSummary()).toBe('2 prompts each · Auto-fill · 1 timer enabled');
     expect(durationInputs[0].disabled).toBe(false);
     expect(durationInputs[0].value).toBe('120');
     expect(element.textContent).not.toContain('120 seconds');
@@ -156,6 +157,14 @@ describe('Lobby', () => {
     );
   });
 
+  it('lets the host select no fallback handling for missed bribes', async () => {
+    await component.updateBribeFallbackMode('NoFallback');
+
+    expect(signalr.updateGameSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ bribeFallbackMode: 'NoFallback' }),
+    );
+  });
+
   it('renders waiting copy for non-host players', () => {
     component.hostPlayerId.set('p2');
     fixture.detectChanges();
@@ -166,6 +175,7 @@ describe('Lobby', () => {
   it('renders read-only timer summaries for non-host players', () => {
     gameState.settings.set({
       promptsAnsweredPerPlayer: 4,
+      bribeFallbackMode: 'NoFallback',
       promptTimer: { enabled: true, durationSeconds: 120 },
       submissionTimer: { enabled: false, durationSeconds: 300 },
       votingTimer: { enabled: false, durationSeconds: 90 },

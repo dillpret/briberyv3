@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { SignalrService } from '../../core/signalr.service';
-import { GameSettings, GameStateService } from '../../state/game-state.service';
+import { BribeFallbackMode, GameSettings, GameStateService } from '../../state/game-state.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WaitingTips } from '../../components/waiting-tips/waiting-tips';
@@ -72,6 +72,17 @@ export class Lobby {
     });
   }
 
+  async updateBribeFallbackMode(bribeFallbackMode: BribeFallbackMode) {
+    await this.signalr.updateGameSettings({
+      ...this.settings(),
+      bribeFallbackMode,
+    });
+  }
+
+  bribeFallbackLabel(): string {
+    return this.settings().bribeFallbackMode === 'NoFallback' ? 'No fallback' : 'Auto-fill';
+  }
+
   timerLabel(timerName: TimerName): string {
     const labels: Record<TimerName, string> = {
       promptTimer: 'Prompt',
@@ -98,14 +109,14 @@ export class Lobby {
       : count === 1
         ? '1 timer enabled'
         : `${count} timers enabled`;
-    return `${this.settings().promptsAnsweredPerPlayer} prompts each · ${timerSummary}`;
+    return `${this.settings().promptsAnsweredPerPlayer} prompts each · ${this.bribeFallbackLabel()} · ${timerSummary}`;
   }
 
   timerDescription(timerName: TimerName): string {
     const descriptions: Record<TimerName, string> = {
-      promptTimer: 'Auto-submits the prompt draft when time runs out.',
-      submissionTimer: 'Auto-submits saved bribe drafts when time runs out.',
-      votingTimer: 'Auto-submits the saved vote when time runs out.',
+      promptTimer: 'Uses a saved draft, or chooses a random prompt when blank.',
+      submissionTimer: 'Uses saved drafts, then applies the selected bribe fallback.',
+      votingTimer: 'Uses a saved eligible vote, otherwise prefers submitted bribes.',
       appreciationTimer: 'Locks in appreciation when time runs out.',
     };
     return descriptions[timerName];

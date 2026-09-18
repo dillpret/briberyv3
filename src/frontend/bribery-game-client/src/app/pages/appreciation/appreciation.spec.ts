@@ -90,7 +90,7 @@ describe('Appreciation', () => {
 
   it('submits done and shows waiting controls', async () => {
     const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
-      .find((candidate) => candidate.textContent?.includes('Done appreciating')) as HTMLButtonElement;
+      .find((candidate) => candidate.textContent?.includes('Done reviewing')) as HTMLButtonElement;
 
     button.click();
     await fixture.whenStable();
@@ -102,6 +102,29 @@ describe('Appreciation', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Appreciation done');
     expect(fixture.nativeElement.textContent).toContain('Appreciation waiting tip');
+  });
+
+  it('shows generated and no-winner outcomes without coin controls', () => {
+    gameState.appreciation.update((state) => ({
+      ...state!,
+      roundResults: [
+        result({ outcome: 'RandomFallbackWinner', canCurrentPlayerAwardCoin: false }),
+        result({
+          promptOwnerPlayerId: 'empty',
+          outcome: 'NoWinner',
+          winningPlayerId: null,
+          winningPlayerName: null,
+          winningBribeId: null,
+          canCurrentPlayerAwardCoin: false,
+        }),
+      ],
+    }));
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Randomly generated as player did not submit bribe — no points earned.');
+    expect(text).toContain('No bribes submitted for this prompt — no winner.');
+    expect(fixture.nativeElement.querySelectorAll('[aria-label="Give coin"]')).toHaveLength(0);
   });
 });
 
@@ -116,6 +139,7 @@ function result(overrides: any) {
     winningPlayerId: 'winner',
     winningPlayerName: 'Winner',
     winningBribeId: `bribe-${overrides.winningPlayerId ?? 'winner'}`,
+    outcome: 'SubmittedWinner',
     isCurrentPlayersPrompt: false,
     currentPlayerSubmittedBribe: false,
     currentPlayerSubmittedWinningBribe: false,

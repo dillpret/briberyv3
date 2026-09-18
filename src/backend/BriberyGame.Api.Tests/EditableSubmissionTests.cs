@@ -212,7 +212,7 @@ public class EditableSubmissionTests
         Assert.Contains(game.State.Bribes.Values, bribe =>
             bribe.FromPlayerId == "p1" &&
             bribe.ToPlayerId == targets[1].PlayerId &&
-            bribe.Text == "<didn't submit a bribe in time, for shame>");
+            bribe.Origin == BribeSubmissionOrigin.RandomFallback);
     }
 
     [Fact]

@@ -172,18 +172,18 @@ export class Prompt implements OnDestroy {
 
   private async fetchPromptIdeas(): Promise<string[]> {
     try {
-      const response = await fetch('/prompt-ideas.txt');
+      const response = await fetch('/api/prompt-ideas');
       if (!response.ok) {
         this.promptIdeas = [];
         this.promptIdeasRequest = null;
         return this.promptIdeas;
       }
 
-      const text = await response.text();
-      this.promptIdeas = Array.from(new Set(text
-        .split(/\r?\n/)
-        .map((idea) => idea.trim())
-        .filter((idea) => idea.length > 0)));
+      const ideas = await response.json() as unknown;
+      this.promptIdeas = Array.isArray(ideas)
+        ? Array.from(new Set(ideas.filter((idea): idea is string =>
+            typeof idea === 'string' && idea.trim().length > 0).map((idea) => idea.trim())))
+        : [];
       return this.promptIdeas;
     } catch {
       this.promptIdeasRequest = null;

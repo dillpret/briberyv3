@@ -9,4 +9,5 @@ public class BribeSubmission
     public string Text { get; set; } = "";
     public BribeMedia? Media { get; set; }
     public DateTimeOffset SubmittedAt { get; set; }
+    public BribeSubmissionOrigin Origin { get; set; } = BribeSubmissionOrigin.Submitted;
 }

@@ -349,6 +349,11 @@ export class SignalrService {
     this.rejectReconnect = undefined;
   }
 
+  async acknowledgeNoBribes(): Promise<void> {
+    await this.ensureReadyForAction();
+    await this.connection!.invoke('AcknowledgeNoBribes');
+  }
+
   private errorMessage(error: unknown): string {
     return error instanceof Error
       ? error.message

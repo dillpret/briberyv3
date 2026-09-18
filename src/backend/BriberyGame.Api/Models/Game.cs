@@ -424,6 +424,9 @@ public class Game
         if (!State.Bribes.TryGetValue(bribeId, out var bribe) || bribe.ToPlayerId != player.Id)
             return Result<GameStateDto>.Fail("Cannot vote for a bribe that was not sent to you");
 
+        if (bribe.Origin == BribeSubmissionOrigin.Missing)
+            return Result<GameStateDto>.Fail("Cannot vote for a missing bribe");
+
         State.Votes[player.Id] = new VoteSubmission
         {
             VoterPlayerId = player.Id,
@@ -435,6 +438,40 @@ public class Game
         {
             BuildRoundResults();
 
+            var transitionResult = TransitionTo(GamePhase.Appreciation);
+            if (!transitionResult.Success)
+                return Result<GameStateDto>.Fail(transitionResult.Error!);
+        }
+
+        return Result<GameStateDto>.Ok(BuildStateForPlayer(player.Id));
+    }
+
+    public Result<GameStateDto> AcknowledgeNoBribes(string connectionId)
+    {
+        var phaseResult = RequirePhase(GamePhase.Voting, "Cannot acknowledge missing bribes outside voting phase");
+        if (!phaseResult.Success)
+            return Result<GameStateDto>.Fail(phaseResult.Error!);
+
+        var player = FindPlayerByConnection(connectionId);
+        if (player == null)
+            return Result<GameStateDto>.Fail("Player not found");
+        if (!player.IsActive)
+            return Result<GameStateDto>.Fail("Inactive players cannot vote");
+        if (State.Votes.ContainsKey(player.Id))
+            return Result<GameStateDto>.Fail("Vote has already been submitted");
+        if (SelectableBribesFor(player.Id).Count != 0)
+            return Result<GameStateDto>.Fail("Cannot record no winner while selectable bribes are available");
+
+        State.Votes[player.Id] = new VoteSubmission
+        {
+            VoterPlayerId = player.Id,
+            BribeId = null,
+            SubmittedAt = _now()
+        };
+
+        if (AllActivePlayersVoted())
+        {
+            BuildRoundResults();
             var transitionResult = TransitionTo(GamePhase.Appreciation);
             if (!transitionResult.Success)
                 return Result<GameStateDto>.Fail(transitionResult.Error!);
@@ -563,6 +600,9 @@ public class Game
 
         if (!State.Bribes.TryGetValue(bribeId, out var bribe) || bribe.ToPlayerId != player.Id)
             return Result<GameStateDto>.Fail("Cannot save a vote for a bribe that was not sent to you");
+
+        if (bribe.Origin == BribeSubmissionOrigin.Missing)
+            return Result<GameStateDto>.Fail("Cannot save a vote for a missing bribe");
 
         if (State.VoteDrafts.TryGetValue(player.Id, out var existing) &&
             existing.Version > clientDraftVersion)
@@ -741,6 +781,9 @@ public class Game
             return Result<object>.Fail(
                 $"Prompts answered per player must be between {MinimumPromptsAnsweredPerPlayer} and {MaximumPromptsAnsweredPerPlayer}");
 
+        if (!Enum.IsDefined(settings.BribeFallbackMode))
+            return Result<object>.Fail("Bribe fallback mode is invalid");
+
         foreach (var timer in new[]
                  {
                      settings.PromptTimer,
@@ -892,7 +935,7 @@ public class Game
     private List<RoundResult> OrderRoundResultsForPlayer(string playerId)
     {
         var submittedPromptOwnerIds = State.Bribes.Values
-            .Where(bribe => bribe.FromPlayerId == playerId)
+            .Where(bribe => bribe.FromPlayerId == playerId && bribe.Origin == BribeSubmissionOrigin.Submitted)
             .OrderBy(bribe => bribe.SubmittedAt)
             .Select(bribe => bribe.ToPlayerId)
             .Distinct()
@@ -919,14 +962,20 @@ public class Game
         return [.. targetedResults, .. middleResults, ownPromptResult];
     }
 
-    private bool CanPlayerAwardCoin(string playerId, string bribeId, out string? error)
+    private bool CanPlayerAwardCoin(string playerId, string? bribeId, out string? error)
     {
         error = null;
 
         var result = State.RoundResults.FirstOrDefault(r => r.WinningBribeId == bribeId);
-        if (result == null)
+        if (bribeId == null || result == null)
         {
             error = "Cannot award a coin to a bribe that did not win";
+            return false;
+        }
+
+        if (result.Outcome != RoundResultOutcome.SubmittedWinner)
+        {
+            error = "Coins cannot be awarded to a randomly generated bribe";
             return false;
         }
 
@@ -954,18 +1003,34 @@ public class Game
 
         var activePlayerIds = GetActivePlayerIds();
 
-        foreach (var vote in State.Votes.Values.Where(v => activePlayerIds.Contains(v.VoterPlayerId)))
+        foreach (var promptOwner in State.Players.Where(player =>
+                     activePlayerIds.Contains(player.Id) && State.Prompts.ContainsKey(player.Id)))
         {
-            var bribe = State.Bribes[vote.BribeId];
-            if (!activePlayerIds.Contains(bribe.FromPlayerId) || !activePlayerIds.Contains(bribe.ToPlayerId))
-                continue;
+            var prompt = State.Prompts[promptOwner.Id];
+            State.Votes.TryGetValue(promptOwner.Id, out var vote);
+            var bribe = vote?.BribeId != null && State.Bribes.TryGetValue(vote.BribeId, out var selected)
+                ? selected
+                : null;
 
-            var prompt = State.Prompts[bribe.ToPlayerId];
+            if (bribe == null || bribe.Origin == BribeSubmissionOrigin.Missing ||
+                !activePlayerIds.Contains(bribe.FromPlayerId) || !activePlayerIds.Contains(bribe.ToPlayerId))
+            {
+                State.RoundResults.Add(new RoundResult
+                {
+                    PromptOwnerPlayerId = promptOwner.Id,
+                    PromptText = prompt.Text,
+                    Outcome = RoundResultOutcome.NoWinner
+                });
+                continue;
+            }
 
             State.RoundResults.Add(new RoundResult
             {
                 PromptOwnerPlayerId = bribe.ToPlayerId,
                 PromptText = prompt.Text,
+                Outcome = bribe.Origin == BribeSubmissionOrigin.RandomFallback
+                    ? RoundResultOutcome.RandomFallbackWinner
+                    : RoundResultOutcome.SubmittedWinner,
                 WinningBribeId = bribe.Id,
                 WinningBribeKind = bribe.Kind,
                 WinningBribeText = bribe.Text,
@@ -984,11 +1049,12 @@ public class Game
 
         foreach (var player in State.Players.Where(p => activePlayerIds.Contains(p.Id)).OrderBy(p => p.Id))
         {
-            var chosenBribeCount = State.RoundResults.Count(result => result.WinningPlayerId == player.Id);
+            var chosenBribeCount = State.RoundResults.Count(result =>
+                result.Outcome == RoundResultOutcome.SubmittedWinner && result.WinningPlayerId == player.Id);
             var chosenBribePoints = chosenBribeCount * chosenPointValue;
             var bonusCoinPoints = State.RoundResults
-                .Where(result => result.WinningPlayerId == player.Id)
-                .Sum(result => State.AppreciationCoins.TryGetValue(result.WinningBribeId, out var coins) ? coins.Count : 0);
+                .Where(result => result.Outcome == RoundResultOutcome.SubmittedWinner && result.WinningPlayerId == player.Id)
+                .Sum(result => result.WinningBribeId != null && State.AppreciationCoins.TryGetValue(result.WinningBribeId, out var coins) ? coins.Count : 0);
             var totalRoundPoints = chosenBribePoints + bonusCoinPoints;
 
             player.Score += totalRoundPoints;
@@ -1031,7 +1097,8 @@ public class Game
             {
                 PlayerId = player.Id,
                 Text = text,
-                SubmittedAt = _now()
+                SubmittedAt = _now(),
+                WasAutomaticallySelected = draft.Length == 0
             };
         }
 
@@ -1053,17 +1120,27 @@ public class Game
             var draftKey = BribeDraftKey(key.FromPlayerId, key.ToPlayerId);
             State.BribeDrafts.TryGetValue(draftKey, out var draft);
 
-            var request = draft?.Media != null
-                ? new SubmitBribeRequest { TargetPlayerId = key.ToPlayerId, Media = draft.Media }
-                : new SubmitBribeRequest
-                {
-                    TargetPlayerId = key.ToPlayerId,
-                    Text = !string.IsNullOrWhiteSpace(draft?.Text)
-                        ? draft!.Text
-                        : "<didn't submit a bribe in time, for shame>"
-                };
-
-            AddBribeSubmission(key.FromPlayerId, request);
+            if (draft?.Media != null)
+            {
+                AddBribeSubmission(key.FromPlayerId,
+                    new SubmitBribeRequest { TargetPlayerId = key.ToPlayerId, Media = draft.Media });
+            }
+            else if (!string.IsNullOrWhiteSpace(draft?.Text))
+            {
+                AddBribeSubmission(key.FromPlayerId,
+                    new SubmitBribeRequest { TargetPlayerId = key.ToPlayerId, Text = draft.Text });
+            }
+            else
+            {
+                var origin = State.Settings.BribeFallbackMode == BribeFallbackMode.AutoFill
+                    ? BribeSubmissionOrigin.RandomFallback
+                    : BribeSubmissionOrigin.Missing;
+                var text = origin == BribeSubmissionOrigin.RandomFallback
+                    ? BribeFallbackLibrary.Generate(_random)
+                    : "No bribe submitted";
+                AddBribeSubmission(key.FromPlayerId,
+                    new SubmitBribeRequest { TargetPlayerId = key.ToPlayerId, Text = text }, origin);
+            }
         }
 
         TransitionTo(GamePhase.Voting);
@@ -1080,23 +1157,19 @@ public class Game
             if (State.Votes.ContainsKey(player.Id))
                 continue;
 
-            var validBribeIds = State.Bribes.Values
-                .Where(bribe => bribe.ToPlayerId == player.Id)
-                .Select(bribe => bribe.Id)
-                .ToList();
-
-            if (validBribeIds.Count == 0)
-                continue;
-
-            var draftBribeId = State.VoteDrafts.TryGetValue(player.Id, out var draft) &&
-                               validBribeIds.Contains(draft.BribeId)
-                ? draft.BribeId
-                : validBribeIds[_random.Next(validBribeIds.Count)];
+            var selectable = SelectableBribesFor(player.Id);
+            var submitted = selectable.Where(bribe => bribe.Origin == BribeSubmissionOrigin.Submitted).ToList();
+            var preferred = submitted.Count > 0 ? submitted : selectable;
+            var selectedBribeId = preferred.Count == 0
+                ? null
+                : State.VoteDrafts.TryGetValue(player.Id, out var draft) && preferred.Any(bribe => bribe.Id == draft.BribeId)
+                    ? draft.BribeId
+                    : preferred[_random.Next(preferred.Count)].Id;
 
             State.Votes[player.Id] = new VoteSubmission
             {
                 VoterPlayerId = player.Id,
-                BribeId = draftBribeId,
+                BribeId = selectedBribeId,
                 SubmittedAt = _now()
             };
         }
@@ -1119,7 +1192,10 @@ public class Game
         return true;
     }
 
-    private void AddBribeSubmission(string fromPlayerId, SubmitBribeRequest request)
+    private void AddBribeSubmission(
+        string fromPlayerId,
+        SubmitBribeRequest request,
+        BribeSubmissionOrigin origin = BribeSubmissionOrigin.Submitted)
     {
         var bribeText = request.Text?.Trim() ?? "";
         var media = request.Media;
@@ -1134,8 +1210,16 @@ public class Game
             Kind = hasMedia ? BribeContentKind.Media : BribeContentKind.Text,
             Text = hasMedia ? "" : bribeText,
             Media = media,
-            SubmittedAt = _now()
+            SubmittedAt = _now(),
+            Origin = origin
         };
+    }
+
+    private List<BribeSubmission> SelectableBribesFor(string playerId)
+    {
+        return State.Bribes.Values
+            .Where(bribe => bribe.ToPlayerId == playerId && bribe.Origin != BribeSubmissionOrigin.Missing)
+            .ToList();
     }
 
     private static string BribeDraftKey(string fromPlayerId, string targetPlayerId)
@@ -1284,6 +1368,9 @@ public class Game
             PromptText = State.Prompts.TryGetValue(playerId, out var prompt)
                 ? prompt.Text
                 : "",
+            PromptWasAutomaticallySelected = prompt?.WasAutomaticallySelected ?? false,
+            CanAcknowledgeNoBribes = !State.Votes.ContainsKey(playerId) && SelectableBribesFor(playerId).Count == 0,
+            HasCompletedVoting = State.Votes.ContainsKey(playerId),
             Bribes = State.Bribes.Values
                 .Where(b => b.ToPlayerId == playerId)
                 .Select(b => new VotingBribeDto
@@ -1291,7 +1378,8 @@ public class Game
                     BribeId = b.Id,
                     Kind = b.Kind,
                     Text = b.Text,
-                    Media = b.Media
+                    Media = b.Media,
+                    IsSelectable = b.Origin != BribeSubmissionOrigin.Missing
                 })
                 .ToList(),
             SelectedBribeId = State.Votes.TryGetValue(playerId, out var vote)
@@ -1316,10 +1404,13 @@ public class Game
             RoundResults = orderedResults.Select(r =>
             {
                 var promptOwner = State.Players.First(p => p.Id == r.PromptOwnerPlayerId);
-                var winner = State.Players.First(p => p.Id == r.WinningPlayerId);
+                var winner = r.WinningPlayerId == null
+                    ? null
+                    : State.Players.FirstOrDefault(p => p.Id == r.WinningPlayerId);
                 var submittedByCurrentPlayer = State.Bribes.Values.Any(b =>
-                    b.ToPlayerId == r.PromptOwnerPlayerId && b.FromPlayerId == playerId);
-                var coinCount = State.AppreciationCoins.TryGetValue(r.WinningBribeId, out var coins)
+                    b.ToPlayerId == r.PromptOwnerPlayerId && b.FromPlayerId == playerId &&
+                    b.Origin == BribeSubmissionOrigin.Submitted);
+                var coinCount = r.WinningBribeId != null && State.AppreciationCoins.TryGetValue(r.WinningBribeId, out var coins)
                     ? coins.Count
                     : 0;
                 var canAward = CanPlayerAwardCoin(playerId, r.WinningBribeId, out var disabledReason);
@@ -1329,17 +1420,18 @@ public class Game
                     PromptOwnerPlayerId = r.PromptOwnerPlayerId,
                     PromptOwnerName = promptOwner.Name,
                     PromptText = r.PromptText,
+                    Outcome = r.Outcome,
                     WinningBribeKind = r.WinningBribeKind,
                     WinningBribeText = r.WinningBribeText,
                     WinningBribeMedia = r.WinningBribeMedia,
                     WinningPlayerId = r.WinningPlayerId,
-                    WinningPlayerName = winner.Name,
+                    WinningPlayerName = winner?.Name,
                     WinningBribeId = r.WinningBribeId,
                     IsCurrentPlayersPrompt = r.PromptOwnerPlayerId == playerId,
                     CurrentPlayerSubmittedBribe = submittedByCurrentPlayer,
-                    CurrentPlayerSubmittedWinningBribe = r.WinningPlayerId == playerId,
+                    CurrentPlayerSubmittedWinningBribe = r.Outcome == RoundResultOutcome.SubmittedWinner && r.WinningPlayerId == playerId,
                     CanCurrentPlayerAwardCoin = canAward,
-                    HasCurrentPlayerAwardedCoin = State.AppreciationCoins.TryGetValue(r.WinningBribeId, out var playerIds) &&
+                    HasCurrentPlayerAwardedCoin = r.WinningBribeId != null && State.AppreciationCoins.TryGetValue(r.WinningBribeId, out var playerIds) &&
                                                    playerIds.Contains(playerId),
                     CoinCount = coinCount,
                     CoinDisabledReason = disabledReason
@@ -1550,11 +1642,12 @@ public class Game
 
         foreach (var roundResult in State.RoundResults
                      .Where(result => playerIds.Contains(result.PromptOwnerPlayerId) ||
-                                      playerIds.Contains(result.WinningPlayerId))
+                                      (result.WinningPlayerId != null && playerIds.Contains(result.WinningPlayerId)))
                      .ToList())
         {
             State.RoundResults.Remove(roundResult);
-            State.AppreciationCoins.Remove(roundResult.WinningBribeId);
+            if (roundResult.WinningBribeId != null)
+                State.AppreciationCoins.Remove(roundResult.WinningBribeId);
         }
 
         foreach (var assignment in State.TargetAssignments.ToList())
@@ -1582,7 +1675,7 @@ public class Game
     private void RemoveInvalidVotes()
     {
         foreach (var vote in State.Votes
-                     .Where(v => !State.Bribes.ContainsKey(v.Value.BribeId))
+                     .Where(v => v.Value.BribeId != null && !State.Bribes.ContainsKey(v.Value.BribeId))
                      .Select(v => v.Key)
                      .ToList())
         {

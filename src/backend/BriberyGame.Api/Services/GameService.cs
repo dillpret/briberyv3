@@ -426,6 +426,25 @@ public class GameService
         return (gameId, result);
     }
 
+    public (string? gameId, Result<GameStateDto>? result) AcknowledgeNoBribes(string connectionId)
+    {
+        var (gameId, session) = ResolveSession(connectionId);
+        if (session == null) return (null, null);
+
+        Result<GameStateDto> result;
+        var beforePhase = session.Game.State.Phase;
+        var beforeRound = session.Game.State.CurrentRound;
+        lock (session.SyncRoot)
+        {
+            result = session.Game.AcknowledgeNoBribes(connectionId);
+        }
+
+        if (result.Success)
+            RecordPhaseTelemetry(session.Game, beforePhase, beforeRound);
+
+        return (gameId, result);
+    }
+
     public (string? gameId, Result<GameStateDto>? result) ToggleAppreciationCoin(
         string connectionId,
         string bribeId)

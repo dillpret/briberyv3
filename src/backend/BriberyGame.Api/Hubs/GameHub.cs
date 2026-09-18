@@ -220,6 +220,22 @@ public class GameHub : Hub
             await SendFailure("save_vote_draft", "ActionFailed", result.Error);
     }
 
+    public async Task AcknowledgeNoBribes()
+    {
+        var (gameId, result) = _gameService.AcknowledgeNoBribes(Context.ConnectionId);
+
+        if (gameId == null || result == null)
+            return;
+
+        if (!result.Success)
+        {
+            await SendFailure("acknowledge_no_bribes", "ActionFailed", result.Error);
+            return;
+        }
+
+        await SendGameStateUpdates(gameId);
+    }
+
     public async Task ToggleAppreciationCoin(string bribeId)
     {
         var (gameId, result) =

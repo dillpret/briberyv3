@@ -65,7 +65,7 @@
       </div>
       <app-waiting-tips />
     </section>
-  } @else if (voting()?.selectedBribeId) {
+  } @else if (voting()?.hasCompletedVoting) {
     <section class="soft-panel">
       <div class="waiting-mascot-layout text-center sm:text-left">
         <div class="space-y-2">
@@ -99,21 +99,32 @@
       <p class="text-sm leading-6 text-ink/70">
         Pick the bribe you like most.
       </p>
+      @if (voting()?.promptWasAutomaticallySelected) {
+        <p class="notice-panel rounded-[var(--radius-nested)] p-3 text-sm font-semibold leading-6 text-ink">
+          You didn't submit a prompt, so this prompt was chosen randomly on your behalf.
+        </p>
+      }
     </section>
 
     @for (bribe of voting()?.bribes ?? []; track bribe.bribeId) {
       <label
-        class="soft-card block cursor-pointer space-y-3"
+        class="soft-card block space-y-3"
+        [class.cursor-pointer]="bribe.isSelectable"
+        [class.cursor-not-allowed]="!bribe.isSelectable"
+        [class.opacity-50]="!bribe.isSelectable"
         [class.is-selected]="currentSelection() === bribe.bribeId">
         <input
           class="sr-only"
           type="radio"
           name="bribe"
+          [disabled]="!bribe.isSelectable"
           [checked]="currentSelection() === bribe.bribeId"
           (change)="selectBribe(bribe.bribeId)" />
         <span class="flex items-center justify-between gap-3">
           <span class="text-sm font-semibold uppercase tracking-wide text-ink/60">Anonymous bribe</span>
-          @if (currentSelection() === bribe.bribeId) {
+          @if (!bribe.isSelectable) {
+            <span class="status-pill border-ink/15 bg-ink/5 text-ink/55">Unavailable</span>
+          } @else if (currentSelection() === bribe.bribeId) {
             <span class="status-pill border-pine/30 bg-pine/10 text-pine">Picked</span>
           } @else {
             <span class="status-pill border-plum/30 bg-plum/10 text-plum">Tap to pick</span>
@@ -125,6 +136,14 @@
           [media]="bribe.media"
           label="Anonymous bribe" />
       </label>
+    }
+
+    @if (voting()?.canAcknowledgeNoBribes) {
+      <section class="soft-panel space-y-3 text-center">
+        <h2 class="text-lg font-semibold text-ink">No bribes submitted for your prompt, sorry</h2>
+        <p class="text-sm leading-6 text-ink/70">There is no winner to choose for this prompt.</p>
+        <button type="button" class="primary-button" (click)="acknowledgeNoBribes()">Continue</button>
+      </section>
     }
 
     @if (currentSelection()) {

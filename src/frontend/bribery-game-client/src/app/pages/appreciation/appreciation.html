@@ -2,9 +2,9 @@
   <section class="soft-panel space-y-4">
     <div>
       <p class="text-sm font-semibold uppercase tracking-wide text-pine">Appreciation</p>
-      <h1 class="text-2xl font-bold text-ink">Round {{ currentRound() }} winners</h1>
+      <h1 class="text-2xl font-bold text-ink">Round {{ currentRound() }} results</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        Toss a coin to winning bribes that deserve extra applause.
+        Review the results and toss a coin to submitted winners that deserve extra applause.
       </p>
     </div>
 
@@ -69,19 +69,24 @@
 
   <section class="space-y-2.5">
     @for (result of appreciation()?.roundResults ?? []; track result.promptOwnerPlayerId) {
-      <article class="soft-card space-y-2.5" [ngClass]="cardClasses(result)">
+      <article class="soft-card space-y-2.5 pr-16 sm:pr-4" [ngClass]="cardClasses(result)">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0 space-y-1">
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-semibold text-ink">{{ result.promptOwnerName }}</span>
-              <span class="text-sm text-ink/60">picked</span>
-              <span class="status-pill border-pine/30 bg-pine/10 text-pine">{{ result.winningPlayerName }}'s bribe</span>
-              <span class="text-sm text-ink/60">for this prompt</span>
+              @if (result.outcome === 'NoWinner') {
+                <span class="status-pill border-ink/15 bg-ink/5 text-ink/55">No winner</span>
+              } @else {
+                <span class="text-sm text-ink/60">picked</span>
+                <span class="status-pill border-pine/30 bg-pine/10 text-pine">{{ result.winningPlayerName }}'s bribe</span>
+                <span class="text-sm text-ink/60">for this prompt</span>
+              }
             </div>
             <p class="text-sm font-semibold text-ink/70">{{ resultNote(result) }}</p>
           </div>
 
-          <button
+          @if (result.outcome === 'SubmittedWinner') {
+            <button
             type="button"
             (click)="toggleCoin(result)"
             [disabled]="!result.canCurrentPlayerAwardCoin || appreciation()?.hasCurrentPlayerDone"
@@ -104,25 +109,30 @@
                 class="h-4 w-4 shrink-0 object-contain" />
               <span class="sr-only">Give coin</span>
             }
-          </button>
+            </button>
+          }
         </div>
 
         <p class="nested-surface">{{ result.promptText }}</p>
 
-        <app-bribe-display
-          [kind]="result.winningBribeKind"
-          [text]="result.winningBribeText"
-          [media]="result.winningBribeMedia"
-          [label]="result.winningPlayerName + ' winning bribe'" />
+        @if (result.outcome !== 'NoWinner') {
+          <app-bribe-display
+            [kind]="result.winningBribeKind"
+            [text]="result.winningBribeText"
+            [media]="result.winningBribeMedia"
+            [label]="result.winningPlayerName + ' winning bribe'" />
+        }
 
-        <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-ink/60">
-          <span>{{ result.coinCount }} bonus coin(s)</span>
-          @if (!result.canCurrentPlayerAwardCoin) {
-            <span class="text-xs font-semibold">{{ result.coinDisabledReason }}</span>
-          } @else if (appreciation()?.hasCurrentPlayerDone) {
-            <span class="text-xs font-semibold">Coins locked in</span>
-          }
-        </div>
+        @if (result.outcome === 'SubmittedWinner') {
+          <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-ink/60">
+            <span>{{ result.coinCount }} bonus coin(s)</span>
+            @if (!result.canCurrentPlayerAwardCoin) {
+              <span class="text-xs font-semibold">{{ result.coinDisabledReason }}</span>
+            } @else if (appreciation()?.hasCurrentPlayerDone) {
+              <span class="text-xs font-semibold">Coins locked in</span>
+            }
+          </div>
+        }
       </article>
     }
   </section>
@@ -157,7 +167,7 @@
         (click)="submitDone()"
         [disabled]="!isCurrentPlayerActive()"
         class="primary-button">
-        Done appreciating winning bribes
+        Done reviewing round results
       </button>
     }
   </section>

@@ -173,6 +173,9 @@ app.MapGet("/api/media/{mediaId}", (string mediaId, GameService gameService) =>
         : Results.File(media.Bytes, media.ContentType);
 });
 
+app.MapGet("/api/prompt-ideas", () =>
+    Results.Ok(BriberyGame.Api.Models.PromptLibrary.All));
+
 app.MapHub<GameHub>("/hub/game");
 
 if (hasSpaAssets)

@@ -89,7 +89,7 @@ public class RoundTimerAndDraftTests
         Assert.Equal(GamePhase.Voting, game.State.Phase);
         Assert.Contains(game.State.Bribes.Values, bribe => bribe.Text == "Draft bribe");
         Assert.Contains(game.State.Bribes.Values, bribe => bribe.Media?.MediaId == "m1");
-        Assert.Contains(game.State.Bribes.Values, bribe => bribe.Text == "<didn't submit a bribe in time, for shame>");
+        Assert.Contains(game.State.Bribes.Values, bribe => bribe.Origin == BribeSubmissionOrigin.RandomFallback);
     }
 
     [Fact]

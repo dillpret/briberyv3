@@ -239,11 +239,11 @@ public class VotingAndResultsTests
 
         if (ownWinningBribe != null)
         {
-            var ownBribeResult = harness.Game.ToggleAppreciationCoin("c1", ownWinningBribe.WinningBribeId);
+            var ownBribeResult = harness.Game.ToggleAppreciationCoin("c1", ownWinningBribe.WinningBribeId!);
             Assert.False(ownBribeResult.Success);
         }
 
-        var ownPromptResult = harness.Game.ToggleAppreciationCoin("c1", ownPromptWinner.WinningBribeId);
+        var ownPromptResult = harness.Game.ToggleAppreciationCoin("c1", ownPromptWinner.WinningBribeId!);
         Assert.False(ownPromptResult.Success);
     }
 
@@ -256,7 +256,7 @@ public class VotingAndResultsTests
         var beatenPrompt = harness.GetPlayerState("p2").Appreciation!.RoundResults
             .First(result => result.CurrentPlayerSubmittedBribe && !result.CurrentPlayerSubmittedWinningBribe);
 
-        var result = harness.Game.ToggleAppreciationCoin("c2", beatenPrompt.WinningBribeId);
+        var result = harness.Game.ToggleAppreciationCoin("c2", beatenPrompt.WinningBribeId!);
 
         Assert.True(result.Success, result.Error);
         Assert.True(result.Data!.Appreciation!.RoundResults
@@ -273,9 +273,9 @@ public class VotingAndResultsTests
         var coinable = harness.GetPlayerState("p2").Appreciation!.RoundResults
             .First(result => result.CanCurrentPlayerAwardCoin);
 
-        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId).Success);
-        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId).Success);
-        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId).Success);
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId!).Success);
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId!).Success);
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", coinable.WinningBribeId!).Success);
 
         var state = harness.GetPlayerState("p2");
 
@@ -306,7 +306,7 @@ public class VotingAndResultsTests
 
         var p1Coinable = harness.GetPlayerState("p2").Appreciation!.RoundResults
             .First(result => result.CanCurrentPlayerAwardCoin);
-        Assert.True(harness.Game.ToggleAppreciationCoin("c2", p1Coinable.WinningBribeId).Success);
+        Assert.True(harness.Game.ToggleAppreciationCoin("c2", p1Coinable.WinningBribeId!).Success);
         harness.SubmitAllAppreciationDone();
 
         var scoreboard = harness.GetPlayerState("p1").Scoreboard!;

@@ -19,6 +19,11 @@ async function makePlayer(browser, name) {
     if (message.type() === 'error') notes.push(`${name} console error: ${message.text()}`);
   });
   page.on('pageerror', (error) => notes.push(`${name} page error: ${error.message}`));
+  page.on('requestfailed', (request) => notes.push(
+    `${name} failed request: ${request.method()} ${request.url()} (${request.failure()?.errorText})`));
+  page.on('response', (response) => {
+    if (response.status() >= 400) notes.push(`${name} HTTP ${response.status()}: ${response.url()}`);
+  });
   return { context, page, name };
 }
 
@@ -105,6 +110,65 @@ async function setPromptsAnsweredPerPlayer(host, count) {
   await expect(host.page.getByText(`${count} prompts each`, { exact: false })).toBeVisible({ timeout: 10000 });
 }
 
+async function configureMissingBribes(host, mode) {
+  const settings = await openGameSettings(host);
+  await settings.getByRole('combobox', { name: 'Missed bribe handling' }).selectOption(mode);
+
+  const submission = settings.locator('section').filter({
+    has: host.page.getByText('Submission', { exact: true }),
+  }).first();
+  const toggle = submission.getByRole('checkbox', { name: 'Submission time limit', exact: true });
+  await submission.getByText('Time limit', { exact: true }).click();
+  await submission.getByRole('spinbutton').fill('2');
+  await submission.getByRole('spinbutton').blur();
+  await expect(toggle).toBeChecked();
+  await expect(submission.getByRole('spinbutton')).toHaveValue('2');
+}
+
+async function verifyMissingBribeMode(browser, mode) {
+  const suffix = mode === 'AutoFill' ? 'Auto' : 'None';
+  const miniRoster = [];
+  try {
+    for (const name of [`${suffix} Host`, `${suffix} Two`, `${suffix} Three`]) {
+      miniRoster.push(await makePlayer(browser, name));
+    }
+    const gameId = await createGame(miniRoster[0]);
+    await Promise.all(miniRoster.slice(1).map((player) => joinGame(player, gameId)));
+    await configureMissingBribes(miniRoster[0], mode);
+    await Promise.all(miniRoster.map(toggleReady));
+    await miniRoster[0].page.getByRole('button', { name: 'Start game' }).click();
+    await Promise.all(miniRoster.map((player, index) => submitPrompt(player, `${mode} prompt ${index + 1}`)));
+
+    await waitForVisible(miniRoster[0].page, 'Pick your favourite bribe');
+    if (mode === 'AutoFill') {
+      await expect(miniRoster[0].page.locator('label.soft-card')).toHaveCount(2, { timeout: 10000 });
+      await expect(miniRoster[0].page.getByText('Unavailable', { exact: true })).toHaveCount(0);
+      await captureResponsive(miniRoster[0].page, 'auto-fill-voting');
+      await Promise.all(miniRoster.map(async (player) => {
+        await player.page.locator('label.soft-card').first().click();
+        await player.page.getByRole('button', { name: 'Submit vote' }).click();
+      }));
+      await waitForVisible(miniRoster[0].page, 'Round 1 results');
+      await expect(miniRoster[0].page.getByText(
+        'Randomly generated as player did not submit bribe — no points earned.', { exact: true }).first()).toBeVisible();
+      await expect(miniRoster[0].page.getByRole('button', { name: 'Give coin' })).toHaveCount(0);
+      await captureResponsive(miniRoster[0].page, 'auto-fill-appreciation');
+    } else {
+      await expect(miniRoster[0].page.getByText('No bribes submitted for your prompt, sorry', { exact: true })).toBeVisible();
+      await expect(miniRoster[0].page.getByText('Unavailable', { exact: true })).toHaveCount(2);
+      await expect(miniRoster[0].page.locator('input[type="radio"]:disabled')).toHaveCount(2);
+      await captureResponsive(miniRoster[0].page, 'no-fallback-voting');
+      await Promise.all(miniRoster.map((player) => player.page.getByRole('button', { name: 'Continue' }).click()));
+      await waitForVisible(miniRoster[0].page, 'Round 1 results');
+      await expect(miniRoster[0].page.getByText(
+        'No bribes submitted for this prompt — no winner.', { exact: true }).first()).toBeVisible();
+      await captureResponsive(miniRoster[0].page, 'no-fallback-appreciation');
+    }
+  } finally {
+    await Promise.allSettled(miniRoster.map((player) => player.context.close()));
+  }
+}
+
 async function expectCountdown(player) {
   await expect(player.page.getByText('Time remaining', { exact: true })).toBeVisible({ timeout: 10000 });
   await expect(player.page.getByText('Auto-submits when time runs out.', { exact: true })).toBeVisible({ timeout: 10000 });
@@ -170,15 +234,15 @@ async function submitVotes(player) {
   if ((await option.count()) > 0) {
     await option.click();
     await player.page.getByRole('button', { name: 'Submit vote' }).click();
-    await waitForAnyText(player.page, ['Vote submitted', 'Round 1 winners']);
+    await waitForAnyText(player.page, ['Vote submitted', 'Round 1 results']);
   } else {
     await waitForVisible(player.page, 'Voting is only for players who received bribes this round');
   }
 }
 
 async function submitAppreciation(player) {
-  await waitForVisible(player.page, 'Round 1 winners');
-  const doneButton = player.page.getByRole('button', { name: 'Done appreciating winning bribes' });
+  await waitForVisible(player.page, 'Round 1 results');
+  const doneButton = player.page.getByRole('button', { name: 'Done reviewing round results' });
   if ((await doneButton.count()) > 0) {
     await doneButton.click();
   }
@@ -263,7 +327,7 @@ async function main() {
     await firstEditedComposer.fill('First edited bribe from Alice');
     await captureResponsive(roster[0].page, 'bribe-editing');
     await roster[0].page.getByRole('button', { name: 'Resubmit bribe' }).click();
-    await expect(roster[0].page.getByText('Changes saved.', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(roster[0].page.getByText('First edited bribe from Alice', { exact: true })).toBeVisible({ timeout: 10000 });
     await capture(roster[0].page, 'bribe-edit-saved');
 
     await roster[0].page.getByRole('button', { name: 'Edit bribe' }).first().click();
@@ -296,9 +360,12 @@ async function main() {
       await expect(player.page.locator('body')).toContainText(player.name, { timeout: 10000 });
     }
 
+    await verifyMissingBribeMode(browser, 'AutoFill');
+    await verifyMissingBribeMode(browser, 'NoFallback');
+    console.log('Verified Auto-fill and No fallback missing-submission flows.');
+
     if (notes.length > 0) {
-      console.log('Browser notes:');
-      for (const note of notes) console.log(`- ${note}`);
+      throw new Error(`Browser errors detected:\n${notes.map((note) => `- ${note}`).join('\n')}`);
     }
   } finally {
     await Promise.allSettled(roster.map((player) => player.context.close()));

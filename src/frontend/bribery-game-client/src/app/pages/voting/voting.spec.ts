@@ -9,12 +9,13 @@ describe('Voting', () => {
   let fixture: ComponentFixture<Voting>;
   let component: Voting;
   let gameState: GameStateService;
-  let signalr: Pick<SignalrService, 'submitVote' | 'saveVoteDraft' | 'advancePhaseWithoutOfflinePlayers'>;
+  let signalr: Pick<SignalrService, 'submitVote' | 'saveVoteDraft' | 'acknowledgeNoBribes' | 'advancePhaseWithoutOfflinePlayers'>;
 
   beforeEach(async () => {
     signalr = {
       submitVote: vi.fn().mockResolvedValue(undefined),
       saveVoteDraft: vi.fn().mockResolvedValue(undefined),
+      acknowledgeNoBribes: vi.fn().mockResolvedValue(undefined),
       advancePhaseWithoutOfflinePlayers: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -36,14 +37,18 @@ describe('Voting', () => {
       voteRequiredCount: 1,
       voting: {
         promptText: 'Convince me to pick your bribe',
+        promptWasAutomaticallySelected: false,
+        canAcknowledgeNoBribes: false,
+        hasCompletedVoting: false,
         selectedBribeId: null,
         bribes: [
-          { bribeId: 'b1', kind: 'Text', text: 'A text bribe', media: null },
+          { bribeId: 'b1', kind: 'Text', text: 'A text bribe', media: null, isSelectable: true },
           {
             bribeId: 'b2',
             kind: 'Media',
             text: '',
             media: { mediaId: 'm1', url: '/api/media/m1', contentType: 'image/gif', byteSize: 12 },
+            isSelectable: true,
           },
         ],
       },
@@ -70,6 +75,7 @@ describe('Voting', () => {
         kind: 'Text' as const,
         text: `Bribe ${index + 1}`,
         media: null,
+        isSelectable: true,
       })),
     }));
     fixture.detectChanges();
@@ -115,6 +121,34 @@ describe('Voting', () => {
     expect(element.textContent).toContain('Pick the bribe you like most');
   });
 
+  it('explains when the current player prompt was automatically selected', () => {
+    gameState.voting.update((voting) => ({ ...voting!, promptWasAutomaticallySelected: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      "You didn't submit a prompt, so this prompt was chosen randomly on your behalf.",
+    );
+  });
+
+  it('disables missing bribes and acknowledges an empty ballot', async () => {
+    gameState.voting.set({
+      promptText: 'An empty prompt',
+      promptWasAutomaticallySelected: false,
+      canAcknowledgeNoBribes: true,
+      hasCompletedVoting: false,
+      selectedBribeId: null,
+      bribes: [{ bribeId: 'missing', kind: 'Text', text: 'No bribe submitted', media: null, isSelectable: false }],
+    });
+    fixture.detectChanges();
+
+    const radio = fixture.nativeElement.querySelector('input[type="radio"]') as HTMLInputElement;
+    expect(radio.disabled).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('No bribes submitted for your prompt, sorry');
+
+    await component.acknowledgeNoBribes();
+    expect(signalr.acknowledgeNoBribes).toHaveBeenCalled();
+  });
+
   it('counts offline blockers without showing the offline advance panel while connected voters are pending', () => {
     gameState.setGameState({
       phase: 'Voting',
@@ -132,7 +166,8 @@ describe('Voting', () => {
       voting: {
         promptText: 'Convince me to pick your bribe',
         selectedBribeId: 'b1',
-        bribes: [{ bribeId: 'b1', kind: 'Text', text: 'A text bribe', media: null }],
+        bribes: [{ bribeId: 'b1', kind: 'Text', text: 'A text bribe', media: null, isSelectable: true }],
+        hasCompletedVoting: true,
       },
     });
 
@@ -163,7 +198,8 @@ describe('Voting', () => {
       voting: {
         promptText: 'Convince me to pick your bribe',
         selectedBribeId: 'b1',
-        bribes: [{ bribeId: 'b1', kind: 'Text', text: 'A text bribe', media: null }],
+        bribes: [{ bribeId: 'b1', kind: 'Text', text: 'A text bribe', media: null, isSelectable: true }],
+        hasCompletedVoting: true,
       },
     });
 

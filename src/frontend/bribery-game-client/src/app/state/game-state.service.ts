@@ -54,10 +54,14 @@ export interface VotingBribe {
   kind: BribeKind;
   text: string;
   media: BribeMedia | null;
+  isSelectable: boolean;
 }
 
 export interface VotingPhaseState {
   promptText: string;
+  promptWasAutomaticallySelected: boolean;
+  canAcknowledgeNoBribes: boolean;
+  hasCompletedVoting: boolean;
   bribes: VotingBribe[];
   selectedBribeId: string | null;
   draftSelectedBribeId?: string | null;
@@ -70,11 +74,15 @@ export interface PhaseTimerSettings {
 
 export interface GameSettings {
   promptsAnsweredPerPlayer: number;
+  bribeFallbackMode: BribeFallbackMode;
   promptTimer: PhaseTimerSettings;
   submissionTimer: PhaseTimerSettings;
   votingTimer: PhaseTimerSettings;
   appreciationTimer: PhaseTimerSettings;
 }
+
+export type BribeFallbackMode = 'AutoFill' | 'NoFallback';
+export type RoundResultOutcome = 'SubmittedWinner' | 'RandomFallbackWinner' | 'NoWinner';
 
 export interface RoundResult {
   promptOwnerPlayerId: string;
@@ -83,9 +91,10 @@ export interface RoundResult {
   winningBribeKind: BribeKind;
   winningBribeText: string;
   winningBribeMedia: BribeMedia | null;
-  winningPlayerId: string;
-  winningPlayerName: string;
-  winningBribeId: string;
+  outcome: RoundResultOutcome;
+  winningPlayerId: string | null;
+  winningPlayerName: string | null;
+  winningBribeId: string | null;
   isCurrentPlayersPrompt: boolean;
   currentPlayerSubmittedBribe: boolean;
   currentPlayerSubmittedWinningBribe: boolean;
@@ -130,6 +139,7 @@ export class GameStateService {
   isCurrentPlayerActive = signal(false);
   settings = signal<GameSettings>({
     promptsAnsweredPerPlayer: 2,
+    bribeFallbackMode: 'AutoFill',
     promptTimer: { enabled: false, durationSeconds: 120 },
     submissionTimer: { enabled: false, durationSeconds: 300 },
     votingTimer: { enabled: false, durationSeconds: 90 },

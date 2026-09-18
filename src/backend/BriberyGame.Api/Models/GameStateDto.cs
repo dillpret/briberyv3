@@ -78,6 +78,9 @@ public class SubmittedBribeDto
 public class VotingPhaseDto
 {
     public string PromptText { get; set; } = "";
+    public bool PromptWasAutomaticallySelected { get; set; }
+    public bool CanAcknowledgeNoBribes { get; set; }
+    public bool HasCompletedVoting { get; set; }
     public List<VotingBribeDto> Bribes { get; set; } = new();
     public string? SelectedBribeId { get; set; }
     public string? DraftSelectedBribeId { get; set; }
@@ -89,6 +92,7 @@ public class VotingBribeDto
     public BribeContentKind Kind { get; set; } = BribeContentKind.Text;
     public string Text { get; set; } = "";
     public BribeMedia? Media { get; set; }
+    public bool IsSelectable { get; set; } = true;
 }
 
 public class AppreciationPhaseDto
@@ -114,9 +118,10 @@ public class RoundResultDto
     public BribeContentKind WinningBribeKind { get; set; } = BribeContentKind.Text;
     public string WinningBribeText { get; set; } = "";
     public BribeMedia? WinningBribeMedia { get; set; }
-    public string WinningPlayerId { get; set; } = "";
-    public string WinningPlayerName { get; set; } = "";
-    public string WinningBribeId { get; set; } = "";
+    public RoundResultOutcome Outcome { get; set; }
+    public string? WinningPlayerId { get; set; }
+    public string? WinningPlayerName { get; set; }
+    public string? WinningBribeId { get; set; }
     public bool IsCurrentPlayersPrompt { get; set; }
     public bool CurrentPlayerSubmittedBribe { get; set; }
     public bool CurrentPlayerSubmittedWinningBribe { get; set; }

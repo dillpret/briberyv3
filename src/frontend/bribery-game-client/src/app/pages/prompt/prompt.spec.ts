@@ -46,7 +46,7 @@ describe('Prompt', () => {
   });
 
   it('populates the prompt text from the idea file when the idea button is clicked', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('First idea\nSecond idea')));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(['First idea', 'Second idea'])));
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
     fixture = TestBed.createComponent(Prompt);
@@ -59,7 +59,7 @@ describe('Prompt', () => {
   });
 
   it('updates the textarea on the first idea button click', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('First idea\nSecond idea')));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(['First idea', 'Second idea'])));
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
     fixture = TestBed.createComponent(Prompt);
@@ -77,7 +77,7 @@ describe('Prompt', () => {
   });
 
   it('can replace the current draft with another random idea', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('First idea\nSecond idea')));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(['First idea', 'Second idea'])));
     vi.spyOn(Math, 'random').mockReturnValueOnce(0).mockReturnValueOnce(0.75);
 
     fixture = TestBed.createComponent(Prompt);
@@ -93,7 +93,7 @@ describe('Prompt', () => {
   });
 
   it('does not repeat the same idea twice in a row when another idea exists', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('First idea\nSecond idea')));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(['First idea', 'Second idea'])));
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
     fixture = TestBed.createComponent(Prompt);
@@ -108,7 +108,7 @@ describe('Prompt', () => {
   });
 
   it('prefetches and reuses the idea file across clicks', async () => {
-    const fetch = vi.fn().mockResolvedValue(new Response('First idea\nSecond idea'));
+    const fetch = vi.fn().mockResolvedValue(Response.json(['First idea', 'Second idea']));
     vi.stubGlobal('fetch', fetch);
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
@@ -123,7 +123,7 @@ describe('Prompt', () => {
   });
 
   it('ignores blank lines in the idea file', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('\n\nOnly idea\n\n')));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(['', 'Only idea', '  '])));
     vi.spyOn(Math, 'random').mockReturnValue(0.95);
 
     fixture = TestBed.createComponent(Prompt);
@@ -136,7 +136,7 @@ describe('Prompt', () => {
   });
 
   it('ignores duplicate lines in the idea file', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('First idea\nFirst idea\nSecond idea')));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(['First idea', 'First idea', 'Second idea'])));
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
     fixture = TestBed.createComponent(Prompt);

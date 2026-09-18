@@ -39,7 +39,7 @@ export class Appreciation {
   }
 
   async toggleCoin(result: RoundResult) {
-    if (!result.canCurrentPlayerAwardCoin || this.appreciation()?.hasCurrentPlayerDone) return;
+    if (!result.winningBribeId || !result.canCurrentPlayerAwardCoin || this.appreciation()?.hasCurrentPlayerDone) return;
 
     await this.signalr.toggleAppreciationCoin(result.winningBribeId);
   }
@@ -63,6 +63,8 @@ export class Appreciation {
   }
 
   cardClasses(result: RoundResult): string {
+    if (result.outcome === 'NoWinner') return 'border-ink/15 bg-ink/5';
+    if (result.outcome === 'RandomFallbackWinner') return 'border-plum/30 bg-surface/90';
     if (result.currentPlayerSubmittedWinningBribe) {
       return 'border-sun bg-surface ring-4 ring-sun/30 shadow-[0_14px_28px_rgb(238_185_2_/_0.22)]';
     }
@@ -79,6 +81,14 @@ export class Appreciation {
   }
 
   resultNote(result: RoundResult): string {
+    if (result.outcome === 'NoWinner') {
+      return 'No bribes submitted for this prompt — no winner.';
+    }
+
+    if (result.outcome === 'RandomFallbackWinner') {
+      return 'Randomly generated as player did not submit bribe — no points earned.';
+    }
+
     if (result.currentPlayerSubmittedWinningBribe) {
       return 'Your bribe won this one. Delicious work.';
     }
