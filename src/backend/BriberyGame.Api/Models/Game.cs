@@ -32,6 +32,7 @@ public class Game
     public GameState State { get; }
     private readonly Func<DateTimeOffset> _now;
     private readonly Random _random;
+    private long _stateSequence;
 
     public Game(string gameId)
         : this(gameId, () => DateTimeOffset.UtcNow)
@@ -1271,6 +1272,8 @@ public class Game
 
         var state = new GameStateDto
         {
+            RoomId = State.GameId,
+            StateSequence = ++_stateSequence,
             Players = State.Players.Select(p => new PlayerDto
             {
                 Id = p.Id,
@@ -1412,7 +1415,8 @@ public class Game
                 : null,
             DraftSelectedBribeId = State.VoteDrafts.TryGetValue(playerId, out var draft)
                 ? draft.BribeId
-                : null
+                : null,
+            DraftVersion = draft?.Version ?? 0
         };
     }
 

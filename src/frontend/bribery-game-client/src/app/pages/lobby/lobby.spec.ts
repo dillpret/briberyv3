@@ -56,7 +56,6 @@ describe('Lobby', () => {
     expect(component.connectedCount()).toBe(2);
     expect(component.readyCount()).toBe(1);
     expect(component.pendingReadyCount()).toBe(1);
-    expect(component.readyPercent()).toBe(50);
     expect(component.canStartHint()).toBe('Waiting for at least 3 connected players.');
     expect(component.canStart()).toBe(false);
   });
@@ -96,7 +95,7 @@ describe('Lobby', () => {
     expect(timerToggles).toHaveLength(4);
     expect(durationInputs).toHaveLength(4);
     expect(Array.from(durationInputs).every((input) => input.disabled)).toBe(true);
-    expect(Array.from(durationInputs).map((input) => input.value)).toEqual(['120', '300', '90', '120']);
+    expect(Array.from(durationInputs).map((input) => input.value)).toEqual(['60', '120', '60', '180']);
     expect(element.querySelector<HTMLSelectElement>('select[aria-label="Prompts answered per player"]')?.value).toBe('2');
   });
 

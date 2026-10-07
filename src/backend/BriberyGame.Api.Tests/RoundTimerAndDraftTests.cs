@@ -8,19 +8,34 @@ public class RoundTimerAndDraftTests
     private DateTimeOffset _now = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public void PersonalizedSnapshotsHaveIncreasingSequencesAcrossActionsAndPhases()
+    {
+        var game = NewReadyGame();
+        var first = game.GetConnectedPlayerStates().Single(s => s.ConnectionId == "c1").State;
+        Assert.True(game.StartGame("c1").Success);
+        var second = game.GetConnectedPlayerStates().Single(s => s.ConnectionId == "c1").State;
+        Assert.Equal("TEST", first.RoomId);
+        Assert.Equal(first.RoomId, second.RoomId);
+        Assert.True(second.StateSequence > first.StateSequence);
+        Assert.True(game.SubmitPrompt("c1", "Prompt").Success);
+        var third = game.GetConnectedPlayerStates().Single(s => s.ConnectionId == "c1").State;
+        Assert.True(third.StateSequence > second.StateSequence);
+    }
+
+    [Fact]
     public void TimerSettingsDefaultToDisabledWithExpectedDurations()
     {
         var game = NewReadyGame();
         var state = game.GetConnectedPlayerStates().Single(s => s.ConnectionId == "c1").State;
 
         Assert.False(state.Settings.PromptTimer.Enabled);
-        Assert.Equal(120, state.Settings.PromptTimer.DurationSeconds);
+        Assert.Equal(60, state.Settings.PromptTimer.DurationSeconds);
         Assert.False(state.Settings.SubmissionTimer.Enabled);
-        Assert.Equal(300, state.Settings.SubmissionTimer.DurationSeconds);
+        Assert.Equal(120, state.Settings.SubmissionTimer.DurationSeconds);
         Assert.False(state.Settings.VotingTimer.Enabled);
-        Assert.Equal(90, state.Settings.VotingTimer.DurationSeconds);
+        Assert.Equal(60, state.Settings.VotingTimer.DurationSeconds);
         Assert.False(state.Settings.AppreciationTimer.Enabled);
-        Assert.Equal(120, state.Settings.AppreciationTimer.DurationSeconds);
+        Assert.Equal(180, state.Settings.AppreciationTimer.DurationSeconds);
     }
 
     [Fact]
@@ -144,6 +159,23 @@ public class RoundTimerAndDraftTests
         Assert.Equal(GamePhase.Scoreboard, game.State.Phase);
         Assert.Equal(3, game.State.AppreciationDonePlayerIds.Count);
         Assert.NotEmpty(game.State.RoundScores);
+    }
+
+    [Fact]
+    public void RestoredVoteIncludesVersionAndAcceptsTheNextSelectionAtExpiry()
+    {
+        var game = StartVotingWithTimers();
+        var choices = game.GetConnectedPlayerStates().Single(s => s.ConnectionId == "c1").State.Voting!.Bribes;
+        Assert.True(game.SaveVoteDraft("c1", choices[0].BribeId, 7).Success);
+        var restored = game.GetConnectedPlayerStates().Single(s => s.ConnectionId == "c1").State.Voting!;
+        Assert.Equal(7, restored.DraftVersion);
+        Assert.Equal(choices[0].BribeId, restored.DraftSelectedBribeId);
+        Assert.True(game.SaveVoteDraft("c1", choices[1].BribeId, restored.DraftVersion + 1).Success);
+        // A delayed pre-refresh save must not undo the new selection.
+        Assert.True(game.SaveVoteDraft("c1", choices[0].BribeId, 7).Success);
+        _now = _now.AddSeconds(91);
+        Assert.True(game.ExpireCurrentPhaseIfDue(_now));
+        Assert.Equal(choices[1].BribeId, game.State.Votes["p1"].BribeId);
     }
 
     [Fact]

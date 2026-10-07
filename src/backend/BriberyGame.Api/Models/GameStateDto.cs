@@ -2,6 +2,8 @@ namespace BriberyGame.Api.Models;
 
 public class GameStateDto
 {
+    public string RoomId { get; set; } = "";
+    public long StateSequence { get; set; }
     public List<PlayerDto> Players { get; set; } = new();
     public string CurrentPlayerId { get; set; } = "";
     public string? HostPlayerId { get; set; }
@@ -84,6 +86,7 @@ public class VotingPhaseDto
     public List<VotingBribeDto> Bribes { get; set; } = new();
     public string? SelectedBribeId { get; set; }
     public string? DraftSelectedBribeId { get; set; }
+    public long DraftVersion { get; set; }
 }
 
 public class VotingBribeDto

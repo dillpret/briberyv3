@@ -1,25 +1,30 @@
-import { chromium, expect } from '@playwright/test';
+import { chromium, firefox, webkit, expect } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const baseUrl = process.env.UI_BASE_URL;
 const artifactDir = process.env.UI_ARTIFACT_DIR;
+const browserName = process.env.UI_BROWSER ?? 'chromium';
 
 if (!baseUrl || !artifactDir) throw new Error('UI_BASE_URL and UI_ARTIFACT_DIR are required. Use npm run inspect:ui.');
 
 const targets = [
   { name: 'desktop', viewport: { width: 1280, height: 800 } },
+  { name: 'desktop-compact', viewport: { width: 1024, height: 768 } },
+  { name: 'tablet', viewport: { width: 768, height: 1024 } },
   { name: 'mobile', viewport: { width: 390, height: 844 } },
   { name: 'mobile-small', viewport: { width: 320, height: 568 } },
 ];
-const report = { baseUrl, capturedAt: new Date().toISOString(), targets: [] };
-const browser = await chromium.launch({ headless: process.env.HEADED !== '1' });
+const report = { browser: browserName, baseUrl, capturedAt: new Date().toISOString(), targets: [] };
+const browser = await ({ chromium, firefox, webkit, edge: chromium })[browserName].launch({
+  headless: process.env.HEADED !== '1', ...(browserName === 'edge' ? { channel: 'msedge' } : {}),
+});
 
 try {
   await fs.mkdir(artifactDir, { recursive: true });
   for (const target of targets) {
     const isMobile = target.name.startsWith('mobile');
-    const context = await browser.newContext({ viewport: target.viewport, isMobile, hasTouch: isMobile });
+    const context = await browser.newContext({ viewport: target.viewport, ...(browserName === 'firefox' ? {} : { isMobile }), hasTouch: isMobile });
     const page = await context.newPage();
     const errors = [];
     const artworkRequests = new Set();
@@ -130,7 +135,7 @@ try {
     await page.getByRole('button', { name: 'Show step 1', exact: true }).click();
     await expect(page.getByRole('dialog').getByRole('img')).toHaveAttribute('src', '/instructions/overview.webp');
 
-    if (isMobile) {
+    if (isMobile && ['chromium', 'edge'].includes(browserName)) {
       // CDP dispatches trusted touch input through Chromium's pointer-event pipeline.
       const touch = await context.newCDPSession(page);
       async function swipe(dx, dy = 0, { cancel = false, multi = false } = {}) {

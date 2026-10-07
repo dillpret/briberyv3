@@ -588,15 +588,23 @@ body:has(.game-layout) {
 }
 
 .game-layout .player-panel {
-  top: 4.5rem;
+  top: auto;
   border: 0;
   border-radius: 1rem;
   background: #e6eddd;
   box-shadow: none;
 }
 
-.game-layout:has(.phase-clock) .player-panel {
-  top: 6.5rem;
+@media (min-width: 1024px) {
+  .game-layout .player-panel {
+    top: 4.5rem;
+    max-height: calc(100dvh - 6rem);
+  }
+
+  .game-layout:has(.phase-clock) .player-panel {
+    top: 6.5rem;
+    max-height: calc(100dvh - 8rem);
+  }
 }
 
 .game-layout .player-list-item {
@@ -638,6 +646,10 @@ body:has(.game-layout) {
 .game-layout .primary-button {
   border-radius: 0.75rem;
   box-shadow: 0 3px 0 #183c2c;
+}
+
+.game-layout .primary-button:disabled {
+  box-shadow: none;
 }
 
 .game-layout .primary-button:hover,

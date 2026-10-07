@@ -4,6 +4,7 @@ import { Game } from './game';
 import { SignalrService } from '../../core/signalr.service';
 import { GameStateService } from '../../state/game-state.service';
 import { SplashService } from '../../components/help/splash.service';
+import { ScrollLockService } from '../../core/scroll-lock.service';
 
 describe('Game', () => {
   let fixture: ComponentFixture<Game>;
@@ -70,6 +71,33 @@ describe('Game', () => {
     expect(component.joinState()).toBe('needs-name');
     expect(splash.showFirstVisitSplash).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Choose a name');
+  });
+
+  it('resets the saved scroll position when the phase changes under an open overlay', () => {
+    fixture = TestBed.createComponent(Game);
+    fixture.detectChanges();
+    const scrollLock = TestBed.inject(ScrollLockService);
+    vi.spyOn(window, 'scrollY', 'get').mockReturnValue(600);
+    scrollLock.lock();
+    expect(document.body.style.top).toBe('-600px');
+    TestBed.inject(GameStateService).phase.set('Submission');
+    fixture.detectChanges();
+    expect(document.body.style.top).toBe('0px');
+    scrollLock.unlock();
+    expect(document.body.style.position).not.toBe('fixed');
+  });
+
+  it('shows a retry form when the initial connection fails', async () => {
+    vi.mocked(signalr.start).mockRejectedValueOnce(new Error('Connection unavailable'));
+    fixture = TestBed.createComponent(Game);
+    component = fixture.componentInstance;
+    await component.ngOnInit();
+    expect(component.joinState()).toBe('needs-name');
+    expect(component.joinError()).toBe('Connection unavailable');
+    expect(signalr.joinLobby).not.toHaveBeenCalled();
+    vi.mocked(signalr.joinLobby).mockResolvedValue(undefined);
+    await component.submitNameAndJoin();
+    expect(component.joinState()).toBe('joined');
   });
 
   it('shows join failures inline so the player can choose another name', async () => {

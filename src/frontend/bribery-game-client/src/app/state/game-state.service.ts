@@ -65,6 +65,7 @@ export interface VotingPhaseState {
   bribes: VotingBribe[];
   selectedBribeId: string | null;
   draftSelectedBribeId?: string | null;
+  draftVersion?: number;
 }
 
 export interface PhaseTimerSettings {
@@ -140,10 +141,10 @@ export class GameStateService {
   settings = signal<GameSettings>({
     promptsAnsweredPerPlayer: 2,
     bribeFallbackMode: 'AutoFill',
-    promptTimer: { enabled: false, durationSeconds: 120 },
-    submissionTimer: { enabled: false, durationSeconds: 300 },
-    votingTimer: { enabled: false, durationSeconds: 90 },
-    appreciationTimer: { enabled: false, durationSeconds: 120 },
+    promptTimer: { enabled: false, durationSeconds: 60 },
+    submissionTimer: { enabled: false, durationSeconds: 120 },
+    votingTimer: { enabled: false, durationSeconds: 60 },
+    appreciationTimer: { enabled: false, durationSeconds: 180 },
   });
   settingsUpdatePending = signal(false);
   serverNowUtc = signal<string | null>(null);
@@ -168,6 +169,13 @@ export class GameStateService {
   scoreboard = signal<ScoreboardPhaseState | null>(null);
 
   setGameState(state: any) {
+    // Concurrent hub broadcasts can finish out of order. Never restore an older snapshot.
+    if (typeof state.stateSequence === 'number' && typeof state.roomId === 'string') {
+      const session = `${state.roomId}:${state.currentPlayerId}`;
+      if (this.snapshotSession === session && state.stateSequence <= this.snapshotSequence) return;
+      this.snapshotSession = session;
+      this.snapshotSequence = state.stateSequence;
+    }
     this.players.set(state.players ?? []);
     this.currentPlayerId.set(state.currentPlayerId ?? '');
     this.hostPlayerId.set(state.hostPlayerId ?? null);
@@ -196,4 +204,6 @@ export class GameStateService {
     this.appreciation.set(state.appreciation ?? null);
     this.scoreboard.set(state.scoreboard ?? null);
   }
+  private snapshotSession = '';
+  private snapshotSequence = -1;
 }

@@ -52,7 +52,17 @@ export class PlayerPanel implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   closePlayerMenuOnEscape(): void {
+    if (document.querySelector('app-help-overlay')) return;
+    if (!this.openPlayerMenuId() && this.isOpen()) {
+      this.closeMobilePanel();
+      return;
+    }
     this.openPlayerMenuId.set(null);
+  }
+
+  @HostListener('window:resize')
+  closeMobilePanelOnDesktop(): void {
+    if (window.innerWidth >= 1024 && this.isOpen()) this.closeMobilePanel();
   }
 
   openMobilePanel(): void {

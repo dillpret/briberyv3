@@ -112,15 +112,6 @@ export class Prompt implements OnDestroy {
     return this.prompt()?.hasSubmittedPrompt ?? false;
   }
 
-  pendingPromptCount(): number {
-    return Math.max(this.promptRequiredCount() - this.promptSubmittedCount(), 0);
-  }
-
-  promptProgressPercent(): number {
-    const required = this.promptRequiredCount();
-    return required === 0 ? 0 : Math.round((this.promptSubmittedCount() / required) * 100);
-  }
-
   remainingCharacters(): number {
     return 200 - this.promptText.length;
   }

@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { Submission } from './submission';
 import { SignalrService } from '../../core/signalr.service';
-import { GameStateService } from '../../state/game-state.service';
+import { BribeMedia, GameStateService } from '../../state/game-state.service';
 import { WaitingTipsService } from '../../components/waiting-tips/waiting-tips.service';
 
 describe('Submission', () => {
@@ -141,6 +141,59 @@ describe('Submission', () => {
 
     expect(component.draftFor('p2')).toBe('');
     expect(composer.textContent).toBe('');
+  });
+
+  it('persists selected media before a timed deadline without submitting early', async () => {
+    gameState.timerEnabled.set(true);
+    const file = new File(['gif'], 'bribe.gif', { type: 'image/gif' });
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+    expect(component.canSubmit('p2')).toBe(false);
+    await vi.waitFor(() => expect(signalr.saveBribeDraft).toHaveBeenCalledWith(expect.objectContaining({
+      targetPlayerId: 'p2', media: expect.objectContaining({ mediaId: 'media-1' }),
+    })));
+    expect(component.mediaDraftFor('p2')?.uploadedMedia?.mediaId).toBe('media-1');
+    expect(signalr.submitBribe).not.toHaveBeenCalled();
+    await component.submitBribe({ playerId: 'p2', name: 'Player 2', prompt: 'A useful prompt' });
+    expect(signalr.uploadBribeMedia).toHaveBeenCalledTimes(1);
+    expect(signalr.submitBribe).toHaveBeenCalledWith(expect.objectContaining({ media: expect.objectContaining({ mediaId: 'media-1' }) }));
+  });
+
+  it('does not restore media removed during a timed background upload', async () => {
+    gameState.timerEnabled.set(true);
+    let completeUpload!: (media: BribeMedia) => void;
+    vi.mocked(signalr.uploadBribeMedia).mockImplementation(() => new Promise((resolve) => { completeUpload = resolve; }));
+    const file = new File(['gif'], 'bribe.gif', { type: 'image/gif' });
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+    await vi.waitFor(() => expect(signalr.uploadBribeMedia).toHaveBeenCalled());
+    component.clearMedia('p2');
+    completeUpload({ mediaId: 'old', url: '/api/media/old', contentType: 'image/gif', byteSize: 3 });
+    await Promise.resolve();
+    expect(component.mediaDraftFor('p2')).toBeNull();
+    expect(signalr.saveBribeDraft).not.toHaveBeenCalledWith(expect.objectContaining({ media: expect.objectContaining({ mediaId: 'old' }) }));
+  });
+
+  it('shows timed draft upload failures and leaves the bribe unsubmitted', async () => {
+    gameState.timerEnabled.set(true);
+    vi.mocked(signalr.uploadBribeMedia).mockRejectedValue(new Error('Upload unavailable'));
+    const file = new File(['gif'], 'bribe.gif', { type: 'image/gif' });
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+    await vi.waitFor(() => expect(component.mediaDraftFor('p2')?.error).toBe('Upload unavailable'));
+    expect(component.canSubmit('p2')).toBe(false);
+    expect(signalr.submitBribe).not.toHaveBeenCalled();
+  });
+
+  it('discards uploads that finish after leaving the submission phase and releases previews', async () => {
+    gameState.timerEnabled.set(true);
+    let completeUpload!: (media: BribeMedia) => void;
+    vi.mocked(signalr.uploadBribeMedia).mockImplementation(() => new Promise((resolve) => { completeUpload = resolve; }));
+    const file = new File(['gif'], 'bribe.gif', { type: 'image/gif' });
+    component.chooseFile('p2', { target: { files: [file], value: '' } } as unknown as Event);
+    await vi.waitFor(() => expect(signalr.uploadBribeMedia).toHaveBeenCalled());
+    fixture.destroy();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    completeUpload({ mediaId: 'old', url: '/api/media/old', contentType: 'image/gif', byteSize: 3 });
+    await Promise.resolve();
+    expect(signalr.saveBribeDraft).not.toHaveBeenCalledWith(expect.objectContaining({ media: expect.objectContaining({ mediaId: 'old' }) }));
   });
 
   it('does not run delayed draft hydration after the local composer is cleared', () => {

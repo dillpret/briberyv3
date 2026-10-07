@@ -41,6 +41,7 @@ describe('PlayerPanel', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     document.body.removeAttribute('style');
     document.documentElement.removeAttribute('style');
   });
@@ -203,6 +204,23 @@ describe('PlayerPanel', () => {
 
     expect(component.isOpen()).toBe(false);
     expect(back).not.toHaveBeenCalled();
+  });
+
+  it('closes the mobile roster with Escape and releases its scroll lock', () => {
+    vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    component.openMobilePanel();
+    component.closePlayerMenuOnEscape();
+    expect(component.isOpen()).toBe(false);
+    expect(document.body.style.position).not.toBe('fixed');
+  });
+
+  it('releases the mobile scroll lock when resized to the desktop layout', () => {
+    vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    component.openMobilePanel();
+    vi.stubGlobal('innerWidth', 1280);
+    component.closeMobilePanelOnDesktop();
+    expect(component.isOpen()).toBe(false);
+    expect(document.body.style.position).not.toBe('fixed');
   });
 
   function player(overrides: Partial<Player>): Player {

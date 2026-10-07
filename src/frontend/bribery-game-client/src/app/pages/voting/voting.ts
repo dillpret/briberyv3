@@ -51,7 +51,8 @@ export class Voting {
     const bribe = this.voting()?.bribes.find((candidate) => candidate.bribeId === bribeId);
     if (!bribe?.isSelectable) return;
     this.selectedBribeId.set(bribeId);
-    const version = ++this.draftVersion;
+    this.draftVersion = Math.max(this.draftVersion, this.voting()?.draftVersion ?? 0) + 1;
+    const version = this.draftVersion;
     this.draftSave = this.draftSave
       .catch(() => undefined)
       .then(() => this.signalr.saveVoteDraft(bribeId, version))
@@ -72,15 +73,6 @@ export class Voting {
 
   async advanceWithoutOfflinePlayers() {
     await this.signalr.advancePhaseWithoutOfflinePlayers();
-  }
-
-  pendingVoteCount(): number {
-    return Math.max(this.voteRequiredCount() - this.voteSubmittedCount(), 0);
-  }
-
-  voteProgressPercent(): number {
-    const required = this.voteRequiredCount();
-    return required === 0 ? 0 : Math.round((this.voteSubmittedCount() / required) * 100);
   }
 
   waitingText(): string {

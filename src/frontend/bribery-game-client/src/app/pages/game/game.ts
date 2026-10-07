@@ -13,6 +13,7 @@ import { Appreciation } from '../appreciation/appreciation';
 import { Scoreboard } from '../scoreboard/scoreboard';
 import { PlayerPanel } from '../../components/player-panel/player-panel';
 import { ErrorMessageService } from '../../core/error-message.service';
+import { ScrollLockService } from '../../core/scroll-lock.service';
 
 @Component({
   selector: 'app-game',
@@ -35,11 +36,12 @@ export class Game implements OnInit {
     private signalr: SignalrService,
     private gameState: GameStateService,
     private errors: ErrorMessageService,
+    private scrollLock: ScrollLockService,
   ) {
     this.phase = this.gameState.phase;
     effect(() => {
       this.phase();
-      window.scrollTo(0, 0);
+      this.scrollLock.scrollToTop();
     });
     localStorage.setItem('playerId', this.playerId);
   }
@@ -52,7 +54,14 @@ export class Game implements OnInit {
     this.gameId = this.normalizeGameId(gameId);
     localStorage.setItem('gameId', this.gameId);
 
-    await this.signalr.start();
+    try {
+      await this.signalr.start();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to connect to this room.';
+      this.joinError.set(message);
+      this.joinState.set('needs-name');
+      return;
+    }
 
     if (!this.name.trim()) {
       this.joinState.set('needs-name');

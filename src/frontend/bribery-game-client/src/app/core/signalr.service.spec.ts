@@ -122,6 +122,13 @@ describe('SignalrService', () => {
     });
   });
 
+  it('ignores a delayed snapshot from a previous room', async () => {
+    await joinAndReceiveState();
+    handlers['GameStateUpdated']({ roomId: 'OLD', stateSequence: 99, phase: 'Voting', currentPlayerId: 'old-player' });
+    expect(TestBed.inject(GameStateService).phase()).toBe('Lobby');
+    expect(TestBed.inject(GameStateService).currentPlayerId()).toBe('p1');
+  });
+
   it('restarts and rejoins a stopped connection before sending player actions', async () => {
     await joinAndReceiveState();
 

@@ -30,6 +30,15 @@ export class ScrollLockService {
     document.body.style.width = '100%';
   }
 
+  scrollToTop() {
+    if (this.lockCount > 0) {
+      this.scrollY = 0;
+      document.body.style.top = '0px';
+      return;
+    }
+    window.scrollTo(0, 0);
+  }
+
   unlock() {
     if (this.lockCount === 0) return;
 

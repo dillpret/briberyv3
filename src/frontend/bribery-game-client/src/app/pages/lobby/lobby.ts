@@ -51,11 +51,6 @@ export class Lobby {
     return Math.max(this.connectedCount() - this.readyCount(), 0);
   }
 
-  readyPercent(): number {
-    const connected = this.connectedCount();
-    return connected === 0 ? 0 : Math.round((this.readyCount() / connected) * 100);
-  }
-
   isCurrentPlayerReady(): boolean {
     return this.players().find((player) => player.id === this.currentPlayerId())?.isReady ?? false;
   }

@@ -97,6 +97,15 @@ describe('Voting', () => {
     expect(signalr.submitVote).not.toHaveBeenCalled();
   });
 
+  it('continues the restored draft version after a refresh', async () => {
+    gameState.voting.update((voting) => ({ ...voting!, draftSelectedBribeId: 'b1', draftVersion: 7 }));
+    expect(component.currentSelection()).toBe('b1');
+    component.selectBribe('b2');
+    await component.submitVote();
+    expect(signalr.saveVoteDraft).toHaveBeenCalledWith('b2', 8);
+    expect(signalr.submitVote).toHaveBeenCalledWith('b2');
+  });
+
   it('explains that voting picks the favourite bribe sent to your prompt', () => {
     const element = fixture.nativeElement as HTMLElement;
 

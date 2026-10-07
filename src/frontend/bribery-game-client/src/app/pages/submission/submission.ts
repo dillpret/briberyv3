@@ -35,6 +35,7 @@ export class Submission implements OnDestroy {
   private hydratedDraftTargets = new Set<string>();
   private locallyControlledDraftTargets = new Set<string>();
   private revisingTargets = new Set<string>();
+  private destroyed = false;
   savedTargets = new Set<string>();
 
   constructor(
@@ -88,8 +89,12 @@ export class Submission implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     for (const timer of this.draftTimers.values()) {
       window.clearTimeout(timer);
+    }
+    for (const draft of Object.values(this.mediaDrafts())) {
+      if (draft.previewUrl && !draft.uploadedMedia) URL.revokeObjectURL(draft.previewUrl);
     }
   }
 
@@ -196,15 +201,6 @@ export class Submission implements OnDestroy {
 
   async advanceWithoutOfflinePlayers() {
     await this.signalr.advancePhaseWithoutOfflinePlayers();
-  }
-
-  pendingBribeCount(): number {
-    return Math.max(this.bribeRequiredCount() - this.bribeSubmittedCount(), 0);
-  }
-
-  bribeProgressPercent(): number {
-    const required = this.bribeRequiredCount();
-    return required === 0 ? 0 : Math.round((this.bribeSubmittedCount() / required) * 100);
   }
 
   remainingCharacters(targetPlayerId: string): number {
@@ -395,6 +391,26 @@ export class Submission implements OnDestroy {
       error,
       uploading: false,
     });
+    // A timed phase can only auto-submit media that has reached the server.
+    if (!error && this.gameState.timerEnabled()) void this.persistTimedMediaDraft(targetPlayerId, file);
+  }
+
+  private async persistTimedMediaDraft(targetPlayerId: string, file: File) {
+    const draft = this.mediaDraftFor(targetPlayerId)!;
+    this.setMediaDraft(targetPlayerId, { ...draft, uploading: true });
+    try {
+      const processed = await this.prepareMediaFile(file);
+      if (this.destroyed || this.mediaDraftFor(targetPlayerId)?.file !== file) return;
+      const media = await this.signalr.uploadBribeMedia(this.gameId, this.currentPlayerId(), processed);
+      // Removing/replacing media or changing phase must not resurrect an old selection.
+      if (this.destroyed || this.mediaDraftFor(targetPlayerId)?.file !== file) return;
+      if (draft.previewUrl) URL.revokeObjectURL(draft.previewUrl);
+      await this.saveUploadedMediaDraft(targetPlayerId, media);
+    } catch (error) {
+      if (this.destroyed || this.mediaDraftFor(targetPlayerId)?.file !== file) return;
+      this.setMediaDraft(targetPlayerId, { ...draft, uploading: false,
+        error: error instanceof Error ? error.message : 'Media upload failed' });
+    }
   }
 
   private setMediaDraft(targetPlayerId: string, draft: MediaDraft) {

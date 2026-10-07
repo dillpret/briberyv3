@@ -8,7 +8,9 @@ const repoRoot = path.resolve(frontendRoot, '..', '..', '..');
 const backendProject = path.join(repoRoot, 'src', 'backend', 'BriberyGame.Api', 'BriberyGame.Api.csproj');
 const angularCli = path.join(frontendRoot, 'node_modules', '@angular', 'cli', 'bin', 'ng.js');
 const processGuardian = path.join(import.meta.dirname, 'owned-process.mjs');
-const artifactDir = path.join(repoRoot, 'output', 'playwright', 'ui-verification');
+const browserName = process.env.UI_BROWSER ?? 'chromium';
+if (!['chromium', 'firefox', 'webkit', 'edge'].includes(browserName)) throw new Error('Unknown UI_BROWSER');
+const artifactDir = path.join(repoRoot, 'output', 'playwright', 'ui-verification', ...(browserName === 'chromium' ? [] : [browserName]));
 const stageParent = path.join(frontendRoot, '.angular');
 const stageRoot = path.join(stageParent, `ui-verification-${process.pid}`);
 const frontendOutput = path.join(stageRoot, 'frontend');
@@ -202,8 +204,14 @@ async function runBrowserScript(scriptName, baseUrl) {
 let app;
 try {
   await removeStaleStages();
-  await fs.rm(artifactDir, { recursive: true, force: true });
   await fs.mkdir(artifactDir, { recursive: true });
+  for (const entry of await fs.readdir(artifactDir, { withFileTypes: true })) {
+    // Keep other engines' results when repeating the default Chromium run.
+    if (browserName === 'chromium' && entry.isDirectory() && ['firefox', 'webkit', 'edge'].includes(entry.name)) continue;
+    const artifactPath = path.resolve(artifactDir, entry.name);
+    if (path.dirname(artifactPath) !== artifactDir) throw new Error('Artifact cleanup escaped its output directory');
+    await fs.rm(artifactPath, { recursive: true, force: true });
+  }
   await stageApplication();
   app = await startApplication();
   console.log(`Verified isolated app readiness at ${app.baseUrl}`);

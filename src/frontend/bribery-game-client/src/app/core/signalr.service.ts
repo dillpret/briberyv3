@@ -100,6 +100,7 @@ export class SignalrService {
       .build();
 
     this.connection.on('GameStateUpdated', (state) => {
+      if (state.roomId && this.activeSession && state.roomId !== this.activeSession.gameId) return;
       if (this.activeSession && state.currentPlayerId) {
         this.activeSession = {
           ...this.activeSession,
