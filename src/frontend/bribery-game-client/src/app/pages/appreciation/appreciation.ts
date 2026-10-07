@@ -56,30 +56,6 @@ export class Appreciation {
     return this.currentPlayerId() === this.hostPlayerId();
   }
 
-  doneProgressPercent(): number {
-    const required = this.appreciation()?.requiredCount ?? 0;
-    const done = this.appreciation()?.doneCount ?? 0;
-    return required === 0 ? 0 : Math.round((done / required) * 100);
-  }
-
-  cardClasses(result: RoundResult): string {
-    if (result.outcome === 'NoWinner') return 'border-ink/15 bg-ink/5';
-    if (result.outcome === 'RandomFallbackWinner') return 'border-plum/30 bg-surface/90';
-    if (result.currentPlayerSubmittedWinningBribe) {
-      return 'border-sun bg-surface ring-4 ring-sun/30 shadow-[0_14px_28px_rgb(238_185_2_/_0.22)]';
-    }
-
-    if (result.currentPlayerSubmittedBribe) {
-      return 'border-plum/45 bg-surface/95';
-    }
-
-    if (result.isCurrentPlayersPrompt) {
-      return 'border-pine/35 bg-mint/20';
-    }
-
-    return '';
-  }
-
   resultNote(result: RoundResult): string {
     if (result.outcome === 'NoWinner') {
       return 'No bribes submitted for this prompt — no winner.';

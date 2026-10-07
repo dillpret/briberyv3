@@ -421,7 +421,8 @@
 
 /* Gameplay hierarchy: instructions, workspace, choices, then room status. */
 body:has(.game-layout) {
-  background: #dfe8dd;
+  background: radial-gradient(ellipse at top left, #d5c8df80, transparent 55%),
+    linear-gradient(135deg, #dce7d6, #edf0df 55%, #d5e3d4);
 }
 
 .game-layout {
@@ -447,7 +448,13 @@ body:has(.game-layout) {
 
 .phase-heading {
   padding-bottom: 1.25rem;
-  border-bottom: 1px solid rgb(46 27 3 / 0.16);
+  border-bottom: 2px solid rgb(238 185 2 / 0.35);
+}
+
+.phase-heading > p:first-child,
+.phase-heading > div:first-child > p:first-child,
+.phase-heading > div:first-child > div > p:first-child {
+  color: var(--color-plum);
 }
 
 .phase-heading h1 {
@@ -490,18 +497,13 @@ body:has(.game-layout) {
   padding: 0;
   transform: none;
   backdrop-filter: none;
+  overflow: visible;
 }
 
 .game-layout .soft-panel::after,
 .game-layout .soft-card::after,
 .game-layout .prompt-card::after {
   display: none;
-}
-
-.game-layout .soft-panel > *,
-.game-layout .soft-card > *,
-.game-layout .prompt-card > * {
-  position: static;
 }
 
 .game-layout .nested-surface {
@@ -518,6 +520,7 @@ body:has(.game-layout) {
   font-size: 1.15rem;
   line-height: 1.5;
   color: var(--color-ink);
+  background: linear-gradient(90deg, rgb(121 88 137 / 0.08), transparent);
 }
 
 .game-layout .bribe-composer + .bribe-composer,
@@ -544,7 +547,7 @@ body:has(.game-layout) {
   border: 2px solid rgb(121 88 137 / 0.3);
   border-radius: 1rem;
   padding: 1rem 1rem 1rem 3.25rem;
-  background: #fffdf6;
+  background: #f7f0fa;
   transition: border-color 150ms, background 150ms;
 }
 
@@ -588,7 +591,7 @@ body:has(.game-layout) {
   top: 4.5rem;
   border: 0;
   border-radius: 1rem;
-  background: #f1f4eb;
+  background: #e6eddd;
   box-shadow: none;
 }
 
@@ -615,8 +618,21 @@ body:has(.game-layout) {
 .game-layout .secondary-button {
   border-width: 1px;
   border-radius: 0.65rem;
-  background: transparent;
+  background: #f3ebf5;
   box-shadow: none;
+}
+
+.game-layout .secondary-button[aria-pressed='true'] {
+  background: #ffedb5;
+  border-color: var(--color-sun);
+  color: var(--color-ink);
+}
+
+.game-layout .result-row.is-own-winner {
+  background: linear-gradient(100deg, #ffedb580, transparent);
+  border-left: 3px solid var(--color-sun);
+  padding: 1rem;
+  border-radius: 0 0.75rem 0.75rem 0;
 }
 
 .game-layout .primary-button {
@@ -633,6 +649,11 @@ body:has(.game-layout) {
   background: #fffdf6;
   border-width: 1px;
   box-shadow: none;
+}
+
+.game-layout .soft-input:focus {
+  border-color: var(--color-sun);
+  box-shadow: 0 0 0 3px rgb(238 185 2 / 0.3);
 }
 
 .game-layout .notice-panel {
@@ -667,7 +688,7 @@ body:has(.game-layout) {
 
 .game-layout .room-code-card {
   border: 0;
-  background: #eaf0e5;
+  background: #ffedb5;
   box-shadow: none;
   padding: 1rem;
 }
@@ -690,7 +711,6 @@ body:has(.game-layout) {
 .clock-label { font-weight: 600; font-size: 0.875rem; }
 .clock-hint { font-size: 0.75rem; }
 .clock-value { font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.clock-warning { font-size: 0.875rem; font-weight: 600; }
 .phase-clock.is-warning { background: var(--color-error); color: #fff9ec; border-color: #681327; }
 
 @media (max-width: 639px) {
@@ -702,7 +722,6 @@ body:has(.game-layout) {
   .phase-clock { gap: 0.5rem; padding-right: 7rem; }
   .clock-copy { max-width: 8rem; }
   .clock-value { font-size: 1.75rem; }
-  .clock-warning { position: absolute; right: 0.75rem; bottom: 0.3rem; font-size: 0.75rem; }
   .game-layout .player-panel,
   .game-layout:has(.phase-clock) .player-panel { top: auto; }
 }

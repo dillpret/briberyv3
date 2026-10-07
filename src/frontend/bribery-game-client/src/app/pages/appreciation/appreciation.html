@@ -9,7 +9,7 @@
         } @else if (appreciation()?.hasCurrentPlayerDone) {
           Your coins are locked in. The scoreboard opens when everyone is done.
         } @else {
-        Coins are optional. Reward eligible winners, then select Done reviewing.
+        Coins are optional, but you can give away as many as you like. Reward some of the winners, then select Done reviewing.
         }
       </p>
     </div>
@@ -72,7 +72,8 @@
 
   <section class="space-y-2.5">
     @for (result of appreciation()?.roundResults ?? []; track result.promptOwnerPlayerId) {
-      <article class="soft-card result-row space-y-2.5" [ngClass]="cardClasses(result)">
+      <article class="soft-card result-row space-y-2.5"
+        [class.is-own-winner]="result.currentPlayerSubmittedWinningBribe">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0 space-y-1">
             <div class="flex flex-wrap items-center gap-2">

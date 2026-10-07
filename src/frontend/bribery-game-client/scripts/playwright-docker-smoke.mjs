@@ -52,6 +52,10 @@ async function capture(page, name) {
     buttons: [...document.querySelectorAll('button')].filter((element) => element.getClientRects().length).map((element) => element.textContent.trim()),
   }));
   expect(metrics.document.width, `${name}: horizontal overflow`).toBeLessThanOrEqual(metrics.viewport.width);
+  // Flattened gameplay sections must not retain the old cards' clipping boundaries.
+  await expect.poll(() => page.locator('.game-layout .soft-panel, .game-layout .soft-card, .game-layout .prompt-card').evaluateAll((elements) =>
+    elements.filter((element) => getComputedStyle(element).overflowX !== 'visible' || getComputedStyle(element).overflowY !== 'visible')
+      .map((element) => element.className)), { message: `${name}: invisible clipping containers` }).toEqual([]);
   flowMetrics.push({ name, ...metrics });
   if (!artifactDir) return;
   await fs.mkdir(artifactDir, { recursive: true });
@@ -360,6 +364,7 @@ async function main() {
     await roster[0].page.getByRole('button', { name: 'Edit prompt' }).click();
     await expect(roster[0].page.getByRole('button', { name: 'Resubmit prompt' })).toBeVisible({ timeout: 10000 });
     await expect(roster[0].page.getByPlaceholder('Best excuse for being late')).toHaveValue(prompts[0]);
+    await roster[0].page.getByPlaceholder('Best excuse for being late').focus();
     await captureResponsive(roster[0].page, 'prompt-editing');
 
     await Promise.all(roster.slice(1).map((player, index) => submitPrompt(player, prompts[index + 1])));
@@ -417,7 +422,7 @@ async function main() {
     await submitAppreciation(roster[0]);
     await captureResponsive(roster[0].page, 'appreciation-done');
     await Promise.all(roster.slice(1).map(submitAppreciation));
-    await waitForVisible(roster[0].page, 'Scoreboard');
+    await roster[0].page.getByRole('heading', { name: 'See how you scored', exact: true }).waitFor();
     await captureResponsive(roster[0].page, 'scoreboard');
     console.log('Completed voting and reached results.');
 
@@ -503,7 +508,8 @@ async function verifyTimerWarning(browser) {
     await captureResponsive(roster[0].page, 'timer-running');
     await roster[0].page.getByPlaceholder('Best excuse for being late').fill('A prompt saved by the timer');
     await Promise.all(roster.slice(1).map((player, index) => submitPrompt(player, `Timed prompt ${index}`)));
-    await expect(roster[0].page.getByRole('status')).toHaveText('Finish now', { timeout: 10000 });
+    await expect(roster[0].page.locator('.phase-clock')).toHaveClass(/is-warning/, { timeout: 10000 });
+    await expect(roster[0].page.getByText('Finish now', { exact: true })).toHaveCount(0);
     await captureResponsive(roster[0].page, 'timer-warning');
     await roster[0].page.setViewportSize({ width: 320, height: 568 });
     await roster[0].page.getByRole('textbox').focus();
