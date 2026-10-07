@@ -1,25 +1,29 @@
 <main class="phase-shell">
-  <section class="soft-panel space-y-4">
+  <header class="phase-heading space-y-4">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Submission</p>
-      <h1 class="text-2xl font-bold text-ink">Send your bribes</h1>
+      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Answer</p>
+      <h1 class="text-2xl font-bold text-ink">{{ !isCurrentPlayerActive() ? 'Watch this round' : shouldShowPhaseWaitingStatus() ? 'Wait for the other bribes' : 'Send your bribes' }}</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        Answer another player's prompt anonymously. If they pick yours, you score.
+        @if (!isCurrentPlayerActive()) {
+          You will receive prompts to answer next round.
+        } @else if (shouldShowPhaseWaitingStatus()) {
+          Your answers are in. You can edit them until voting starts.
+        } @else {
+        Send an anonymous answer to each prompt below. If they pick yours, you score.
+        }
       </p>
     </div>
 
-    <div class="space-y-2">
-      <div class="flex justify-between text-sm text-ink/70">
+    <div class="room-progress">
+      <p class="room-progress-label">Room submissions</p>
+      <div class="text-sm text-ink/70">
         <span>{{ bribeSubmittedCount() }} of {{ bribeRequiredCount() }} bribes sent</span>
-        <span>{{ bribeProgressPercent() }}%</span>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill" [style.width.%]="bribeProgressPercent()"></div>
-      </div>
+
     </div>
 
     <app-phase-countdown />
-  </section>
+  </header>
 
   @if (isWaitingOnlyForOfflinePlayers()) {
     <section class="soft-panel notice-panel space-y-3">
@@ -68,7 +72,7 @@
   } @else {
     @for (target of submission()?.targets ?? []; track target.playerId) {
       <section
-        class="soft-card"
+        class="soft-card bribe-composer"
         [ngClass]="hasSubmitted(target.playerId) ? 'space-y-2 p-3' : 'space-y-3'"
         [class.opacity-80]="hasSubmitted(target.playerId)">
         <div class="flex items-start justify-between gap-3">
@@ -146,6 +150,7 @@
                 <div
                   role="textbox"
                   aria-multiline="true"
+                  [attr.aria-label]="'Your bribe for ' + target.name"
                   contenteditable="true"
                   class="soft-input min-h-28 whitespace-pre-wrap break-words"
                   [attr.data-composer-target]="target.playerId"

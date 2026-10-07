@@ -1,4 +1,9 @@
 <main class="phase-shell">
+  <header class="phase-heading space-y-2">
+    <p class="text-sm font-semibold uppercase tracking-wide text-pine">Lobby</p>
+    <h1>Invite your friends, then ready up</h1>
+    <p class="text-sm text-ink/70">Share the room code. Select I am ready when you’re ready to play.</p>
+  </header>
   <section class="soft-panel space-y-5 text-center">
     <div>
       <p class="text-sm font-semibold uppercase tracking-wide text-pine">Room code</p>
@@ -21,28 +26,11 @@
     <div class="space-y-2">
       <div class="flex items-center justify-between text-sm text-ink/70">
         <span>{{ readyCount() }} of {{ connectedCount() }} ready</span>
-        <span>{{ readyPercent() }}%</span>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill" [style.width.%]="readyPercent()"></div>
-      </div>
+
       <p class="text-sm text-ink/70">{{ canStartHint() }}</p>
     </div>
 
-    <picture>
-      <source srcset="/brand/getCoin.webp" type="image/webp" />
-      <img
-        src="/brand/getCoin.gif"
-        alt=""
-        aria-hidden="true"
-        width="192"
-        height="192"
-        loading="lazy"
-        decoding="async"
-        class="mascot-waiting mx-auto" />
-    </picture>
-
-    <app-waiting-tips />
   </section>
 
   <section class="soft-panel space-y-4">
@@ -58,4 +46,13 @@
 
     <app-game-settings [settings]="settings()" [editable]="isHost()" />
   </section>
+
+  <div class="lobby-extras">
+    <picture>
+      <source srcset="/brand/getCoin.webp" type="image/webp" />
+      <img src="/brand/getCoin.gif" alt="" aria-hidden="true" width="192" height="192"
+        loading="lazy" decoding="async" class="mascot-waiting" />
+    </picture>
+    <app-waiting-tips />
+  </div>
 </main>

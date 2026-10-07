@@ -1,8 +1,9 @@
 <main class="phase-shell">
-  <section class="soft-panel space-y-2 text-center">
+  <header class="phase-heading space-y-4">
     <p class="text-sm font-semibold uppercase tracking-wide text-pine">Scoreboard</p>
-    <h1 class="text-2xl font-bold text-ink">Round {{ currentRound() }} counted</h1>
-  </section>
+    <h1 class="text-2xl font-bold text-ink">See how you scored</h1>
+    <p class="text-sm text-ink/70">Round {{ currentRound() }} complete. Check the scores, then get ready for the next round.</p>
+  </header>
 
   <section class="soft-panel space-y-3">
     @if (canShowOverallScores()) {

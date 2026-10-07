@@ -13,6 +13,7 @@ describe('Game', () => {
   let splash: Pick<SplashService, 'showFirstVisitSplash'>;
 
   beforeEach(async () => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     localStorage.clear();
     localStorage.setItem('playerName', 'Player 2');
     localStorage.setItem('playerId', 'p-new');
@@ -44,6 +45,17 @@ describe('Game', () => {
         },
       ],
     }).compileComponents();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns to the instructions when the phase changes', () => {
+    fixture = TestBed.createComponent(Game);
+    fixture.detectChanges();
+    vi.mocked(window.scrollTo).mockClear();
+    TestBed.inject(GameStateService).phase.set('Submission');
+    fixture.detectChanges();
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
   it('does not block a first-time game link with the splash', async () => {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, effect } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SignalrService } from '../../core/signalr.service';
@@ -37,6 +37,10 @@ export class Game implements OnInit {
     private errors: ErrorMessageService,
   ) {
     this.phase = this.gameState.phase;
+    effect(() => {
+      this.phase();
+      window.scrollTo(0, 0);
+    });
     localStorage.setItem('playerId', this.playerId);
   }
 

@@ -1,25 +1,28 @@
 <main class="phase-shell">
-  <section class="soft-panel space-y-4">
+  <header class="phase-heading space-y-4">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Appreciation</p>
-      <h1 class="text-2xl font-bold text-ink">Round {{ currentRound() }} results</h1>
+      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Round {{ currentRound() }} results</p>
+      <h1 class="text-2xl font-bold text-ink">{{ !isCurrentPlayerActive() ? 'See the winning bribes' : appreciation()?.hasCurrentPlayerDone ? 'Wait for the other players' : 'Give your favourites a bonus coin' }}</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        Review the results and toss a coin to submitted winners that deserve extra applause.
+        @if (!isCurrentPlayerActive()) {
+          Browse the winners. You can vote and give coins next round.
+        } @else if (appreciation()?.hasCurrentPlayerDone) {
+          Your coins are locked in. The scoreboard opens when everyone is done.
+        } @else {
+        Coins are optional. Reward eligible winners, then select Done reviewing.
+        }
       </p>
     </div>
-
-    <div class="space-y-2">
-      <div class="flex justify-between text-sm text-ink/70">
+    <div class="room-progress">
+      <p class="room-progress-label">Room submissions</p>
+      <div class="text-sm text-ink/70">
         <span>{{ appreciation()?.doneCount ?? 0 }} of {{ appreciation()?.requiredCount ?? 0 }} players done</span>
-        <span>{{ doneProgressPercent() }}%</span>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill" [style.width.%]="doneProgressPercent()"></div>
-      </div>
+
     </div>
 
     <app-phase-countdown />
-  </section>
+  </header>
 
   @if (isWaitingOnlyForOfflinePlayers()) {
     <section class="soft-panel notice-panel space-y-3">
@@ -69,7 +72,7 @@
 
   <section class="space-y-2.5">
     @for (result of appreciation()?.roundResults ?? []; track result.promptOwnerPlayerId) {
-      <article class="soft-card space-y-2.5 pr-16 sm:pr-4" [ngClass]="cardClasses(result)">
+      <article class="soft-card result-row space-y-2.5" [ngClass]="cardClasses(result)">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0 space-y-1">
             <div class="flex flex-wrap items-center gap-2">
@@ -82,7 +85,9 @@
                 <span class="text-sm text-ink/60">for this prompt</span>
               }
             </div>
-            <p class="text-sm font-semibold text-ink/70">{{ resultNote(result) }}</p>
+            @if (result.outcome !== 'SubmittedWinner' || result.currentPlayerSubmittedWinningBribe) {
+              <p class="text-sm font-semibold text-pine">{{ resultNote(result) }}</p>
+            }
           </div>
 
           @if (result.outcome === 'SubmittedWinner') {
@@ -97,7 +102,7 @@
             @if (result.hasCurrentPlayerAwardedCoin) {
               <span>Coin given</span>
             } @else {
-              <span aria-hidden="true">+</span>
+              <span>Give coin</span>
               <img
                 src="/brand/coin.png"
                 alt=""
@@ -107,7 +112,7 @@
                 loading="lazy"
                 decoding="async"
                 class="h-4 w-4 shrink-0 object-contain" />
-              <span class="sr-only">Give coin</span>
+
             }
             </button>
           }
@@ -160,14 +165,13 @@
       </div>
       <app-waiting-tips />
     } @else {
-      <p class="text-sm leading-6 text-ink/70">
-        Browse, then lock in your appreciation.
-      </p>
+
       <button
         (click)="submitDone()"
         [disabled]="!isCurrentPlayerActive()"
+        aria-label="Done reviewing round results"
         class="primary-button">
-        Done reviewing round results
+        Done reviewing
       </button>
     }
   </section>

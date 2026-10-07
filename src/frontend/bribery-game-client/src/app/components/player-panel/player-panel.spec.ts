@@ -63,9 +63,7 @@ describe('PlayerPanel', () => {
     const currentPlayerRow = rows
       .find((row) => row.textContent?.includes('Bob')) as HTMLElement | undefined;
 
-    expect(currentPlayerRow?.classList.contains('!border-pine/35')).toBe(true);
-    expect(currentPlayerRow?.classList.contains('!bg-pine/10')).toBe(true);
-    expect(currentPlayerRow?.classList.contains('ring-2')).toBe(true);
+    expect(currentPlayerRow?.classList.contains('is-you')).toBe(true);
     expect(currentPlayerRow?.textContent).toContain('(you)');
   });
 

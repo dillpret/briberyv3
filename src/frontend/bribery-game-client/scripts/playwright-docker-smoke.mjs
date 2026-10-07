@@ -8,6 +8,7 @@ const artifactDir = process.env.UI_ARTIFACT_DIR;
 const headless = process.env.HEADED !== '1';
 const players = ['Alice', 'Bob', 'Carol', 'Dana'];
 const notes = [];
+const flowMetrics = [];
 
 const pngBase64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lkQ7qwAAAABJRU5ErkJggg==';
@@ -37,6 +38,21 @@ async function closeIntroIfVisible(page) {
 }
 
 async function capture(page, name) {
+  if (!name.includes('scrolled')) await page.evaluate(() => window.scrollTo(0, 0));
+  // Wait for entry transitions so before/after captures show settled screens.
+  await page.getByRole('main').evaluate(async (element) => {
+    await Promise.all(element.getAnimations({ subtree: true })
+      .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+      .map((animation) => animation.finished.catch(() => {})));
+  });
+  const metrics = await page.evaluate(() => ({
+    viewport: { width: innerWidth, height: innerHeight },
+    document: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
+    headings: [...document.querySelectorAll('h1,h2')].map((element) => element.textContent.trim()),
+    buttons: [...document.querySelectorAll('button')].filter((element) => element.getClientRects().length).map((element) => element.textContent.trim()),
+  }));
+  expect(metrics.document.width, `${name}: horizontal overflow`).toBeLessThanOrEqual(metrics.viewport.width);
+  flowMetrics.push({ name, ...metrics });
   if (!artifactDir) return;
   await fs.mkdir(artifactDir, { recursive: true });
   await page.screenshot({ path: path.join(artifactDir, `flow-${name}-viewport.png`) });
@@ -55,7 +71,7 @@ async function waitForAnyText(page, texts, timeout = 15000) {
   await expect
     .poll(async () => {
       const body = await page.locator('body').innerText();
-      return texts.find((text) => body.includes(text)) ?? '';
+      return texts.find((text) => body.toLowerCase().includes(text.toLowerCase())) ?? '';
     }, { timeout })
     .not.toBe('');
 }
@@ -247,6 +263,7 @@ async function submitVotes(player) {
   const option = player.page.locator('label.soft-card').first();
   if ((await option.count()) > 0) {
     await option.click();
+    if (player.name === 'Alice') await captureResponsive(player.page, 'voting-selected');
     await player.page.getByRole('button', { name: 'Submit vote' }).click();
     await waitForAnyText(player.page, ['Vote submitted', 'Round 1 results']);
   } else {
@@ -280,7 +297,7 @@ async function main() {
     const nonHostLobbySettings = roster[1].page.locator('details').filter({ hasText: 'Game settings' });
     await expect(nonHostLobbySettings.getByText('Game settings', { exact: true })).toBeVisible();
     await expect(nonHostLobbySettings.locator('select, input')).toHaveCount(0);
-    await capture(roster[0].page, 'lobby');
+    await captureResponsive(roster[0].page, 'lobby');
 
     const duplicate = await makePlayer(browser, 'Duplicate Alice');
     await duplicate.page.goto(baseUrl);
@@ -392,10 +409,16 @@ async function main() {
     console.log('Submitted 12 bribes, including one image upload, and verified three choices per player.');
 
     await Promise.all(roster.map(submitVotes));
-    await capture(roster[0].page, 'appreciation');
-    await Promise.all(roster.map(submitAppreciation));
+    await captureResponsive(roster[0].page, 'appreciation');
+    const coin = roster[0].page.getByRole('button', { name: 'Give coin', exact: true }).and(roster[0].page.locator(':enabled')).first();
+    await coin.click();
+    await expect(roster[0].page.getByRole('button', { name: 'Coin given', exact: true })).toBeVisible();
+    await captureResponsive(roster[0].page, 'appreciation-coin-given');
+    await submitAppreciation(roster[0]);
+    await captureResponsive(roster[0].page, 'appreciation-done');
+    await Promise.all(roster.slice(1).map(submitAppreciation));
     await waitForVisible(roster[0].page, 'Scoreboard');
-    await capture(roster[0].page, 'scoreboard');
+    await captureResponsive(roster[0].page, 'scoreboard');
     console.log('Completed voting and reached results.');
 
     const nonHostScoreboardSettings = roster[1].page.locator('details').filter({ hasText: 'Game settings' });
@@ -450,13 +473,54 @@ async function main() {
     await verifyMissingBribeMode(browser, 'NoFallback');
     console.log('Verified Auto-fill and No fallback missing-submission flows.');
 
+    await verifyTimerWarning(browser);
+
     if (notes.length > 0) {
       throw new Error(`Browser errors detected:\n${notes.map((note) => `- ${note}`).join('\n')}`);
     }
   } finally {
+    if (artifactDir) await fs.writeFile(path.join(artifactDir, 'flow-report.json'), JSON.stringify({ states: flowMetrics, errors: notes }, null, 2));
     await Promise.allSettled(roster.map((player) => player.context.close()));
     await browser.close();
     await fs.rm(imagePath, { force: true });
+  }
+}
+
+async function verifyTimerWarning(browser) {
+  const roster = [];
+  try {
+    for (const name of ['Timer Host', 'Timer Two', 'Timer Three']) roster.push(await makePlayer(browser, name));
+    const gameId = await createGame(roster[0]);
+    await Promise.all(roster.slice(1).map((player) => joinGame(player, gameId)));
+    await enablePromptTimer(roster[0]);
+    const seconds = roster[0].page.getByRole('spinbutton').filter({ visible: true });
+    await seconds.first().fill('20');
+    await seconds.first().blur();
+    await expect(seconds.first()).toHaveValue('20');
+    await Promise.all(roster.map(toggleReady));
+    await roster[0].page.getByRole('button', { name: 'Start game' }).click();
+    await expectCountdown(roster[0]);
+    await captureResponsive(roster[0].page, 'timer-running');
+    await roster[0].page.getByPlaceholder('Best excuse for being late').fill('A prompt saved by the timer');
+    await Promise.all(roster.slice(1).map((player, index) => submitPrompt(player, `Timed prompt ${index}`)));
+    await expect(roster[0].page.getByRole('status')).toHaveText('Finish now', { timeout: 10000 });
+    await captureResponsive(roster[0].page, 'timer-warning');
+    await roster[0].page.setViewportSize({ width: 320, height: 568 });
+    await roster[0].page.getByRole('textbox').focus();
+    await roster[0].page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(() => roster[0].page.evaluate(() => scrollY)).toBeGreaterThan(0);
+    const timer = roster[0].page.getByRole('timer');
+    const bounds = await timer.boundingBox();
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.y + bounds.height).toBeLessThan(568);
+    await expect(timer).toBeInViewport();
+    await capture(roster[0].page, 'timer-warning-scrolled-mobile-small');
+    await waitForVisible(roster[0].page, 'Send your bribes');
+    await expect(roster[0].page.getByRole('timer')).toHaveCount(0);
+    await expect.poll(async () => (await Promise.all(roster.slice(1).map((player) => player.page.locator('body').innerText()))).some((body) => body.includes('A prompt saved by the timer'))).toBe(true);
+    console.log('Verified warning, persistent mobile countdown, and real server deadline submission.');
+  } finally {
+    await Promise.allSettled(roster.map((player) => player.context.close()));
   }
 }
 

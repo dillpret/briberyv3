@@ -1,25 +1,29 @@
 <main class="phase-shell">
-  <section class="soft-panel space-y-4">
+  <header class="phase-heading space-y-4">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Voting</p>
-      <h1 class="text-2xl font-bold text-ink">Pick your favourite bribe</h1>
+      <p class="text-sm font-semibold uppercase tracking-wide text-pine">Choose</p>
+      <h1 class="text-2xl font-bold text-ink">{{ !isCurrentPlayerActive() ? 'Watch this round' : voting()?.hasCompletedVoting ? 'Wait for the other votes' : 'Pick your favourite bribe' }}</h1>
       <p class="mt-1 text-sm leading-6 text-ink/70">
-        Pick the anonymous answer you like most.
+        @if (!isCurrentPlayerActive()) {
+          Only players who received bribes can vote this round.
+        } @else if (voting()?.hasCompletedVoting) {
+          Your vote is in. The winners appear when everyone has voted.
+        } @else {
+        Select one answer below, then submit your vote. The winner earns points.
+        }
       </p>
     </div>
 
-    <div class="space-y-2">
-      <div class="flex justify-between text-sm text-ink/70">
+    <div class="room-progress">
+      <p class="room-progress-label">Room submissions</p>
+      <div class="text-sm text-ink/70">
         <span>{{ voteSubmittedCount() }} of {{ voteRequiredCount() }} votes in</span>
-        <span>{{ voteProgressPercent() }}%</span>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill" [style.width.%]="voteProgressPercent()"></div>
-      </div>
+
     </div>
 
     <app-phase-countdown />
-  </section>
+  </header>
 
   @if (isWaitingOnlyForOfflinePlayers()) {
     <section class="soft-panel notice-panel space-y-3">
@@ -96,9 +100,7 @@
       <blockquote class="text-xl font-bold leading-8 text-ink">
         {{ voting()?.promptText }}
       </blockquote>
-      <p class="text-sm leading-6 text-ink/70">
-        Pick the bribe you like most.
-      </p>
+
       @if (voting()?.promptWasAutomaticallySelected) {
         <p class="notice-panel rounded-[var(--radius-nested)] p-3 text-sm font-semibold leading-6 text-ink">
           You didn't submit a prompt, so this prompt was chosen randomly on your behalf.
@@ -114,14 +116,15 @@
         [class.opacity-50]="!bribe.isSelectable"
         [class.is-selected]="currentSelection() === bribe.bribeId">
         <input
-          class="sr-only"
+          class="vote-radio"
+          [attr.aria-label]="'Choose bribe ' + ($index + 1)"
           type="radio"
           name="bribe"
           [disabled]="!bribe.isSelectable"
           [checked]="currentSelection() === bribe.bribeId"
           (change)="selectBribe(bribe.bribeId)" />
         <span class="flex items-center justify-between gap-3">
-          <span class="text-sm font-semibold uppercase tracking-wide text-ink/60">Anonymous bribe</span>
+          <span class="text-sm font-semibold uppercase tracking-wide text-ink/60">Answer {{ $index + 1 }}</span>
           @if (!bribe.isSelectable) {
             <span class="status-pill border-ink/15 bg-ink/5 text-ink/55">Unavailable</span>
           } @else if (currentSelection() === bribe.bribeId) {

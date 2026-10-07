@@ -523,7 +523,7 @@ describe('Submission', () => {
   it('explains anonymous bribes and recipient voting', () => {
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.textContent).toContain("Answer another player's prompt anonymously");
+    expect(element.textContent).toContain('Send an anonymous answer to each prompt below');
     expect(element.textContent).toContain('If they pick yours, you score.');
     expect(element.textContent).toContain("Player 2's prompt");
     expect(element.textContent).toContain('Write your bribe, paste a GIF, or add an image');

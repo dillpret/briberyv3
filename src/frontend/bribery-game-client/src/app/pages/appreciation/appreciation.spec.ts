@@ -64,8 +64,10 @@ describe('Appreciation', () => {
     expect(cards[0].textContent).toContain('Your bribe won this one');
     expect(cards[0].textContent).toContain("Player 1's bribe");
     expect(cards[0].textContent).toContain('for this prompt');
-    expect(cards[1].textContent).toContain("Player 2's bribe beat yours here");
-    expect(cards[2].textContent).toContain('Your prompt, your pick');
+    expect(cards[1].textContent).toContain("Player 2's bribe");
+    expect(cards[1].textContent).not.toContain('beat yours here');
+    expect(cards[2].textContent).toContain("Player 3's bribe");
+    expect(cards[2].textContent).not.toContain('Your prompt, your pick');
   });
 
   it('renders coin selected and disabled states', () => {

@@ -1,13 +1,12 @@
 @if (isVisible()) {
-  <div
-    class="nested-surface flex flex-col gap-2 border border-pine/20 bg-pine/8 sm:flex-row sm:items-center sm:justify-between"
-    [ngClass]="{ 'border-error/40 bg-error/10 text-error': isWarning() }">
-    <div>
-      <p class="text-sm font-black uppercase tracking-wide">Time remaining</p>
-      <p class="text-sm leading-6">Auto-submits when time runs out.</p>
+  <div class="phase-clock" [class.is-warning]="isWarning()">
+    <div class="clock-copy">
+      <p class="clock-label">Time remaining</p>
+      <p class="clock-hint">Auto-submits when time runs out.</p>
     </div>
-    <span class="text-3xl font-black tabular-nums text-ink" [ngClass]="{ 'text-error': isWarning() }">
+    <span class="clock-value" role="timer" aria-label="Time remaining">
       {{ displayTime() }}
     </span>
+    <span class="clock-warning" role="status">{{ isWarning() ? 'Finish now' : '' }}</span>
   </div>
 }

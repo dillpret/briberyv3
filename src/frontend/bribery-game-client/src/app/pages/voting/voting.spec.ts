@@ -101,7 +101,7 @@ describe('Voting', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.textContent).toContain('Pick your favourite bribe');
-    expect(element.textContent).toContain('Pick the anonymous answer you like most');
+    expect(element.textContent).toContain('Select one answer below, then submit your vote');
   });
 
   it('shows the submit vote action only after a bribe is selected', () => {
@@ -118,7 +118,7 @@ describe('Voting', () => {
 
     expect(element.textContent).toContain('Your prompt');
     expect(element.textContent).toContain('Convince me to pick your bribe');
-    expect(element.textContent).toContain('Pick the bribe you like most');
+    expect(element.textContent).toContain('Select one answer below');
   });
 
   it('explains when the current player prompt was automatically selected', () => {
