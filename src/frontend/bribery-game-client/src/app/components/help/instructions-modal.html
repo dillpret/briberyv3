@@ -1,33 +1,42 @@
 <app-help-overlay title="How to play" panelClass="max-w-[32rem]" (closeOverlay)="close()">
   <div class="mx-auto grid max-h-[calc(100dvh-5.5rem)] w-full grid-rows-[minmax(0,1fr)_auto_auto] gap-3 overflow-hidden p-3 sm:max-h-[calc(100dvh-7rem)] sm:gap-4 sm:p-4">
       @if (steps[currentStep()]; as step) {
-        <article class="flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-nested)] border-2 border-ink/15 bg-surface/70 shadow-inner">
+        <article
+          class="flex min-h-0 touch-none select-none flex-col overflow-hidden rounded-[var(--radius-nested)] border-2 border-ink/15 bg-surface/70 shadow-inner"
+          (pointerdown)="startSwipe($event)"
+          (pointerup)="finishSwipe($event)"
+          (pointercancel)="cancelSwipe()"
+          (lostpointercapture)="cancelSwipe()">
           <span class="status-pill self-start border-sun bg-sun text-ink">
             Page {{ currentStep() + 1 }} of {{ steps.length }}
           </span>
           <img
             [src]="step.image"
             [alt]="step.label"
-            width="1086"
-            height="1448"
+            width="1024"
+            height="1536"
+            draggable="false"
             class="block min-h-0 flex-1 touch-none object-contain" />
         </article>
       }
 
-      <div class="flex items-center justify-between gap-3">
+      <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] items-stretch gap-3">
         <button
           type="button"
-          class="secondary-button py-2"
+          class="secondary-button px-2 py-2"
           [disabled]="currentStep() === 0"
           (click)="previousStep()">
           Previous
         </button>
         <button
           type="button"
-          class="primary-button py-2"
-          [disabled]="currentStep() === steps.length - 1"
-          (click)="nextStep()">
-          Next
+          class="primary-button px-2 py-2"
+          [class.!bg-sun]="currentStep() === steps.length - 1"
+          [class.!text-ink]="currentStep() === steps.length - 1"
+          [class.text-sm]="currentStep() === steps.length - 1"
+          [class.whitespace-nowrap]="currentStep() === steps.length - 1"
+          (click)="advanceOrClose()">
+          {{ currentStep() === steps.length - 1 ? "Got it, let's play" : 'Next' }}
         </button>
       </div>
 

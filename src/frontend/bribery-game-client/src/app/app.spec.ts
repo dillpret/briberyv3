@@ -48,14 +48,14 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('How to play');
-    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/overview.webp"]')).not.toBeNull();
 
     const closeButton = fixture.nativeElement.querySelector('[aria-label="Close help"]') as HTMLButtonElement;
     closeButton.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/overview.webp"]')).toBeNull();
   });
 
   it('hides the global instructions button while a help modal is open', async () => {
@@ -126,9 +126,9 @@ describe('App', () => {
     const image = fixture.nativeElement.querySelector('article img') as HTMLImageElement;
 
     expect(card.className).toContain('overflow-hidden');
-    expect(image.getAttribute('src')).toBe('/instructions/ins1.png');
-    expect(image.getAttribute('width')).toBe('1086');
-    expect(image.getAttribute('height')).toBe('1448');
+    expect(image.getAttribute('src')).toBe('/instructions/overview.webp');
+    expect(image.getAttribute('width')).toBe('1024');
+    expect(image.getAttribute('height')).toBe('1536');
     expect(image.className).toContain('min-h-0');
     expect(image.className).toContain('touch-none');
     expect(image.className).toContain('object-contain');
@@ -161,7 +161,7 @@ describe('App', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const lastStepDot = fixture.nativeElement.querySelector('[aria-label="Show step 4"]') as HTMLButtonElement;
+    const lastStepDot = fixture.nativeElement.querySelector('[aria-label="Show step 5"]') as HTMLButtonElement;
     const closeButton = fixture.nativeElement.querySelector('[aria-label="Close help"]') as HTMLButtonElement;
 
     lastStepDot.focus();
@@ -182,14 +182,14 @@ describe('App', () => {
 
     await router.navigate([], { queryParams: { help: 'instructions' } });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/overview.webp"]')).not.toBeNull();
 
     await router.navigate([], { queryParams: { help: null }, queryParamsHandling: 'merge' });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('img[src="/instructions/ins1.png"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('img[src="/instructions/overview.webp"]')).toBeNull();
   });
 
-  it('marks the splash as seen when query state leaves the splash modal', async () => {
+  it('opens legacy splash links as the unified carousel and marks dismissal as seen', async () => {
     const router = TestBed.inject(Router);
     const splash = TestBed.inject(SplashService);
     const fixture = TestBed.createComponent(App);
@@ -220,5 +220,60 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).not.toContain('Something went wrong');
+  });
+
+  it('finishes the five-page carousel and reopens at the overview', async () => {
+    const router = TestBed.inject(Router);
+    const splash = TestBed.inject(SplashService);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await router.navigate([], { queryParams: { help: 'instructions' } });
+    fixture.detectChanges();
+    const button = (text: string) => Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find((element) => element.textContent?.trim() === text)!;
+    expect(fixture.nativeElement.textContent).toContain('Page 1 of 5');
+    expect(button('Previous').disabled).toBe(true);
+    for (let step = 0; step < 4; step++) {
+      button('Next').click();
+      fixture.detectChanges();
+    }
+    expect(fixture.nativeElement.textContent).toContain('Page 5 of 5');
+    const finish = button("Got it, let's play");
+    expect(finish.disabled).toBe(false);
+    finish.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(router.url).not.toContain('/game');
+    expect(splash.hasSeenSplash()).toBe(true);
+    splash.showFirstVisitSplash();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    await router.navigate([], { queryParams: { help: 'instructions' } });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Page 1 of 5');
+  });
+
+  it('counts early dismissal and browser-history dismissal as seen', async () => {
+    const router = TestBed.inject(Router);
+    const splash = TestBed.inject(SplashService);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    splash.showFirstVisitSplash();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(router.url).toContain('help=instructions');
+    expect(splash.hasSeenSplash()).toBe(false);
+    (fixture.nativeElement.querySelector('[aria-label="Close help"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(splash.hasSeenSplash()).toBe(true);
+    localStorage.clear();
+    await router.navigate([], { queryParams: { help: 'instructions' } });
+    fixture.detectChanges();
+    await router.navigate([], { queryParams: { help: null } });
+    fixture.detectChanges();
+    expect(splash.hasSeenSplash()).toBe(true);
   });
 });

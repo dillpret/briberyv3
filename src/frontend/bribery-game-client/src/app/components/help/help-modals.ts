@@ -1,16 +1,13 @@
 import { Component } from '@angular/core';
 import { HelpModalService } from './help-modal.service';
 import { InstructionsModal } from './instructions-modal';
-import { SplashModal } from './splash-modal';
 
 @Component({
   selector: 'app-help-modals',
   standalone: true,
-  imports: [InstructionsModal, SplashModal],
+  imports: [InstructionsModal],
   template: `
-    @if (help.activeModal() === 'splash') {
-      <app-splash-modal />
-    } @else if (help.activeModal() === 'instructions') {
+    @if (help.activeModal() === 'instructions') {
       <app-instructions-modal />
     }
   `,

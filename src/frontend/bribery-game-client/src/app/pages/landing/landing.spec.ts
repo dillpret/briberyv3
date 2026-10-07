@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { SignalrService } from '../../core/signalr.service';
-import { HelpModalService } from '../../components/help/help-modal.service';
 import { SplashService } from '../../components/help/splash.service';
 
 import { Landing } from './landing';
@@ -11,7 +10,6 @@ describe('Landing', () => {
   let fixture: ComponentFixture<Landing>;
   let router: Pick<Router, 'navigate'>;
   let signalr: Pick<SignalrService, 'createGame'>;
-  let helpModal: Pick<HelpModalService, 'open'>;
   let splash: Pick<SplashService, 'showFirstVisitSplash'>;
 
   beforeEach(async () => {
@@ -22,9 +20,6 @@ describe('Landing', () => {
     signalr = {
       createGame: vi.fn().mockResolvedValue('ab12'),
     };
-    helpModal = {
-      open: vi.fn(),
-    };
     splash = {
       showFirstVisitSplash: vi.fn(),
     };
@@ -34,7 +29,6 @@ describe('Landing', () => {
       providers: [
         { provide: Router, useValue: router },
         { provide: SignalrService, useValue: signalr },
-        { provide: HelpModalService, useValue: helpModal },
         { provide: SplashService, useValue: splash },
       ],
     }).compileComponents();
@@ -111,22 +105,9 @@ describe('Landing', () => {
     expect(splash.showFirstVisitSplash).toHaveBeenCalled();
   });
 
-  it('opens the splash from the landing about button', () => {
+  it('removes the separate about action', () => {
     fixture.detectChanges();
-
-    const aboutButton = fixture.nativeElement.querySelector(
-      '[aria-label="Open Bribery introduction"]',
-    ) as HTMLButtonElement;
-    aboutButton.click();
-
-    expect(helpModal.open).toHaveBeenCalledWith('splash');
-  });
-
-  it('keeps the about action outside the primary logo group', () => {
-    fixture.detectChanges();
-
-    const firstSection = fixture.nativeElement.querySelector('main > section:first-child') as HTMLElement;
-
-    expect(firstSection.textContent).not.toContain('About Bribery');
+    expect(fixture.nativeElement.querySelector('[aria-label="Open Bribery introduction"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('About Bribery');
   });
 });

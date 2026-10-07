@@ -13,7 +13,7 @@ export class SplashService {
     if (this.hasSeenSplash()) return;
     if (this.helpModal.activeModal()) return;
 
-    this.helpModal.open('splash');
+    this.helpModal.open('instructions');
   }
 
   markSeen() {

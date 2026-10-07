@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { NavigationExtras, Router } from '@angular/router';
 
-export type HelpModalKind = 'splash' | 'instructions';
+export type HelpModalKind = 'instructions';
 
 @Injectable({
   providedIn: 'root',
@@ -20,7 +20,7 @@ export class HelpModalService {
   }
 
   syncFromQueryParam(value: string | null) {
-    this.activeModal.set(value === 'splash' || value === 'instructions' ? value : null);
+    this.activeModal.set(value === 'splash' || value === 'instructions' ? 'instructions' : null);
   }
 
   private queryParams(queryParams: { help: HelpModalKind | null }): NavigationExtras {

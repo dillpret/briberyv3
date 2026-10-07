@@ -5,6 +5,7 @@ import { HelpModalService, HelpModalKind } from './components/help/help-modal.se
 import { HelpModals } from './components/help/help-modals';
 import { SplashService } from './components/help/splash.service';
 import { ErrorMessageService } from './core/error-message.service';
+import { HelpArtworkService } from './components/help/help-artwork.service';
 
 @Component({
   selector: 'app-root',
@@ -21,13 +22,15 @@ export class App implements OnInit, OnDestroy {
     public helpModal: HelpModalService,
     private route: ActivatedRoute,
     private splash: SplashService,
+    private artwork: HelpArtworkService,
   ) {}
 
   ngOnInit() {
+    this.artwork.preload();
     this.routeSubscription = this.route.queryParamMap.subscribe((params) => {
       const nextHelpModal = this.normalizeHelpModal(params.get('help'));
 
-      if (this.previousHelpModal === 'splash' && nextHelpModal !== 'splash') {
+      if (this.previousHelpModal === 'instructions' && nextHelpModal === null) {
         this.splash.markSeen();
       }
 
@@ -45,6 +48,6 @@ export class App implements OnInit, OnDestroy {
   }
 
   private normalizeHelpModal(value: string | null): HelpModalKind | null {
-    return value === 'splash' || value === 'instructions' ? value : null;
+    return value === 'splash' || value === 'instructions' ? 'instructions' : null;
   }
 }

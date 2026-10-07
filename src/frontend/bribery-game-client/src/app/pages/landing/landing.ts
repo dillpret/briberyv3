@@ -5,7 +5,6 @@ import { SignalrService } from '../../core/signalr.service';
 import { CommonModule } from '@angular/common';
 import { buildInfo } from '../../build-info.generated';
 import { ErrorMessageService } from '../../core/error-message.service';
-import { HelpModalService } from '../../components/help/help-modal.service';
 import { SplashService } from '../../components/help/splash.service';
 
 @Component({
@@ -25,7 +24,6 @@ export class Landing implements AfterViewInit {
     private signalr: SignalrService,
     private router: Router,
     private errors: ErrorMessageService,
-    private helpModal: HelpModalService,
     private splash: SplashService,
   ) {
     localStorage.setItem('playerId', this.playerId);
@@ -33,10 +31,6 @@ export class Landing implements AfterViewInit {
 
   ngAfterViewInit() {
     this.splash.showFirstVisitSplash();
-  }
-
-  openSplash() {
-    this.helpModal.open('splash');
   }
 
   async createGame() {
